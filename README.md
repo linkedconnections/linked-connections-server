@@ -1,2 +1,2 @@
 # linked-connections-server
-Express based server that expose linked connections data fragments using JSON-LD notation
+Express based server that exposes linked connections data fragments using JSON-LD notation
