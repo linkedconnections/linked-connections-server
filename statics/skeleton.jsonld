@@ -10,15 +10,14 @@
   "hydra:previous":"http://localhost:3000/connections",
   "hydra:search":{
     "@type":"hydra:IriTemplate",
-    "hydra:template":"http://localhost:3000/connections/{?departureTime}",
-    "hydra:variableRepresentation":
-                          "hydra:BasicRepresentation",
+    "hydra:template":"http://localhost:3000/connections",
+    "hydra:variableRepresentation":"hydra:BasicRepresentation",
     "hydra:mapping":{
-      "@type":"IriTemplateMapping",
-      "hydra:variable":"departureTime",
-      "hydra:required":true,
-      "hydra:property":"lc:departureTimeQuery"
-    }
+        "@type":"IriTemplateMapping",
+        "hydra:variable":"departureTime",
+        "hydra:required":true,
+        "hydra:property":"lc:departureTimeQuery"
+      }
   },
   "@graph":[]
 }

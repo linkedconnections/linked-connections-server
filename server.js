@@ -5,7 +5,7 @@ var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 
-var pagefinder = require('./routes/page-finder');
+var pagefinder = require('./src/routes/page-finder');
 
 var app = express();
 

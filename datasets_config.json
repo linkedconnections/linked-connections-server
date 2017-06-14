@@ -1,0 +1,14 @@
+{
+    "datasets":[
+        {
+            "companyName": "company x",
+            "downloadUrl": "http://...",
+            "updatePeriod": "* * * * * *"
+        },
+        {
+            "companyName": "company y",
+            "downloadUrl": "http://...",
+            "updatePeriod": "* * * * * *"
+        }
+    ]
+}

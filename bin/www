@@ -3,10 +3,16 @@
 /**
  * Module dependencies.
  */
-
+var dataset_manager = require('../src/manager/dataset_manager');
 var app = require('../server');
 var debug = require('debug')('linked-connections-server:server');
 var http = require('http');
+
+/**
+ * Start dataset managing process
+ */
+dataset_manager.manageDatasets();
+
 
 /**
  * Get port from environment and store in Express.
