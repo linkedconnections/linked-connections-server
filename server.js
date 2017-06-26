@@ -4,8 +4,8 @@ var favicon = require('serve-favicon');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
-
 var pagefinder = require('./src/routes/page-finder');
+var memento = require('./src/routes/memento');
 
 var app = express();
 
@@ -18,6 +18,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/connections', pagefinder);
+app.use('/memento', memento);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -34,7 +35,8 @@ app.use(function(err, req, res, next) {
 
   // render the error page
   res.status(err.status || 500);
-  res.render('error');
+  res.send();
+  //res.render('error');
 });
 
 module.exports = app;
