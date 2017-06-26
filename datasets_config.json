@@ -3,12 +3,14 @@
         {
             "companyName": "company x",
             "downloadUrl": "http://...",
-            "updatePeriod": "* * * * * *"
+            "updatePeriod": "* * * * * *",
+            "baseURI": "http://example.org/"
         },
         {
             "companyName": "company y",
             "downloadUrl": "http://...",
-            "updatePeriod": "* * * * * *"
+            "updatePeriod": "* * * * * *",
+            "baseURI": "http://example.org/"
         }
     ]
 }

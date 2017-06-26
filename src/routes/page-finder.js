@@ -62,12 +62,13 @@ router.get('/:agency/:departureTime', function (req, res) {
                                 var jsonld_graph = buffer.join('').split(',\n');
                                 fs.readFile('./statics/skeleton.jsonld', { encoding: 'utf8' }, (err, data) => {
                                     var jsonld_skeleton = JSON.parse(data);
-                                    jsonld_skeleton['@id'] = jsonld_skeleton['@id'] + '/' + agency + '/' + departureTime.toISOString();
-                                    jsonld_skeleton['hydra:next'] = jsonld_skeleton['hydra:next'] + '/'
+                                    jsonld_skeleton['@id'] = jsonld_skeleton['@id'] + 'connections/' + agency + '/' + departureTime.toISOString();
+                                    jsonld_skeleton['hydra:next'] = jsonld_skeleton['hydra:next'] + 'connections/'
                                         + agency + '/' + getAdjacentPage(agency + '/' + last_version, departureTime, true);
-                                    jsonld_skeleton['hydra:previous'] = jsonld_skeleton['hydra:previous'] + '/'
+                                    jsonld_skeleton['hydra:previous'] = jsonld_skeleton['hydra:previous'] + 'connections/'
                                         + agency + '/' + getAdjacentPage(agency + '/' + last_version, departureTime, false);
-                                    jsonld_skeleton['hydra:search']['hydra:template'] = jsonld_skeleton['hydra:search']['hydra:template'] + '/' + agency + '/{?departureTime}';
+                                    jsonld_skeleton['hydra:search']['hydra:template'] = jsonld_skeleton['hydra:search']['hydra:template'] + 'connections/'
+                                        + agency + '/{?departureTime}';
 
                                     for (let i in jsonld_graph) {
                                         jsonld_skeleton['@graph'].push(JSON.parse(jsonld_graph[i]));
@@ -113,13 +114,17 @@ function findResource(agency, departureTime, versions, cb) {
 
         fs.readdir('./linked_pages/' + agency + '/' + version, (err, pages) => {
             if (err) { cb(null); return }
-            let di = new Date(pages[0].substring(0, pages[0].indexOf('.jsonld.gz')));
-            let df = new Date(pages[pages.length - 1].substring(0, pages[pages.length - 1].indexOf('.jsonld.gz')));
+            if (typeof pages !== 'undefined' && pages.length > 0) {
+                let di = new Date(pages[0].substring(0, pages[0].indexOf('.jsonld.gz')));
+                let df = new Date(pages[pages.length - 1].substring(0, pages[pages.length - 1].indexOf('.jsonld.gz')));
 
-            if (departureTime >= di && departureTime <= df) {
-                cb(version);
-            } else if (ver.length == 0) {
-                cb(null);
+                if (departureTime >= di && departureTime <= df) {
+                    cb(version);
+                } else if (ver.length == 0) {
+                    cb(null);
+                } else {
+                    checkVer();
+                }
             } else {
                 checkVer();
             }

@@ -119,20 +119,52 @@ function processDataset(dataset, file_name) {
         .pipe(unzip.Extract({ path: './datasets/' + dataset.companyName + '/' + file_name + '_tmp' }))
         .on('close', function () {
             console.log('Dataset extracted for ' + dataset.companyName);
-            executeShellScript(dataset, file_name, function (err, msg, dataset, file_name) {
+            setBaseUris(dataset, (err) => {
                 if (err) {
-                    console.log('ERROR: ' + err);
+                    console.error('ERROR: ' + err);
                 } else {
-                    console.log(msg);
-                    paginator.paginateDataset(dataset.companyName, file_name,
-                        function () {
-                            child_process.exec('gzip *', { cwd: './linked_pages/' + dataset.companyName + '/' + file_name }, function() {
-                                console.log('Pagination for ' + dataset.companyName + ' dataset completed!!');
-                            });
-                        });
+                    executeShellScript(dataset, file_name, function (err, msg, dataset, file_name) {
+                        if (err) {
+                            console.error('ERROR: ' + err);
+                        } else {
+                            console.log(msg);
+                            paginator.paginateDataset(dataset.companyName, file_name,
+                                function () {
+                                    child_process.exec('gzip *', { cwd: './linked_pages/' + dataset.companyName + '/' + file_name }, function () {
+                                        console.log('Pagination for ' + dataset.companyName + ' dataset completed!!');
+                                    });
+                                });
+                        }
+                    });
                 }
             });
         });
+}
+
+function setBaseUris(dataset, cb) {
+    let uri = dataset.baseURI;
+    if (typeof uri == 'undefined' || uri == '') {
+        uri = 'http://example.org/';
+    }
+
+    if (!uri.endsWith('/')) {
+        uri = uri + '/';
+    }
+
+    let config = {
+        'stops': uri + 'stops/',
+        'connections': uri + 'connections/',
+        'trips': uri + 'trips/',
+        'routes': uri + 'routes/'
+    }
+
+    fs.writeFile('./datasets/' + dataset.companyName + '/baseUris.json', JSON.stringify(config), function (err) {
+        if (err) {
+            cb(err);
+        } else {
+            cb();
+        }
+    });
 }
 
 function executeShellScript(dataset, file_name, cb) {
