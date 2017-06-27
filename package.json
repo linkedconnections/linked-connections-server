@@ -11,6 +11,10 @@
     "debug": "~2.6.3",
     "express": "~4.15.2",
     "morgan": "~1.8.1",
-    "serve-favicon": "~2.4.2"
+    "serve-favicon": "~2.4.2",
+    "cron": "~1.2.1",
+    "follow-redirects": "~1.2.4",
+    "unzip": "~0.1.11",
+    "jsonld-stream": "~1.0.3"
   }
 }
