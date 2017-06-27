@@ -1,2 +1,5 @@
 *.gz
 *.zip
+datasets/
+linked_connections/
+linked_pages/

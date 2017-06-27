@@ -2,12 +2,14 @@ const fs = require('fs');
 const child_process = require('child_process');
 const cron = require('cron');
 const url = require('url');
-const http = require('http');
-const https = require('https');
+const http = require('follow-redirects').http;
+const https = require('follow-redirects').hhtps;
 const unzip = require('unzip');
 const paginator = require('../paginator/paginator');
 
-const datasets = JSON.parse(fs.readFileSync('./datasets_config.json', 'utf8')).datasets;
+const config = JSON.parse(fs.readFileSync('./datasets_config.json', 'utf8'));
+let storage = config.storage;
+let datasets = config.datasets;
 
 module.exports.manageDatasets = function () {
     initContext();
@@ -15,16 +17,20 @@ module.exports.manageDatasets = function () {
 }
 
 function initContext() {
-    if (!fs.existsSync('./datasets')) {
-        child_process.execSync('mkdir ./datasets');
+    if (storage.endsWith('/')) {
+        storage = storage.substring(0, storage.length - 1);
     }
 
-    if (!fs.existsSync('./linked_connections')) {
-        child_process.execSync('mkdir ./linked_connections');
+    if (!fs.existsSync(storage + '/datasets')) {
+        child_process.execSync('mkdir ' + storage + '/datasets');
     }
 
-    if (!fs.existsSync('./linked_pages')) {
-        child_process.execSync('mkdir ./linked_pages');
+    if (!fs.existsSync(storage + '/linked_connections')) {
+        child_process.execSync('mkdir ' + storage + '/linked_connections');
+    }
+
+    if (!fs.existsSync(storage + '/linked_pages')) {
+        child_process.execSync('mkdir ' + storage + '/linked_pages');
     }
 }
 
@@ -50,16 +56,16 @@ function launchCronJobs(i) {
 }
 
 function initCompanyContext(name) {
-    if (!fs.existsSync('./datasets/' + name)) {
-        child_process.execSync('mkdir ./datasets/' + name);
+    if (!fs.existsSync(storage + '/datasets/' + name)) {
+        child_process.execSync('mkdir ' + storage + '/datasets/' + name);
     }
 
-    if (!fs.existsSync('./linked_connections/' + name)) {
-        child_process.execSync('mkdir ./linked_connections/' + name);
+    if (!fs.existsSync(storage + '/linked_connections/' + name)) {
+        child_process.execSync('mkdir ' + storage + '/linked_connections/' + name);
     }
 
-    if (!fs.existsSync('./linked_pages/' + name)) {
-        child_process.execSync('mkdir ./linked_pages/' + name);
+    if (!fs.existsSync(storage + '/linked_pages/' + name)) {
+        child_process.execSync('mkdir ' + storage + '/linked_pages/' + name);
     }
 }
 
@@ -77,8 +83,8 @@ function downloadDataset(dataset, cb) {
         const req = https.request(options, (res) => {
             var file_name = new Date(res.headers['last-modified']).toISOString();
 
-            if (!fs.existsSync('./datasets/' + dataset.companyName + '/' + file_name + '.zip')) {
-                var wf = fs.createWriteStream('./datasets/' + dataset.companyName + '/' + file_name + '.zip', { encoding: 'base64' });
+            if (!fs.existsSync(storage + '/datasets/' + dataset.companyName + '/' + file_name + '.zip')) {
+                var wf = fs.createWriteStream(storage + '/datasets/' + dataset.companyName + '/' + file_name + '.zip', { encoding: 'base64' });
 
                 res.on('data', (d) => {
                     wf.write(d);
@@ -98,8 +104,8 @@ function downloadDataset(dataset, cb) {
     } else {
         const req = http.get(durl.href, function (res) {
             var file_name = new Date(res.headers['last-modified']).toISOString();
-            if (!fs.existsSync('./datasets/' + dataset.companyName + '/' + file_name + '.zip')) {
-                var wf = fs.createWriteStream('./datasets/' + dataset.companyName + '/' + file_name + '.zip', { encoding: 'base64' });
+            if (!fs.existsSync(storage + '/datasets/' + dataset.companyName + '/' + file_name + '.zip')) {
+                var wf = fs.createWriteStream(storage + '/datasets/' + dataset.companyName + '/' + file_name + '.zip', { encoding: 'base64' });
 
                 res.on('data', (d) => {
                     wf.write(d);
@@ -115,8 +121,8 @@ function downloadDataset(dataset, cb) {
 }
 
 function processDataset(dataset, file_name) {
-    fs.createReadStream('./datasets/' + dataset.companyName + '/' + file_name + '.zip')
-        .pipe(unzip.Extract({ path: './datasets/' + dataset.companyName + '/' + file_name + '_tmp' }))
+    fs.createReadStream(storage + '/datasets/' + dataset.companyName + '/' + file_name + '.zip')
+        .pipe(unzip.Extract({ path: storage + '/datasets/' + dataset.companyName + '/' + file_name + '_tmp' }))
         .on('close', function () {
             console.log('Dataset extracted for ' + dataset.companyName);
             setBaseUris(dataset, (err) => {
@@ -128,9 +134,9 @@ function processDataset(dataset, file_name) {
                             console.error('ERROR: ' + err);
                         } else {
                             console.log(msg);
-                            paginator.paginateDataset(dataset.companyName, file_name,
+                            paginator.paginateDataset(dataset.companyName, file_name, storage,
                                 function () {
-                                    child_process.exec('gzip *', { cwd: './linked_pages/' + dataset.companyName + '/' + file_name }, function () {
+                                    child_process.exec('gzip *', { cwd: storage + '/linked_pages/' + dataset.companyName + '/' + file_name }, function () {
                                         console.log('Pagination for ' + dataset.companyName + ' dataset completed!!');
                                     });
                                 });
@@ -158,7 +164,7 @@ function setBaseUris(dataset, cb) {
         'routes': uri + 'routes/'
     }
 
-    fs.writeFile('./datasets/' + dataset.companyName + '/baseUris.json', JSON.stringify(config), function (err) {
+    fs.writeFile(storage + '/datasets/' + dataset.companyName + '/baseUris.json', JSON.stringify(config), function (err) {
         if (err) {
             cb(err);
         } else {
@@ -168,7 +174,7 @@ function setBaseUris(dataset, cb) {
 }
 
 function executeShellScript(dataset, file_name, cb) {
-    child_process.exec('./gtfs2lc.sh ' + dataset.companyName + ' ' + file_name, { cwd: './src/manager' }, function (err, stdout, stderr) {
+    child_process.exec('./gtfs2lc.sh ' + dataset.companyName + ' ' + file_name + ' ' + storage, { cwd: './src/manager' }, function (err, stdout, stderr) {
         if (err != null) {
             return cb(new Error(err), null);
         } else if (typeof (stderr) != "string") {

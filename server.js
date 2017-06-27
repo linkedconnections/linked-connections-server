@@ -17,7 +17,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/connections', pagefinder);
+app.use('/', pagefinder);
 app.use('/memento', memento);
 
 // catch 404 and forward to error handler

@@ -3,6 +3,8 @@ const router = express.Router();
 const fs = require('fs');
 const zlib = require('zlib');
 
+const config = JSON.parse(fs.readFileSync('./datasets_config.json', 'utf8'));
+let storage = config.storage;
 
 router.get('/:agency/:version/:resource', function (req, res) {
     let agency = req.params.agency;
@@ -10,7 +12,11 @@ router.get('/:agency/:version/:resource', function (req, res) {
     let resource = req.params.resource;
     let buffer = [];
 
-    fs.createReadStream('./linked_pages/' + agency + '/' + version + '/' + resource + '.jsonld.gz')
+    if(storage.endsWith('/')) {
+        storage = storage.substring(0, storage.length - 1);
+    }
+
+    fs.createReadStream(storage + '/linked_pages/' + agency + '/' + version + '/' + resource + '.jsonld.gz')
         .pipe(new zlib.createGunzip())
         .on('data', function (data) {
             buffer.push(data);
@@ -43,7 +49,7 @@ function getAdjacentPage(path, departureTime, next) {
     } else {
         date.setMinutes(date.getMinutes() - 10);
     }
-    while (!fs.existsSync('./linked_pages/' + path + '/' + date.toISOString() + '.jsonld.gz')) {
+    while (!fs.existsSync(storage + '/linked_pages/' + path + '/' + date.toISOString() + '.jsonld.gz')) {
         if (next) {
             date.setMinutes(date.getMinutes() + 10);
         } else {

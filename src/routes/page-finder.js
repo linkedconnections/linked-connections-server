@@ -3,15 +3,21 @@ const router = express.Router();
 const fs = require('fs');
 const zlib = require('zlib');
 
+const config = JSON.parse(fs.readFileSync('./datasets_config.json', 'utf8'));
+let storage = config.storage;
 
-router.get('/:agency/:departureTime', function (req, res) {
+router.get('/:agency/connections/:departureTime', function (req, res) {
     let agency = req.params.agency;
     let departureTime = new Date(req.params.departureTime);
     let acceptDatetime = req.headers['accept-datetime'];
     let buffer = [];
 
-    if (fs.existsSync('./linked_pages/' + agency)) {
-        fs.readdir('./linked_pages/' + agency, (err, versions) => {
+    if(storage.endsWith('/')) {
+        storage = storage.substring(0, storage.length - 1);
+    }
+
+    if (fs.existsSync(storage + '/linked_pages/' + agency)) {
+        fs.readdir(storage + '/linked_pages/' + agency, (err, versions) => {
             //Check if previous version of resource is been requested
             if (typeof acceptDatetime !== 'undefined') {
                 //Sort versions list according to the requested version
@@ -22,7 +28,7 @@ router.get('/:agency/:departureTime', function (req, res) {
                             //Adjust requested resource to match 10 minutes step format
                             departureTime.setMinutes(departureTime.getMinutes() - (departureTime.getMinutes() % 10));
                             //Find closest resource
-                            while (!fs.existsSync('./linked_pages/' + agency + '/' + last_version + '/' + departureTime.toISOString() + '.jsonld.gz')) {
+                            while (!fs.existsSync(storage + '/linked_pages/' + agency + '/' + last_version + '/' + departureTime.toISOString() + '.jsonld.gz')) {
                                 departureTime.setMinutes(departureTime.getMinutes() - 10);
                             }
 
@@ -30,7 +36,7 @@ router.get('/:agency/:departureTime', function (req, res) {
                             res.location('/memento/' + agency + '/' + last_version + '/' + departureTime.toISOString());
                             res.set({
                                 'Vary': 'accept-datetime',
-                                'Link': '<http://' + req.headers.host + '/connections/' + agency + '/' + departureTime.toISOString() + '>; rel=\"original timegate\"'
+                                'Link': '<http://' + req.headers.host + '/' + agency + '/connections/' + departureTime.toISOString() + '>; rel=\"original timegate\"'
                             });
 
                             //Send HTTP redirect to client
@@ -48,12 +54,12 @@ router.get('/:agency/:departureTime', function (req, res) {
                         //Adjust requested resource to match 10 minutes step format
                         departureTime.setMinutes(departureTime.getMinutes() - (departureTime.getMinutes() % 10));
                         //Find closest resource
-                        while (!fs.existsSync('./linked_pages/' + agency + '/' + last_version + '/' + departureTime.toISOString() + '.jsonld.gz')) {
+                        while (!fs.existsSync(storage + '/linked_pages/' + agency + '/' + last_version + '/' + departureTime.toISOString() + '.jsonld.gz')) {
                             departureTime.setMinutes(departureTime.getMinutes() - 10);
                         }
 
                         //Complement resource with Hydra metadata and send it back to the client 
-                        fs.createReadStream('./linked_pages/' + agency + '/' + last_version + '/' + departureTime.toISOString() + '.jsonld.gz')
+                        fs.createReadStream(storage + '/linked_pages/' + agency + '/' + last_version + '/' + departureTime.toISOString() + '.jsonld.gz')
                             .pipe(new zlib.createGunzip())
                             .on('data', function (data) {
                                 buffer.push(data);
@@ -62,13 +68,12 @@ router.get('/:agency/:departureTime', function (req, res) {
                                 var jsonld_graph = buffer.join('').split(',\n');
                                 fs.readFile('./statics/skeleton.jsonld', { encoding: 'utf8' }, (err, data) => {
                                     var jsonld_skeleton = JSON.parse(data);
-                                    jsonld_skeleton['@id'] = jsonld_skeleton['@id'] + 'connections/' + agency + '/' + departureTime.toISOString();
-                                    jsonld_skeleton['hydra:next'] = jsonld_skeleton['hydra:next'] + 'connections/'
-                                        + agency + '/' + getAdjacentPage(agency + '/' + last_version, departureTime, true);
-                                    jsonld_skeleton['hydra:previous'] = jsonld_skeleton['hydra:previous'] + 'connections/'
-                                        + agency + '/' + getAdjacentPage(agency + '/' + last_version, departureTime, false);
-                                    jsonld_skeleton['hydra:search']['hydra:template'] = jsonld_skeleton['hydra:search']['hydra:template'] + 'connections/'
-                                        + agency + '/{?departureTime}';
+                                    jsonld_skeleton['@id'] = jsonld_skeleton['@id'] + agency + '/connections/' + departureTime.toISOString();
+                                    jsonld_skeleton['hydra:next'] = jsonld_skeleton['hydra:next'] + agency 
+                                        + '/connections/' + getAdjacentPage(agency + '/' + last_version, departureTime, true);
+                                    jsonld_skeleton['hydra:previous'] = jsonld_skeleton['hydra:previous'] + agency 
+                                        + '/connections/' + getAdjacentPage(agency + '/' + last_version, departureTime, false);
+                                    jsonld_skeleton['hydra:search']['hydra:template'] = jsonld_skeleton['hydra:search']['hydra:template'] + agency + '/connections/{?departureTime}';
 
                                     for (let i in jsonld_graph) {
                                         jsonld_skeleton['@graph'].push(JSON.parse(jsonld_graph[i]));
@@ -112,7 +117,7 @@ function findResource(agency, departureTime, versions, cb) {
     (function checkVer() {
         var version = ver.splice(ver.length - 1, 1)[0];
 
-        fs.readdir('./linked_pages/' + agency + '/' + version, (err, pages) => {
+        fs.readdir(storage + '/linked_pages/' + agency + '/' + version, (err, pages) => {
             if (err) { cb(null); return }
             if (typeof pages !== 'undefined' && pages.length > 0) {
                 let di = new Date(pages[0].substring(0, pages[0].indexOf('.jsonld.gz')));
@@ -139,7 +144,7 @@ function getAdjacentPage(path, departureTime, next) {
     } else {
         date.setMinutes(date.getMinutes() - 10);
     }
-    while (!fs.existsSync('./linked_pages/' + path + '/' + date.toISOString() + '.jsonld.gz')) {
+    while (!fs.existsSync(storage + '/linked_pages/' + path + '/' + date.toISOString() + '.jsonld.gz')) {
         if (next) {
             date.setMinutes(date.getMinutes() + 10);
         } else {
