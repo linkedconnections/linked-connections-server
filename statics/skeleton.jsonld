@@ -4,13 +4,13 @@
     "hydra":"http://www.w3.org/ns/hydra/core#",
     "gtfs":"http://vocab.gtfs.org/terms#"
   },
-  "@id":"http://localhost:3000/",
+  "@id":"",
   "@type":"hydra:PagedCollection",
-  "hydra:next":"http://localhost:3000/",
-  "hydra:previous":"http://localhost:3000/",
+  "hydra:next":"",
+  "hydra:previous":"",
   "hydra:search":{
     "@type":"hydra:IriTemplate",
-    "hydra:template":"http://localhost:3000/",
+    "hydra:template":"",
     "hydra:variableRepresentation":"hydra:BasicRepresentation",
     "hydra:mapping":{
         "@type":"IriTemplateMapping",

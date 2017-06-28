@@ -6,10 +6,11 @@ const zlib = require('zlib');
 const config = JSON.parse(fs.readFileSync('./datasets_config.json', 'utf8'));
 let storage = config.storage;
 
-router.get('/:agency/:version/:resource', function (req, res) {
+router.get('/:agency', function (req, res) {
+    const host = req.protocol + '://' + req.headers.host + '/';
     let agency = req.params.agency;
-    let version = req.params.version;
-    let resource = req.params.resource;
+    let version = req.query.version;
+    let resource = req.query.departureTime;
     let buffer = [];
 
     if(storage.endsWith('/')) {
@@ -25,12 +26,10 @@ router.get('/:agency/:version/:resource', function (req, res) {
             var jsonld_graph = buffer.join('').split(',\n');
             fs.readFile('./statics/skeleton.jsonld', { encoding: 'utf8' }, (err, data) => {
                 var jsonld_skeleton = JSON.parse(data);
-                jsonld_skeleton['@id'] = jsonld_skeleton['@id'] + 'memento/' + agency + '/' + version + '/' + resource;
-                jsonld_skeleton['hydra:next'] = jsonld_skeleton['hydra:next'] + 'memento/'
-                    + agency + '/' + version + '/' + getAdjacentPage(agency + '/' + version, resource, true);
-                jsonld_skeleton['hydra:previous'] = jsonld_skeleton['hydra:previous'] + 'memento/'
-                    + agency + '/' + version + '/' + getAdjacentPage(agency + '/' + version, resource, false);
-                jsonld_skeleton['hydra:search']['hydra:template'] = jsonld_skeleton['hydra:search']['hydra:template'] + 'memento/' + agency + '/' + version + '/{?departureTime}';
+                jsonld_skeleton['@id'] = host + 'memento/' + agency + '?version=' + version + '&departureTime=' + resource;
+                jsonld_skeleton['hydra:next'] = host + 'memento/' + agency + '?version=' + version + '&departureTime=' + getAdjacentPage(agency + '/' + version, resource, true);
+                jsonld_skeleton['hydra:previous'] = host + 'memento/' + agency + '?version=' + version + '&departureTime=' + getAdjacentPage(agency + '/' + version, resource, false);
+                jsonld_skeleton['hydra:search']['hydra:template'] = host + 'memento/' + agency + '/{?version,departureTime}';
 
                 for (let i in jsonld_graph) {
                     jsonld_skeleton['@graph'].push(JSON.parse(jsonld_graph[i]));

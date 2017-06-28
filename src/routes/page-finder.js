@@ -6,9 +6,10 @@ const zlib = require('zlib');
 const config = JSON.parse(fs.readFileSync('./datasets_config.json', 'utf8'));
 let storage = config.storage;
 
-router.get('/:agency/connections/:departureTime', function (req, res) {
-    let agency = req.params.agency;
-    let departureTime = new Date(req.params.departureTime);
+router.get('/:agency/connections', function (req, res) {
+    const host = req.protocol + '://' + req.headers.host + '/';
+    const agency = req.params.agency;
+    let departureTime = new Date(req.query.departureTime);
     let acceptDatetime = req.headers['accept-datetime'];
     let buffer = [];
 
@@ -33,10 +34,10 @@ router.get('/:agency/connections/:departureTime', function (req, res) {
                             }
 
                             //Set Memento headers pointng to the found version
-                            res.location('/memento/' + agency + '/' + last_version + '/' + departureTime.toISOString());
+                            res.location('/memento/' + agency + '?version=' + last_version + '&departureTime=' + departureTime.toISOString());
                             res.set({
                                 'Vary': 'accept-datetime',
-                                'Link': '<http://' + req.headers.host + '/' + agency + '/connections/' + departureTime.toISOString() + '>; rel=\"original timegate\"'
+                                'Link': '<http://' + req.headers.host + '/' + agency + '/connections?departureTime=' + departureTime.toISOString() + '>; rel=\"original timegate\"'
                             });
 
                             //Send HTTP redirect to client
@@ -68,12 +69,10 @@ router.get('/:agency/connections/:departureTime', function (req, res) {
                                 var jsonld_graph = buffer.join('').split(',\n');
                                 fs.readFile('./statics/skeleton.jsonld', { encoding: 'utf8' }, (err, data) => {
                                     var jsonld_skeleton = JSON.parse(data);
-                                    jsonld_skeleton['@id'] = jsonld_skeleton['@id'] + agency + '/connections/' + departureTime.toISOString();
-                                    jsonld_skeleton['hydra:next'] = jsonld_skeleton['hydra:next'] + agency 
-                                        + '/connections/' + getAdjacentPage(agency + '/' + last_version, departureTime, true);
-                                    jsonld_skeleton['hydra:previous'] = jsonld_skeleton['hydra:previous'] + agency 
-                                        + '/connections/' + getAdjacentPage(agency + '/' + last_version, departureTime, false);
-                                    jsonld_skeleton['hydra:search']['hydra:template'] = jsonld_skeleton['hydra:search']['hydra:template'] + agency + '/connections/{?departureTime}';
+                                    jsonld_skeleton['@id'] = host + agency + '/connections?departureTime=' + departureTime.toISOString();
+                                    jsonld_skeleton['hydra:next'] = host + agency + '/connections?departureTime=' + getAdjacentPage(agency + '/' + last_version, departureTime, true);
+                                    jsonld_skeleton['hydra:previous'] = host + agency + '/connections?departureTime=' + getAdjacentPage(agency + '/' + last_version, departureTime, false);
+                                    jsonld_skeleton['hydra:search']['hydra:template'] = host + agency + '/connections/{?departureTime}';
 
                                     for (let i in jsonld_graph) {
                                         jsonld_skeleton['@graph'].push(JSON.parse(jsonld_graph[i]));

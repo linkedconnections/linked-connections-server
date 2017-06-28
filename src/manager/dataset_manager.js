@@ -3,7 +3,7 @@ const child_process = require('child_process');
 const cron = require('cron');
 const url = require('url');
 const http = require('follow-redirects').http;
-const https = require('follow-redirects').hhtps;
+const https = require('follow-redirects').https;
 const unzip = require('unzip');
 const paginator = require('../paginator/paginator');
 
@@ -148,20 +148,23 @@ function processDataset(dataset, file_name) {
 }
 
 function setBaseUris(dataset, cb) {
-    let uri = dataset.baseURI;
+    let uri = dataset.baseURIs;
+    let config = {};
+
     if (typeof uri == 'undefined' || uri == '') {
-        uri = 'http://example.org/';
-    }
-
-    if (!uri.endsWith('/')) {
-        uri = uri + '/';
-    }
-
-    let config = {
-        'stops': uri + 'stops/',
-        'connections': uri + 'connections/',
-        'trips': uri + 'trips/',
-        'routes': uri + 'routes/'
+        config = {
+            'stops': 'http://example.org/stops/',
+            'connections': 'http://example.org/connections/',
+            'trips': 'http://example.org/trips/',
+            'routes': 'http://example.org/routes/'
+        }
+    } else {
+        config = {
+            'stops': uri.stops,
+            'connections': uri.connections,
+            'trips': uri.trips,
+            'routes': uri.routes
+        }
     }
 
     fs.writeFile(storage + '/datasets/' + dataset.companyName + '/baseUris.json', JSON.stringify(config), function (err) {

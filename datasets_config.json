@@ -1,17 +1,27 @@
 {
-    "storage": "",
+    "storage": "/home/julian/Desktop/OASIS/Development/linked-connections-server",
     "datasets":[
         {
             "companyName": "company x",
             "downloadUrl": "http://...",
             "updatePeriod": "* * * * * *",
-            "baseURI": "http://example.org/"
+            "baseURIs": {
+                "stops": "http://example.org/stops/",
+                "connections": "http://example.org/connections/",
+                "trips": "http://example.org/trips/",
+                "routes": "http://example.org/routes/"
+            }
         },
         {
             "companyName": "company y",
             "downloadUrl": "http://...",
             "updatePeriod": "* * * * * *",
-            "baseURI": "http://example.org/"
+            "baseURIs": {
+                "stops": "http://example.org/stops/",
+                "connections": "http://example.org/connections/",
+                "trips": "http://example.org/trips/",
+                "routes": "http://example.org/routes/"
+            }
         }
     ]
 }
