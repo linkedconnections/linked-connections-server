@@ -3,11 +3,13 @@ const router = express.Router();
 const fs = require('fs');
 const zlib = require('zlib');
 
-const config = JSON.parse(fs.readFileSync('./datasets_config.json', 'utf8'));
-let storage = config.storage;
+const datasets_config = JSON.parse(fs.readFileSync('./datasets_config.json', 'utf8'));
+const hostname = JSON.parse(fs.readFileSync('./server_config.json', 'utf8')).hostname;
+
+let storage = datasets_config.storage;
 
 router.get('/:agency/connections', function (req, res) {
-    const host = req.protocol + '://' + req.headers.host + '/';
+    const host = req.protocol + '://' + hostname + '/';
     const agency = req.params.agency;
     let departureTime = new Date(req.query.departureTime);
     let acceptDatetime = req.headers['accept-datetime'];

@@ -4,10 +4,12 @@ const fs = require('fs');
 const zlib = require('zlib');
 
 const config = JSON.parse(fs.readFileSync('./datasets_config.json', 'utf8'));
+const hostname = JSON.parse(fs.readFileSync('./server_config.json', 'utf8')).hostname;
+
 let storage = config.storage;
 
 router.get('/:agency', function (req, res) {
-    const host = req.protocol + '://' + req.headers.host + '/';
+    const host = req.protocol + '://' + hostname + '/';
     let agency = req.params.agency;
     let version = req.query.version;
     let resource = req.query.departureTime;

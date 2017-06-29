@@ -7,13 +7,16 @@
 var app = require('../server');
 var debug = require('debug')('linked-connections-server:server');
 var http = require('http');
+const fs = require('fs');
+
+const server_config = JSON.parse(fs.readFileSync('./server_config.json', 'utf8'));
 
 
 /**
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.PORT || '3000');
+var port = normalizePort(process.env.PORT || server_config.port);
 app.set('port', port);
 
 /**
