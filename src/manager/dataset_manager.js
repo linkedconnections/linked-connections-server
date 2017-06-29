@@ -21,6 +21,10 @@ function initContext() {
         storage = storage.substring(0, storage.length - 1);
     }
 
+    if(!fs.existsSync(storage + '/tmp')) {
+        child_process.execSync('mkdir ' + storage + '/tmp');
+    }
+
     if (!fs.existsSync(storage + '/datasets')) {
         child_process.execSync('mkdir ' + storage + '/datasets');
     }

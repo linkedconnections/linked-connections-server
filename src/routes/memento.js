@@ -37,6 +37,7 @@ router.get('/:agency', function (req, res) {
                     jsonld_skeleton['@graph'].push(JSON.parse(jsonld_graph[i]));
                 }
 
+                res.set({'Access-Control-Allow-Origin': '*'});
                 res.json(jsonld_skeleton);
             });
         });
