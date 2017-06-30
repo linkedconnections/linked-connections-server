@@ -13,7 +13,7 @@ module.exports.paginateDataset = function(company_name, target_path, storage, cb
     .on('finish', function () {
       var t1 = new Date().getTime();
       var tf = (t1 - t0) / 1000;
-      console.log("Pagination process took " + tf + " seconds to complete");
+      console.log("Pagination process for " + company_name + " took " + tf + " seconds to complete");
       cb();
     });
 }

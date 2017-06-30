@@ -140,7 +140,7 @@ function processDataset(dataset, file_name) {
                             console.log(msg);
                             paginator.paginateDataset(dataset.companyName, file_name, storage,
                                 function () {
-                                    child_process.exec('gzip *', { cwd: storage + '/linked_pages/' + dataset.companyName + '/' + file_name }, function () {
+                                    child_process.exec('find . -type f -exec gzip{} +', { cwd: storage + '/linked_pages/' + dataset.companyName + '/' + file_name }, function () {
                                         console.log('Pagination for ' + dataset.companyName + ' dataset completed!!');
                                     });
                                 });
