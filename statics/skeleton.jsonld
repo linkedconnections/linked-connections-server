@@ -1,9 +1,44 @@
 {
   "@context":{
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
     "lc":"http://semweb.mmlab.be/ns/linkedconnections#",
     "hydra":"http://www.w3.org/ns/hydra/core#",
     "gtfs":"http://vocab.gtfs.org/terms#",
-    "Connection":"http://semweb.mmlab.be/ns/linkedconnections#Connection"
+    "Connection":"http://semweb.mmlab.be/ns/linkedconnections#Connection",
+    "arrivalTime": {
+      "@id":"lc:arrivalTime",
+      "@type": "xsd:dateTime"
+    },
+    "departureTime": {
+      "@id": "lc:departureTime", 
+      "@type":"xsd:dateTime"
+    },
+    "arrivalStop": {
+      "@type": "@id",
+      "@id": "http://semweb.mmlab.be/ns/linkedconnections#arrivalStop"
+    },
+    "departureStop": {
+      "@type": "@id",
+      "@id": "http://semweb.mmlab.be/ns/linkedconnections#departureStop"
+    },
+    "gtfs:trip": {
+      "@type": "@id"
+    },
+    "gtfs:route": {
+      "@type": "@id"
+    },
+    "hydra:next" : {
+      "@type":"@id"
+    },
+    "hydra:previous": {
+      "@type": "@id"
+    },
+    "hydra:property": {
+      "@type": "@id"
+    },
+    "hydra:variableRepresentation": {
+      "@type": "@id"
+    }
   },
   "@id":"",
   "@type":"hydra:PagedCollection",
