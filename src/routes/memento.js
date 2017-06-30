@@ -3,19 +3,31 @@ const router = express.Router();
 const fs = require('fs');
 const zlib = require('zlib');
 
-const config = JSON.parse(fs.readFileSync('./datasets_config.json', 'utf8'));
-const hostname = JSON.parse(fs.readFileSync('./server_config.json', 'utf8')).hostname;
+const dataset_config = JSON.parse(fs.readFileSync('./datasets_config.json', 'utf8'));
+const server_config = JSON.parse(fs.readFileSync('./server_config.json', 'utf8'));
 
-let storage = config.storage;
+let storage = dataset_config.storage;
 
 router.get('/:agency', function (req, res) {
-    const host = req.protocol + '://' + hostname + '/';
+    let x_forwarded_proto = req.headers['x-forwarded-proto'];
+    let protocol = '';
+    if(typeof x_forwarded_proto == 'undefined' || x_forwarded_proto == '') {
+        if(typeof server_config.protocol == 'undefined' || server_config.protocol == '') {
+            protocol = 'http';
+        } else {
+            protocol = server_config.protocol;
+        }
+    } else {
+        protocol = x_forwarded_proto;
+    }
+    
+    const host = protocol + '://' + server_config.hostname + '/';
     let agency = req.params.agency;
     let version = req.query.version;
     let resource = req.query.departureTime;
     let buffer = [];
 
-    if(storage.endsWith('/')) {
+    if (storage.endsWith('/')) {
         storage = storage.substring(0, storage.length - 1);
     }
 
@@ -37,7 +49,12 @@ router.get('/:agency', function (req, res) {
                     jsonld_skeleton['@graph'].push(JSON.parse(jsonld_graph[i]));
                 }
 
-                res.set({'Access-Control-Allow-Origin': '*'});
+                res.set({
+                    'Memento-Datetime': new Date(version).toUTCString(),
+                    'Link': '<http://' + server.config.hostname + '/' + agency + '/connections?departureTime=' + resource + '>; rel=\"original timegate\"',
+                    'Access-Control-Allow-Origin': '*',
+                    'Content-Type': 'application/ld+json',
+                });
                 res.json(jsonld_skeleton);
             });
         });

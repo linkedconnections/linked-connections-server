@@ -4,16 +4,36 @@ const fs = require('fs');
 const zlib = require('zlib');
 
 const datasets_config = JSON.parse(fs.readFileSync('./datasets_config.json', 'utf8'));
-const hostname = JSON.parse(fs.readFileSync('./server_config.json', 'utf8')).hostname;
+const server_config = JSON.parse(fs.readFileSync('./server_config.json', 'utf8'));
 
 let storage = datasets_config.storage;
 
 router.get('/:agency/connections', function (req, res) {
-    const host = req.protocol + '://' + hostname + '/';
+    let x_forwarded_proto = req.headers['x-forwarded-proto'];
+    let protocol = '';
+    if (typeof x_forwarded_proto == 'undefined' || x_forwarded_proto == '') {
+        if (typeof server_config.protocol == 'undefined' || server_config.protocol == '') {
+            protocol = 'http';
+        } else {
+            protocol = server_config.protocol;
+        }
+    } else {
+        protocol = x_forwarded_proto;
+    }
+
+    const host = protocol + '://' + server_config.hostname + '/';
     const agency = req.params.agency;
     let departureTime = new Date(req.query.departureTime);
     let acceptDatetime = req.headers['accept-datetime'];
     let buffer = [];
+
+    if (req.url.indexOf('connections/') >= 0) {
+        res.location('/' + agency + '/connections?departureTime=' + departureTime.toISOString());
+        res.set({ 'Access-Control-Allow-Origin': '*' });
+        res.status(302).send();
+
+        return;
+    }
 
     if (storage.endsWith('/')) {
         storage = storage.substring(0, storage.length - 1);
@@ -39,7 +59,7 @@ router.get('/:agency/connections', function (req, res) {
                             res.location('/memento/' + agency + '?version=' + last_version + '&departureTime=' + departureTime.toISOString());
                             res.set({
                                 'Vary': 'accept-datetime',
-                                'Link': '<http://' + req.headers.host + '/' + agency + '/connections?departureTime=' + departureTime.toISOString() + '>; rel=\"original timegate\"',
+                                'Link': '<http://' + server.config.hostname + '/' + agency + '/connections?departureTime=' + departureTime.toISOString() + '>; rel=\"original timegate\"',
                                 'Access-Control-Allow-Origin': '*'
                             });
 
@@ -56,14 +76,14 @@ router.get('/:agency/connections', function (req, res) {
                 findResource(agency, departureTime, versions, (last_version) => {
                     if (last_version != null) {
                         if (departureTime.getMinutes() % 10 != 0) {
-                             //Adjust requested resource to match 10 minutes step format
+                            //Adjust requested resource to match 10 minutes step format
                             departureTime.setMinutes(departureTime.getMinutes() - (departureTime.getMinutes() % 10));
                             //Find closest resource
                             while (!fs.existsSync(storage + '/linked_pages/' + agency + '/' + last_version + '/' + departureTime.toISOString() + '.jsonld.gz')) {
                                 departureTime.setMinutes(departureTime.getMinutes() - 10);
                             }
                             res.location('/' + agency + '/connections?departureTime=' + departureTime.toISOString());
-                            res.set({'Access-Control-Allow-Origin': '*'});
+                            res.set({ 'Access-Control-Allow-Origin': '*' });
                             res.status(302).send();
                         } else {
                             if (!fs.existsSync(storage + '/linked_pages/' + agency + '/' + last_version + '/' + departureTime.toISOString() + '.jsonld.gz')) {
@@ -71,7 +91,7 @@ router.get('/:agency/connections', function (req, res) {
                                     departureTime.setMinutes(departureTime.getMinutes() - 10);
                                 }
                                 res.location('/' + agency + '/connections?departureTime=' + departureTime.toISOString());
-                                res.set({'Access-Control-Allow-Origin': '*'});
+                                res.set({ 'Access-Control-Allow-Origin': '*' });
                                 res.status(302).send();
                             } else {
                                 //Complement resource with Hydra metadata and send it back to the client 
@@ -92,8 +112,11 @@ router.get('/:agency/connections', function (req, res) {
                                             for (let i in jsonld_graph) {
                                                 jsonld_skeleton['@graph'].push(JSON.parse(jsonld_graph[i]));
                                             }
-                                            
-                                            res.set({'Access-Control-Allow-Origin': '*'});
+
+                                            res.set({
+                                                'Access-Control-Allow-Origin': '*',
+                                                'Content-Type': 'application/ld+json'
+                                            });
                                             res.json(jsonld_skeleton);
                                         });
                                     });

@@ -2,7 +2,8 @@
   "@context":{
     "lc":"http://semweb.mmlab.be/ns/linkedconnections#",
     "hydra":"http://www.w3.org/ns/hydra/core#",
-    "gtfs":"http://vocab.gtfs.org/terms#"
+    "gtfs":"http://vocab.gtfs.org/terms#",
+    "Connection":"http://semweb.mmlab.be/ns/linkedconnections#Connection"
   },
   "@id":"",
   "@type":"hydra:PagedCollection",
