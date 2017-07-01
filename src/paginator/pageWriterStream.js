@@ -36,5 +36,6 @@ function roundDate(date_text) {
   var date = new Date(date_text);
   var round_down = date.getMinutes() - (date.getMinutes() % 10);
   date.setMinutes(round_down);
+  date.setSeconds(0);
   return date;
 }
