@@ -15,6 +15,7 @@
     "cron": "~1.2.1",
     "follow-redirects": "~1.2.4",
     "unzip": "~0.1.11",
-    "jsonld-stream": "~1.0.3"
+    "jsonld-stream": "~1.0.3",
+    "moment-timezone": "~0.5.13"
   }
 }
