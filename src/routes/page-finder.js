@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs');
 const zlib = require('zlib');
+const moment = require('moment-timezone');
 
 const datasets_config = JSON.parse(fs.readFileSync('./datasets_config.json', 'utf8'));
 const server_config = JSON.parse(fs.readFileSync('./server_config.json', 'utf8'));
@@ -23,10 +24,21 @@ router.get('/:agency/connections', function (req, res) {
 
     const host = protocol + '://' + server_config.hostname + '/';
     const agency = req.params.agency;
-    let departureTime = new Date(req.query.departureTime);
+    const iso = /(\d{4})-(\d{2})-(\d{2})T(\d{2})\:(\d{2})\:(\d{2})\.(\d{3})Z/;
+    let departureTime = new Date(decodeURIComponent(req.query.departureTime));
     let acceptDatetime = req.headers['accept-datetime'];
     let buffer = [];
 
+    //Redirect to NOW time in case provided date is invalid
+    if (!iso.test(req.query.departureTime) || departureTime.toString() === 'Invalid Date') {
+        res.location('/' + agency + '/connections?departureTime=' + moment().format().toString().substring(0, 19) + '.000Z');
+        res.set({ 'Access-Control-Allow-Origin': '*' });
+        res.status(302).send();
+
+        return;
+    }
+
+    //Redirect to proper URL if final / is given before params
     if (req.url.indexOf('connections/') >= 0) {
         res.location('/' + agency + '/connections?departureTime=' + departureTime.toISOString());
         res.set({ 'Access-Control-Allow-Origin': '*' });
@@ -35,6 +47,7 @@ router.get('/:agency/connections', function (req, res) {
         return;
     }
 
+    //Remove final / from storage path
     if (storage.endsWith('/')) {
         storage = storage.substring(0, storage.length - 1);
     }
@@ -50,6 +63,8 @@ router.get('/:agency/connections', function (req, res) {
                         if (last_version != null) {
                             //Adjust requested resource to match 10 minutes step format
                             departureTime.setMinutes(departureTime.getMinutes() - (departureTime.getMinutes() % 10));
+                            departureTime.setSeconds(0);
+                            departureTime.setUTCMilliseconds(0);
                             //Find closest resource
                             while (!fs.existsSync(storage + '/linked_pages/' + agency + '/' + last_version + '/' + departureTime.toISOString() + '.jsonld.gz')) {
                                 departureTime.setMinutes(departureTime.getMinutes() - 10);
@@ -75,9 +90,11 @@ router.get('/:agency/connections', function (req, res) {
                 //Find last version containing the requested resource
                 findResource(agency, departureTime, versions, (last_version) => {
                     if (last_version != null) {
-                        if (departureTime.getMinutes() % 10 != 0) {
+                        if (departureTime.getMinutes() % 10 != 0 || departureTime.getSeconds() !== 0 || departureTime.getUTCMilliseconds() !== 0) {
                             //Adjust requested resource to match 10 minutes step format
                             departureTime.setMinutes(departureTime.getMinutes() - (departureTime.getMinutes() % 10));
+                            departureTime.setSeconds(0);
+                            departureTime.setUTCMilliseconds(0);
                             //Find closest resource
                             while (!fs.existsSync(storage + '/linked_pages/' + agency + '/' + last_version + '/' + departureTime.toISOString() + '.jsonld.gz')) {
                                 departureTime.setMinutes(departureTime.getMinutes() - 10);
