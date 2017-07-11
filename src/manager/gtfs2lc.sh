@@ -1,3 +1,4 @@
+#!/bin/bash
 #Script to organize and transform a GTFS feed into linked connections
 COMPANY_NAME="$1"
 LAST_MODIFIED="$2"

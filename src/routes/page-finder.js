@@ -31,7 +31,7 @@ router.get('/:agency/connections', function (req, res) {
 
     //Redirect to NOW time in case provided date is invalid
     if (!iso.test(req.query.departureTime) || departureTime.toString() === 'Invalid Date') {
-        res.location('/' + agency + '/connections?departureTime=' + moment().format().toString().substring(0, 19) + '.000Z');
+        res.location('/' + agency + '/connections?departureTime=' + new Date().toISOString());
         res.set({ 'Access-Control-Allow-Origin': '*' });
         res.status(302).send();
 
