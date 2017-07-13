@@ -6,14 +6,16 @@ const http = require('follow-redirects').http;
 const https = require('follow-redirects').https;
 const unzip = require('unzip');
 const paginator = require('../paginator/paginator');
+const gtfsrt2lc = require('./gtfsrt2lc');
 
 const config = JSON.parse(fs.readFileSync('./datasets_config.json', 'utf8'));
-let storage = config.storage;
-let datasets = config.datasets;
+const datasets = config.datasets;
+const storage = config.storage;
 
 module.exports.manageDatasets = function () {
     initContext();
-    launchCronJobs(0);
+    launchStaticCronJobs(0);
+    launchRTCronJobs(0);
 }
 
 function initContext() {
@@ -21,7 +23,7 @@ function initContext() {
         storage = storage.substring(0, storage.length - 1);
     }
 
-    if(!fs.existsSync(storage + '/tmp')) {
+    if (!fs.existsSync(storage + '/tmp')) {
         child_process.execSync('mkdir ' + storage + '/tmp');
     }
 
@@ -36,17 +38,21 @@ function initContext() {
     if (!fs.existsSync(storage + '/linked_pages')) {
         child_process.execSync('mkdir ' + storage + '/linked_pages');
     }
+
+    if (!fs.existsSync(storage + '/real_time')) {
+        child_process.execSync('mkdir ' + storage + '/real_time');
+    }
 }
 
-function launchCronJobs(i) {
+function launchStaticCronJobs(i) {
     if (i < datasets.length) {
         initCompanyContext(datasets[i].companyName);
 
         new cron.CronJob({
             cronTime: datasets[i].updatePeriod,
             onTick: function () {
-                console.log('runnig cron job for ' + datasets[i].companyName);
-                downloadDataset(datasets[i], function (dataset, file_name) {
+                console.log('runnig cron job to update ' + datasets[i].companyName + ' GTFS feed');
+                downloadDataset(datasets[i], (dataset, file_name) => {
                     if (dataset) {
                         console.log('starting pagination of new ' + dataset.companyName + ' dataset...');
                         processDataset(dataset, file_name);
@@ -55,7 +61,47 @@ function launchCronJobs(i) {
             },
             start: true
         });
-        launchCronJobs(i + 1);
+        launchStaticCronJobs(i + 1);
+    }
+}
+
+function launchRTCronJobs(i) {
+    if (i < datasets.length && datasets[i].realTimeData) {
+        if (!fs.existsSync(storage + '/real_time/' + datasets[i].companyName)) {
+            child_process.execSync('mkdir ' + storage + '/real_time/' + datasets[i].companyName);
+        }
+
+        new cron.CronJob({
+            cronTime: datasets[i].realTimeData.updatePeriod,
+            onTick: function () {
+                console.log('Updating ' + datasets[i].companyName + ' GTFS-RT feed');
+                gtfsrt2lc.processFeed(datasets[i], (error, rtcs) => {
+                    let date = new Date();
+                    date.setUTCMilliseconds(0);
+
+                    let fileName = date.toISOString();
+                    let file = fs.createWriteStream(storage + '/real_time/' + datasets[i].companyName + '/' + fileName + '.jsonld');
+
+                    for (let i = 0; i < rtcs.length; i++) {
+                        if (i === 0) {
+                            file.write(rtcs[i]);
+                        } else {
+                            file.write('\n' + rtcs[i]);
+                        }
+                    }
+                    file.end();
+
+                    file.on('finish', () => {
+                        child_process.exec('./gtfsrt2lc.sh ' + datasets[i].companyName + ' ' + fileName + ' ' + storage, { cwd: './src/manager' }, (e, sto, ste) => {
+                            child_process.exec('gzip ' + fileName + '.jsonld', { cwd: storage + '/real_time/' + datasets[i].companyName }, function () {
+                                console.log('GTFS-RT feed processed for ' + datasets[i].companyName);
+                            });
+                        });
+                    });
+                });
+            },
+            start: true
+        });
     }
 }
 
@@ -94,7 +140,9 @@ function downloadDataset(dataset, cb) {
                     wf.write(d);
                 }).on('end', function () {
                     wf.end();
-                    cb(dataset, file_name);
+                    wf.on('finish', () => {
+                        cb(dataset, file_name);
+                    });
                 });
             } else {
                 cb();
@@ -115,7 +163,9 @@ function downloadDataset(dataset, cb) {
                     wf.write(d);
                 }).on('end', () => {
                     wf.end();
-                    cb(dataset, file_name);
+                    wf.on('finish', () => {
+                        cb(dataset, file_name);
+                    });
                 });
             } else {
                 cb();
@@ -128,7 +178,7 @@ function processDataset(dataset, file_name) {
     fs.createReadStream(storage + '/datasets/' + dataset.companyName + '/' + file_name + '.zip')
         .pipe(unzip.Extract({ path: storage + '/datasets/' + dataset.companyName + '/' + file_name + '_tmp' }))
         .on('close', function () {
-            console.log('Dataset extracted for ' + dataset.companyName);
+            console.log(dataset.companyName + ' Dataset extracted');
             setBaseUris(dataset, (err) => {
                 if (err) {
                     console.error('ERROR: ' + err);

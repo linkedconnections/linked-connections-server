@@ -5,6 +5,10 @@
             "companyName": "company x",
             "downloadUrl": "http://...",
             "updatePeriod": "* * * * * *",
+	    "realTimeData": {
+		"downloadUrl": "http://...",
+		"updatePeriod": "* * * * * *"
+	    },
             "baseURIs": {
                 "stops": "http://example.org/stops/",
                 "connections": "http://example.org/connections/",
