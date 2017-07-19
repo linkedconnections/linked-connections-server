@@ -21,6 +21,14 @@
       "@type": "@id",
       "@id": "http://semweb.mmlab.be/ns/linkedconnections#departureStop"
     },
+    "departureDelay": {
+      "@type": "@id",
+      "@id": "http://semweb.mmlab.be/ns/linkedconnections#departureDelay"
+    },
+    "arrivalDelay": {
+      "@type": "@id",
+      "@id": "http://semweb.mmlab.be/ns/linkedconnections#arrivalDelay"
+    },
     "gtfs:trip": {
       "@type": "@id"
     },

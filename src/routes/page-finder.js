@@ -111,7 +111,7 @@ router.get('/:agency/connections', function (req, res) {
                                 res.set({ 'Access-Control-Allow-Origin': '*' });
                                 res.status(302).send();
                             } else {
-                                //Complement resource with Hydra metadata and send it back to the client 
+                                //Complement resource with Real-Time data and Hydra metadata before sending it back to the client 
                                 fs.createReadStream(storage + '/linked_pages/' + agency + '/' + last_version + '/' + departureTime.toISOString() + '.jsonld.gz')
                                     .pipe(new zlib.createGunzip())
                                     .on('data', function (data) {
@@ -119,22 +119,55 @@ router.get('/:agency/connections', function (req, res) {
                                     })
                                     .on('end', function () {
                                         var jsonld_graph = buffer.join('').split(',\n');
-                                        fs.readFile('./statics/skeleton.jsonld', { encoding: 'utf8' }, (err, data) => {
-                                            var jsonld_skeleton = JSON.parse(data);
-                                            jsonld_skeleton['@id'] = host + agency + '/connections?departureTime=' + departureTime.toISOString();
-                                            jsonld_skeleton['hydra:next'] = host + agency + '/connections?departureTime=' + getAdjacentPage(agency + '/' + last_version, departureTime, true);
-                                            jsonld_skeleton['hydra:previous'] = host + agency + '/connections?departureTime=' + getAdjacentPage(agency + '/' + last_version, departureTime, false);
-                                            jsonld_skeleton['hydra:search']['hydra:template'] = host + agency + '/connections/{?departureTime}';
 
-                                            for (let i in jsonld_graph) {
-                                                jsonld_skeleton['@graph'].push(JSON.parse(jsonld_graph[i]));
+
+                                        fs.readdir(storage + '/real_time/' + agency, (err, rt_data) => {
+                                            if (!err && typeof rt_data !== 'undefined' && rt_data.length > 0) {
+                                                let rt_index = rt_data.length;
+                                                (function findRTData() {
+                                                    let rt_buffer = [];
+                                                    rt_index--;
+                                                    fs.createReadStream(storage + '/real_time/' + agency + '/' + rt_data[rt_index])
+                                                        .pipe(new zlib.createGunzip())
+                                                        .on('data', (data) => {
+                                                            rt_buffer.push(data);
+                                                        })
+                                                        .on('end', () => {
+                                                            let rt_capture = rt_buffer.join('').split('\n');
+                                                            rt_capture.pop();
+                                                            let irtcDate = new Date(JSON.parse(rt_capture[0]).departureTime);
+                                                            let frtcDate = new Date(JSON.parse(rt_capture[rt_capture.length - 1]).departureTime);
+                                                            let dtplusten = new Date(departureTime.toISOString());
+                                                            dtplusten.setMinutes(dtplusten.getMinutes() + 10);
+
+                                                            if (departureTime >= irtcDate && dtplusten < frtcDate) {
+                                                                for (let x of rt_capture) {
+                                                                    let rtjo = JSON.parse(x);
+                                                                    let rtjoDate = new Date(rtjo.departureTime);
+
+                                                                    if (rtjoDate >= departureTime && rtjoDate < dtplusten) {
+                                                                        for (let y in jsonld_graph) {
+                                                                            let stjo = JSON.parse(jsonld_graph[y]);
+                                                                            if (stjo['@id'] === rtjo['@id']) {
+                                                                                stjo['departureDelay'] = rtjo['departureDelay'];
+                                                                                stjo['arrivalDelay'] = rtjo['arrivalDelay'];
+                                                                                jsonld_graph[y] = JSON.stringify(stjo);
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+
+                                                                addHydraMetada(departureTime, host, agency, last_version, jsonld_graph, res);
+                                                            } else {
+                                                                if (rt_index > 0) {
+                                                                    findRTData();
+                                                                } else {
+                                                                    addHydraMetada(departureTime, host, agency, last_version, jsonld_graph, res);
+                                                                }
+                                                            }
+                                                        });
+                                                })();
                                             }
-
-                                            res.set({
-                                                'Access-Control-Allow-Origin': '*',
-                                                'Content-Type': 'application/ld+json'
-                                            });
-                                            res.json(jsonld_skeleton);
                                         });
                                     });
                             }
@@ -192,6 +225,26 @@ function findResource(agency, departureTime, versions, cb) {
             }
         });
     })();
+}
+
+function addHydraMetada(departureTime, host, agency, last_version, jsonld_graph, res) {
+    fs.readFile('./statics/skeleton.jsonld', { encoding: 'utf8' }, (err, data) => {
+        var jsonld_skeleton = JSON.parse(data);
+        jsonld_skeleton['@id'] = host + agency + '/connections?departureTime=' + departureTime.toISOString();
+        jsonld_skeleton['hydra:next'] = host + agency + '/connections?departureTime=' + getAdjacentPage(agency + '/' + last_version, departureTime, true);
+        jsonld_skeleton['hydra:previous'] = host + agency + '/connections?departureTime=' + getAdjacentPage(agency + '/' + last_version, departureTime, false);
+        jsonld_skeleton['hydra:search']['hydra:template'] = host + agency + '/connections/{?departureTime}';
+
+        for (let i in jsonld_graph) {
+            jsonld_skeleton['@graph'].push(JSON.parse(jsonld_graph[i]));
+        }
+
+        res.set({
+            'Access-Control-Allow-Origin': '*',
+            'Content-Type': 'application/ld+json'
+        });
+        res.json(jsonld_skeleton);
+    });
 }
 
 function getAdjacentPage(path, departureTime, next) {
