@@ -167,6 +167,8 @@ router.get('/:agency/connections', function (req, res) {
                                                             }
                                                         });
                                                 })();
+                                            } else {
+                                                addHydraMetada(departureTime, host, agency, last_version, jsonld_graph, res);
                                             }
                                         });
                                     });
