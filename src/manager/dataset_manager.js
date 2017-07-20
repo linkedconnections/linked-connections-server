@@ -76,28 +76,32 @@ function launchRTCronJobs(i) {
             onTick: function () {
                 console.log('Updating ' + datasets[i].companyName + ' GTFS-RT feed');
                 gtfsrt2lc.processFeed(datasets[i], (error, rtcs) => {
-                    let date = new Date();
-                    date.setUTCMilliseconds(0);
+                    if (!error) {
+                        let date = new Date();
+                        date.setUTCMilliseconds(0);
 
-                    let fileName = date.toISOString();
-                    let file = fs.createWriteStream(storage + '/real_time/' + datasets[i].companyName + '/' + fileName + '.jsonld');
+                        let fileName = date.toISOString();
+                        let file = fs.createWriteStream(storage + '/real_time/' + datasets[i].companyName + '/' + fileName + '.jsonld');
 
-                    for (let i = 0; i < rtcs.length; i++) {
-                        if (i === 0) {
-                            file.write(rtcs[i]);
-                        } else {
-                            file.write('\n' + rtcs[i]);
+                        for (let i = 0; i < rtcs.length; i++) {
+                            if (i === 0) {
+                                file.write(rtcs[i]);
+                            } else {
+                                file.write('\n' + rtcs[i]);
+                            }
                         }
-                    }
-                    file.end();
+                        file.end();
 
-                    file.on('finish', () => {
-                        child_process.exec('./gtfsrt2lc.sh ' + datasets[i].companyName + ' ' + fileName + ' ' + storage, { cwd: './src/manager' }, (e, sto, ste) => {
-                            child_process.exec('gzip ' + fileName + '.jsonld', { cwd: storage + '/real_time/' + datasets[i].companyName }, function () {
-                                console.log('GTFS-RT feed processed for ' + datasets[i].companyName);
+                        file.on('finish', () => {
+                            child_process.exec('./gtfsrt2lc.sh ' + datasets[i].companyName + ' ' + fileName + ' ' + storage, { cwd: './src/manager' }, (e, sto, ste) => {
+                                child_process.exec('gzip ' + fileName + '.jsonld', { cwd: storage + '/real_time/' + datasets[i].companyName }, function () {
+                                    console.log('GTFS-RT feed processed for ' + datasets[i].companyName);
+                                });
                             });
                         });
-                    });
+                    } else {
+                        console.error('Error getting GTFS-RT feed for ' + datasets[i].companyName + ': ' + error);
+                    }
                 });
             },
             start: true
