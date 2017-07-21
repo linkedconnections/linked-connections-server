@@ -18,7 +18,7 @@ module.exports.processFeed = function (datasetInfo, cb) {
 
 function fetchFeed(url, cb) {
     if (url.protocol === 'https:') {
-        https.request(url, (res) => {
+        let req = https.request(url, (res) => {
             let encoding = res.headers['content-encoding']
             let responseStream = res;
             let buffer = false;
@@ -40,11 +40,17 @@ function fetchFeed(url, cb) {
                 cb(error);
             });
             responseStream.on('end', function () {
+                req.end();
                 cb(null, buffer);
             })
-        }).end();
+        });
+
+        req.on('error', (err) => {
+            req.end()
+            cb(err);
+        });
     } else {
-        http.request(url, (res) => {
+        let req = http.request(url, (res) => {
             let encoding = res.headers['content-encoding']
             let responseStream = res;
             let buffer = false;
@@ -63,12 +69,18 @@ function fetchFeed(url, cb) {
                 }
             });
             res.on('error', function (error) {
-                onResponse(error);
+                cb(error);
             });
             responseStream.on('end', function () {
-                onResponse(null, res, buffer);
+                req.end();
+                cb(null, buffer);
             })
-        }).end();
+        });
+
+         req.on('error', (err) => {
+            req.end();
+            cb(err);
+        });
     }
 }
 
