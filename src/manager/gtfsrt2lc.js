@@ -40,15 +40,15 @@ function fetchFeed(url, cb) {
                 cb(error);
             });
             responseStream.on('end', function () {
-                req.end();
                 cb(null, buffer);
             })
         });
 
-        req.on('error', (err) => {
-            req.end()
+         req.on('error', (err) => {
             cb(err);
         });
+
+        req.end();
     } else {
         let req = http.request(url, (res) => {
             let encoding = res.headers['content-encoding']
@@ -72,15 +72,15 @@ function fetchFeed(url, cb) {
                 cb(error);
             });
             responseStream.on('end', function () {
-                req.end();
                 cb(null, buffer);
             })
         });
 
          req.on('error', (err) => {
-            req.end();
             cb(err);
         });
+
+        req.end();
     }
 }
 
