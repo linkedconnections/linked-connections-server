@@ -147,6 +147,7 @@ router.get('/:agency/connections', function (req, res) {
                                                     let index = getIndexFromArray(search_date.toISOString(), rt_data);
                                                     let initialIndex = index;
                                                     (function findRTData(search) {
+                                                        console.log('RT fragment being queried = ' + rt_data[index]);
                                                         index === initialIndex ? search = true : '';
                                                         let rt_buffer = [];
                                                         fs.createReadStream(storage + '/real_time/' + agency + '/' + rt_data[index])
@@ -180,6 +181,7 @@ router.get('/:agency/connections', function (req, res) {
                                                                                 for (let y in jsonld_graph) {
                                                                                     let stjo = JSON.parse(jsonld_graph[y]);
                                                                                     if (stjo['@id'] === rtjo['@id']) {
+                                                                                        console.log('Updating Connection: ' + stjo['@id']);
                                                                                         stjo['departureDelay'] = rtjo['departureDelay'];
                                                                                         stjo['arrivalDelay'] = rtjo['arrivalDelay'];
                                                                                         jsonld_graph[y] = JSON.stringify(stjo);
