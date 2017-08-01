@@ -5,6 +5,7 @@ const url = require('url');
 const http = require('follow-redirects').http;
 const https = require('follow-redirects').https;
 const unzip = require('unzip');
+const zlib = require('zlib');
 const paginator = require('../paginator/paginator');
 const gtfsrt2lc = require('./gtfsrt2lc');
 
@@ -77,28 +78,28 @@ function launchRTCronJobs(i) {
                 console.log('Updating ' + datasets[i].companyName + ' GTFS-RT feed');
                 gtfsrt2lc.processFeed(datasets[i], (error, rtcs) => {
                     if (!error) {
-                        let date = new Date();
-                        date.setUTCMilliseconds(0);
+                        let index = 0;
+                        let timestamp = new Date();
 
-                        let fileName = date.toISOString();
-                        let file = fs.createWriteStream(storage + '/real_time/' + datasets[i].companyName + '/' + fileName + '.jsonld');
+                        (function storeRTData() {
+                            let jodata = JSON.parse(rtcs[index]);
+                            let dt = new Date(jodata.departureTime);
+                            dt.setMinutes(dt.getMinutes() - (dt.getMinutes() % 10));
+                            dt.setSeconds(0);
+                            dt.setUTCMilliseconds(0);
 
-                        for (let i = 0; i < rtcs.length; i++) {
-                            if (i === 0) {
-                                file.write(rtcs[i]);
-                            } else {
-                                file.write('\n' + rtcs[i]);
-                            }
-                        }
-                        file.end();
+                            jodata['mementoVersion'] = timestamp.toISOString();
+                            let rtdata = JSON.stringify(jodata) + '\n';
 
-                        file.on('finish', () => {
-                            child_process.exec('./gtfsrt2lc.sh ' + datasets[i].companyName + ' ' + fileName + ' ' + storage, { cwd: './src/manager' }, (e, sto, ste) => {
-                                child_process.exec('gzip ' + fileName + '.jsonld', { cwd: storage + '/real_time/' + datasets[i].companyName }, function () {
-                                    console.log('GTFS-RT feed processed for ' + datasets[i].companyName);
-                                });
+                            fs.appendFile(storage + '/real_time/' + datasets[i].companyName + '/' + dt.toISOString() + '.jsonld', rtdata, () => {
+                                if (index < rtcs.length - 1) {
+                                    index++;
+                                    storeRTData();
+                                } else {
+                                    console.log(datasets[i].companyName + ' GTFS-RT feed updated for version ' + timestamp.toISOString());
+                                }
                             });
-                        });
+                        })();
                     } else {
                         console.error('Error getting GTFS-RT feed for ' + datasets[i].companyName + ': ' + error);
                     }

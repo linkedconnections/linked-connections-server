@@ -9,7 +9,12 @@ module.exports.processFeed = function (datasetInfo, cb) {
     const durl = url.parse(datasetInfo.realTimeData.downloadUrl);
     fetchFeed(durl, (error, feed) => {
         if (!error) {
-            cb(null, buildConnections(feed, datasetInfo.baseURIs));
+            let rtconn = buildConnections(feed, datasetInfo.baseURIs);
+            if(rtconn != null) {
+                cb(null, rtconn);
+            } else {
+                cb('error');
+            }
         } else {
             cb(error);
         }
@@ -86,7 +91,13 @@ function fetchFeed(url, cb) {
 
 function buildConnections(data, uris) {
     // parse the RT data to JSON object
-    let feed = gtfsrt.FeedMessage.decode(data);
+    let feed = '';
+    try {
+        feed = gtfsrt.FeedMessage.decode(data);
+    } catch(err) {
+        return null;
+    }
+    
     let array = [];
     let index = 0;
 

@@ -10,6 +10,7 @@ const server_config = JSON.parse(fs.readFileSync('./server_config.json', 'utf8')
 let storage = datasets_config.storage;
 
 router.get('/:agency/connections', function (req, res) {
+    res.set({ 'Access-Control-Allow-Origin': '*' });
     let x_forwarded_proto = req.headers['x-forwarded-proto'];
     let protocol = '';
     if (typeof x_forwarded_proto == 'undefined' || x_forwarded_proto == '') {
@@ -32,7 +33,6 @@ router.get('/:agency/connections', function (req, res) {
     // Redirect to NOW time in case provided date is invalid
     if (!iso.test(req.query.departureTime) || departureTime.toString() === 'Invalid Date') {
         res.location('/' + agency + '/connections?departureTime=' + new Date().toISOString());
-        res.set({ 'Access-Control-Allow-Origin': '*' });
         res.status(302).send();
 
         return;
@@ -41,7 +41,6 @@ router.get('/:agency/connections', function (req, res) {
     // Redirect to proper URL if final / is given before params
     if (req.url.indexOf('connections/') >= 0) {
         res.location('/' + agency + '/connections?departureTime=' + departureTime.toISOString());
-        res.set({ 'Access-Control-Allow-Origin': '*' });
         res.status(302).send();
 
         return;
@@ -74,8 +73,7 @@ router.get('/:agency/connections', function (req, res) {
                             res.location('/memento/' + agency + '?version=' + last_version + '&departureTime=' + departureTime.toISOString());
                             res.set({
                                 'Vary': 'accept-datetime',
-                                'Link': '<http://' + server.config.hostname + '/' + agency + '/connections?departureTime=' + departureTime.toISOString() + '>; rel=\"original timegate\"',
-                                'Access-Control-Allow-Origin': '*'
+                                'Link': '<http://' + server.config.hostname + '/' + agency + '/connections?departureTime=' + departureTime.toISOString() + '>; rel=\"original timegate\"'
                             });
 
                             // Send HTTP redirect to client
@@ -100,7 +98,6 @@ router.get('/:agency/connections', function (req, res) {
                                 departureTime.setMinutes(departureTime.getMinutes() - 10);
                             }
                             res.location('/' + agency + '/connections?departureTime=' + departureTime.toISOString());
-                            res.set({ 'Access-Control-Allow-Origin': '*' });
                             res.status(302).send();
                         } else {
                             if (!fs.existsSync(storage + '/linked_pages/' + agency + '/' + last_version + '/' + departureTime.toISOString() + '.jsonld.gz')) {
@@ -108,7 +105,6 @@ router.get('/:agency/connections', function (req, res) {
                                     departureTime.setMinutes(departureTime.getMinutes() - 10);
                                 }
                                 res.location('/' + agency + '/connections?departureTime=' + departureTime.toISOString());
-                                res.set({ 'Access-Control-Allow-Origin': '*' });
                                 res.status(302).send();
                             } else {
                                 // Complement resource with Real-Time data and Hydra metadata before sending it back to the client 
@@ -120,130 +116,34 @@ router.get('/:agency/connections', function (req, res) {
                                     })
                                     .on('end', function () {
                                         var jsonld_graph = buffer.join('').split(',\n');
-                                        // Look if there is real time data for this agency
-                                        fs.readdir(storage + '/real_time/' + agency, (err, rt_data) => {
-                                            if (!err && typeof rt_data !== 'undefined' && rt_data.length > 0) {
-                                                // Get date range for real time data
-                                                let oldest_rt_date = new Date(rt_data[0].substring(0, rt_data[0].indexOf('.jsonld.gz')));
-                                                let newest_rt_date = new Date(rt_data[rt_data.length - 1].substring(0, rt_data[rt_data.length - 1].indexOf('.jsonld.gz')));
-                                                let search_date = new Date(departureTime.toISOString());
-
-                                                // Check whether query departure time is within real time data range. If so adapt it to closest file name 
-                                                if (departureTime >= oldest_rt_date && departureTime < newest_rt_date) {
-                                                    if (!fs.existsSync(storage + '/real_time/' + agency + '/' + search_date.toISOString() + '.jsonld.gz')) {
-                                                        while (search_date <= newest_rt_date
-                                                            && !fs.existsSync(storage + '/real_time/' + agency + '/' + search_date.toISOString() + '.jsonld.gz')) {
-                                                            search_date.setSeconds(search_date.getSeconds() + 1);
+                                        // Look if there is real time data for this agency and requested time
+                                        if (fs.existsSync(storage + '/real_time/' + agency + '/' + departureTime.toISOString() + '.jsonld')) {
+                                            fs.readFile(storage + '/real_time/' + agency + '/' + departureTime.toISOString() + '.jsonld', 'utf8', (err, data) => {
+                                                if (!err) {
+                                                    // Create an array of all RT updates and remove blank line at the end
+                                                    let rt_array = data.split('\n');
+                                                    rt_array.pop();
+                                                    // Create an indexed Map object for connection IDs and position in the RT updates array
+                                                    // containing the last Connection updates for a given moment
+                                                    let rt_map = getIndexedMap(rt_array, new Date());
+                                                    // Proceed to apply updates if there is any for the given criteria 
+                                                    if (rt_map.size > 0) {
+                                                        for (let i = 0; i < jsonld_graph.length; i++) {
+                                                            let jo = JSON.parse(jsonld_graph[i]);
+                                                            if(rt_map.has(jo['@id'])) {
+                                                                let update = JSON.parse(rt_array[rt_map.get(jo['@id'])]);
+                                                                jo['departureDelay'] = update['departureDelay'];
+                                                                jo['arrivalDelay'] = update['arrivalDelay'];
+                                                                jsonld_graph[i] = JSON.stringify(jo);
+                                                            }
                                                         }
                                                     }
-                                                } else if (departureTime < oldest_rt_date) {
-                                                    search_date = new Date(oldest_rt_date.toISOString());
-                                                } else {
-                                                    search_date = new Date(newest_rt_date.toISOString());
                                                 }
-
-                                                // Query date is within real time data range so find newest data
-                                                if (search_date != oldest_rt_date && search_date != newest_rt_date) {
-                                                    let index = getIndexFromArray(search_date.toISOString(), rt_data);
-                                                    let initialIndex = index;
-                                                    (function findRTData(search) {
-                                                        console.log('RT fragment being queried = ' + rt_data[index]);
-                                                        index === initialIndex ? search = true : '';
-                                                        let rt_buffer = [];
-                                                        fs.createReadStream(storage + '/real_time/' + agency + '/' + rt_data[index])
-                                                            .pipe(new zlib.createGunzip())
-                                                            .on('data', (data) => {
-                                                                rt_buffer.push(data);
-                                                            })
-                                                            .on('end', () => {
-                                                                let rt_capture = rt_buffer.join('').split('\n');
-                                                                rt_capture.pop();
-                                                                let irtcDate = new Date(JSON.parse(rt_capture[0]).departureTime);
-                                                                let frtcDate = new Date(JSON.parse(rt_capture[rt_capture.length - 1]).departureTime);
-                                                                let dtplusten = new Date(departureTime.toISOString());
-                                                                dtplusten.setMinutes(dtplusten.getMinutes() + 10);
-
-                                                                if (departureTime >= irtcDate && dtplusten < frtcDate) {
-                                                                    if (search) {
-                                                                        if (index < rt_data.length - 1) {
-                                                                            index++;
-                                                                            findRTData(true);
-                                                                        } else {
-                                                                            index--;
-                                                                            findRTData(false);
-                                                                        }
-                                                                    } else {
-                                                                        for (let x of rt_capture) {
-                                                                            let rtjo = JSON.parse(x);
-                                                                            let rtjoDate = new Date(rtjo.departureTime);
-
-                                                                            if (rtjoDate >= departureTime && rtjoDate < dtplusten) {
-                                                                                for (let y in jsonld_graph) {
-                                                                                    let stjo = JSON.parse(jsonld_graph[y]);
-                                                                                    if (stjo['@id'] === rtjo['@id']) {
-                                                                                        console.log('Updating Connection: ' + stjo['@id']);
-                                                                                        stjo['departureDelay'] = rtjo['departureDelay'];
-                                                                                        stjo['arrivalDelay'] = rtjo['arrivalDelay'];
-                                                                                        jsonld_graph[y] = JSON.stringify(stjo);
-                                                                                    }
-                                                                                }
-                                                                            }
-                                                                        }
-                                                                        addHydraMetada(departureTime, host, agency, last_version, jsonld_graph, res);
-                                                                    }
-                                                                } else {
-                                                                    if (index === initialIndex) {
-                                                                        addHydraMetada(departureTime, host, agency, last_version, jsonld_graph, res);
-                                                                    } else {
-                                                                        index--;
-                                                                        findRTData(false);
-                                                                    }
-                                                                }
-                                                            });
-                                                    })();
-                                                } else {
-                                                    // Query is off real time data range so check if edges contain relevant data
-                                                    let rt_buffer = [];
-                                                    fs.createReadStream(storage + '/real_time/' + agency + '/' + search_date + '.jsonld.gz')
-                                                        .pipe(new zlib.createGunzip())
-                                                        .on('data', (data) => {
-                                                            rt_buffer.push(data);
-                                                        })
-                                                        .on('end', () => {
-                                                            let rt_capture = rt_buffer.join('').split('\n');
-                                                            rt_capture.pop();
-                                                            let irtcDate = new Date(JSON.parse(rt_capture[0]).departureTime);
-                                                            let frtcDate = new Date(JSON.parse(rt_capture[rt_capture.length - 1]).departureTime);
-                                                            let dtplusten = new Date(departureTime.toISOString());
-                                                            dtplusten.setMinutes(dtplusten.getMinutes() + 10);
-
-                                                            if (departureTime >= irtcDate && dtplusten < frtcDate) {
-                                                                for (let x of rt_capture) {
-                                                                    let rtjo = JSON.parse(x);
-                                                                    let rtjoDate = new Date(rtjo.departureTime);
-
-                                                                    if (rtjoDate >= departureTime && rtjoDate < dtplusten) {
-                                                                        for (let y in jsonld_graph) {
-                                                                            let stjo = JSON.parse(jsonld_graph[y]);
-                                                                            if (stjo['@id'] === rtjo['@id']) {
-                                                                                stjo['departureDelay'] = rtjo['departureDelay'];
-                                                                                stjo['arrivalDelay'] = rtjo['arrivalDelay'];
-                                                                                jsonld_graph[y] = JSON.stringify(stjo);
-                                                                            }
-                                                                        }
-                                                                    }
-                                                                }
-
-                                                                addHydraMetada(departureTime, host, agency, last_version, jsonld_graph, res);
-                                                            } else {
-                                                                addHydraMetada(departureTime, host, agency, last_version, jsonld_graph, res);
-                                                            }
-                                                        });
-                                                }
-                                            } else {
                                                 addHydraMetada(departureTime, host, agency, last_version, jsonld_graph, res);
-                                            }
-                                        });
+                                            });
+                                        } else {
+                                            addHydraMetada(departureTime, host, agency, last_version, jsonld_graph, res);
+                                        }
                                     });
                             }
                         }
@@ -302,15 +202,20 @@ function findResource(agency, departureTime, versions, cb) {
     })();
 }
 
-function getIndexFromArray(element, array) {
-    let x = -1;
-    for (let i in array) {
-        if (array[i].indexOf(element) >= 0) {
-            x = i;
+function getIndexedMap(array, timeCriteria) {
+    let map = new Map();
+
+    for (let i = 0; i < array.length; i++) {
+        let jo = JSON.parse(array[i]);
+        let memento_date = new Date(jo['mementoVersion']);
+
+        if (memento_date <= timeCriteria) {
+            map.set(jo['@id'], i);
+        } else {
             break;
         }
     }
-    return x;
+    return map;
 }
 
 function addHydraMetada(departureTime, host, agency, last_version, jsonld_graph, res) {
@@ -326,7 +231,6 @@ function addHydraMetada(departureTime, host, agency, last_version, jsonld_graph,
         }
 
         res.set({
-            'Access-Control-Allow-Origin': '*',
             'Content-Type': 'application/ld+json'
         });
         res.json(jsonld_skeleton);
