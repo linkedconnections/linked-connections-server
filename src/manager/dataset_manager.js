@@ -77,28 +77,32 @@ function launchRTCronJobs(i) {
             onTick: function () {
                 console.log('Updating ' + datasets[i].companyName + ' GTFS-RT feed');
                 gtfsrt2lc.processFeed(datasets[i], (error, rtcs) => {
-                    if (!error) {
+                    if (!error && rtcs != null) {
                         let index = 0;
                         let timestamp = new Date();
 
                         (function storeRTData() {
-                            let jodata = JSON.parse(rtcs[index]);
-                            let dt = new Date(jodata.departureTime);
-                            dt.setMinutes(dt.getMinutes() - (dt.getMinutes() % 10));
-                            dt.setSeconds(0);
-                            dt.setUTCMilliseconds(0);
+                            try {
+                                let jodata = JSON.parse(rtcs[index]);
+                                let dt = new Date(jodata.departureTime);
+                                dt.setMinutes(dt.getMinutes() - (dt.getMinutes() % 10));
+                                dt.setSeconds(0);
+                                dt.setUTCMilliseconds(0);
 
-                            jodata['mementoVersion'] = timestamp.toISOString();
-                            let rtdata = JSON.stringify(jodata) + '\n';
+                                jodata['mementoVersion'] = timestamp.toISOString();
+                                let rtdata = JSON.stringify(jodata) + '\n';
 
-                            fs.appendFile(storage + '/real_time/' + datasets[i].companyName + '/' + dt.toISOString() + '.jsonld', rtdata, () => {
-                                if (index < rtcs.length - 1) {
-                                    index++;
-                                    storeRTData();
-                                } else {
-                                    console.log(datasets[i].companyName + ' GTFS-RT feed updated for version ' + timestamp.toISOString());
-                                }
-                            });
+                                fs.appendFile(storage + '/real_time/' + datasets[i].companyName + '/' + dt.toISOString() + '.jsonld', rtdata, () => {
+                                    if (index < rtcs.length - 1) {
+                                        index++;
+                                        storeRTData();
+                                    } else {
+                                        console.log(datasets[i].companyName + ' GTFS-RT feed updated for version ' + timestamp.toISOString());
+                                    }
+                                });
+                            } catch (err) {
+                                console.error('Error getting GTFS-RT feed for ' + datasets[i].companyName + ': ' + err);
+                            }
                         })();
                     } else {
                         console.error('Error getting GTFS-RT feed for ' + datasets[i].companyName + ': ' + error);

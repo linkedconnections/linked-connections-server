@@ -13,10 +13,10 @@ module.exports.processFeed = function (datasetInfo, cb) {
             if(rtconn != null) {
                 cb(null, rtconn);
             } else {
-                cb('error');
+                cb('error', null);
             }
         } else {
-            cb(error);
+            cb(error, null);
         }
     });
 }
