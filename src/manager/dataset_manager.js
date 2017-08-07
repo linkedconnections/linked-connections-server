@@ -83,7 +83,7 @@ function launchRTCronJobs(i) {
 
                         (function storeRTData() {
                             try {
-                                let jodata = JSON.parse(rtcs[index]);
+                                let jodata = removeDelays(JSON.parse(rtcs[index]));
                                 let dt = new Date(jodata.departureTime);
                                 dt.setMinutes(dt.getMinutes() - (dt.getMinutes() % 10));
                                 dt.setSeconds(0);
@@ -92,7 +92,10 @@ function launchRTCronJobs(i) {
                                 jodata['mementoVersion'] = timestamp.toISOString();
                                 let rtdata = JSON.stringify(jodata) + '\n';
 
-                                fs.appendFile(storage + '/real_time/' + datasets[i].companyName + '/' + dt.toISOString() + '.jsonld', rtdata, () => {
+                                fs.appendFile(storage + '/real_time/' + datasets[i].companyName + '/' + dt.toISOString() + '.jsonld', rtdata, (err) => {
+                                    if(err) {
+                                        throw err;
+                                    }
                                     if (index < rtcs.length - 1) {
                                         index++;
                                         storeRTData();
@@ -249,4 +252,14 @@ function executeShellScript(dataset, file_name, cb) {
             return cb(null, stdout, dataset, file_name);
         }
     });
+}
+
+function removeDelays(jo) {
+    let dt = new Date(jo['departureTime']);
+    let at = new Date(jo['arrivalTime']);
+    dt.setTime(dt.getTime() - (jo['departureDelay'] * 1000));
+    at.setTime(at.getTime() - (jo['arrivalDelay'] * 1000));
+    jo['departureTime'] = dt.toISOString();
+    jo['arrivalTime'] = at.toISOString();
+    return jo;
 }

@@ -27,7 +27,7 @@ router.get('/:agency/connections', function (req, res) {
     const agency = req.params.agency;
     const iso = /(\d{4})-(\d{2})-(\d{2})T(\d{2})\:(\d{2})\:(\d{2})\.(\d{3})Z/;
     let departureTime = new Date(decodeURIComponent(req.query.departureTime));
-    let acceptDatetime = req.headers['accept-datetime'];
+    let acceptDatetime = new Date(req.headers['accept-datetime']);
     let buffer = [];
 
     // Redirect to NOW time in case provided date is invalid
@@ -54,9 +54,9 @@ router.get('/:agency/connections', function (req, res) {
     if (fs.existsSync(storage + '/linked_pages/' + agency)) {
         fs.readdir(storage + '/linked_pages/' + agency, (err, versions) => {
             // Check if previous version of resource is been requested
-            if (typeof acceptDatetime !== 'undefined') {
+            if (acceptDatetime.toString() !== 'Invalid Date') {
                 // Sort versions list according to the requested version
-                sortVersions(new Date(acceptDatetime), versions, (sortedVersions) => {
+                sortVersions(acceptDatetime, versions, (sortedVersions) => {
                     // Find closest resource to requested version
                     findResource(agency, departureTime, sortedVersions, (last_version) => {
                         if (last_version != null) {
@@ -73,7 +73,7 @@ router.get('/:agency/connections', function (req, res) {
                             res.location('/memento/' + agency + '?version=' + last_version + '&departureTime=' + departureTime.toISOString());
                             res.set({
                                 'Vary': 'accept-datetime',
-                                'Link': '<http://' + server.config.hostname + '/' + agency + '/connections?departureTime=' + departureTime.toISOString() + '>; rel=\"original timegate\"'
+                                'Link': '<' + host + agency + '/connections?departureTime=' + departureTime.toISOString() + '>; rel=\"original timegate\"'
                             });
 
                             // Send HTTP redirect to client
@@ -167,7 +167,7 @@ function sortVersions(acceptDatetime, versions, cb) {
         diffs.push({ 'version': v, 'diff': diff });
     }
 
-    diffs.sort(function (a, b) { return b.diff - a.diff })
+    diffs.sort(function (a, b) { return b.diff - a.diff });
 
     for (d of diffs) {
         sorted.push(d.version);
