@@ -44,12 +44,16 @@ router.get('/:agency', function (req, res) {
             let mementoDate = new Date(acceptDatetime);
 
             // Look if there is real time data for this agency and requested time
-            if (fs.existsSync(storage + '/real_time/' + agency + '/' + departureTime.toISOString() + '.jsonld')) {
-                fs.readFile(storage + '/real_time/' + agency + '/' + departureTime.toISOString() + '.jsonld', 'utf8', (err, data) => {
-                    if (!err) {
-                        // Create an array of all RT updates and remove blank line at the end
-                        let rt_array = data.split('\n');
-                        rt_array.pop();
+            if (fs.existsSync(storage + '/real_time/' + agency + '/' + departureTime.toISOString() + '.jsonld.gz')) {
+                let rt_buffer = [];
+                fs.createReadStream(storage + '/real_time/' + agency + '/' + departureTime.toISOString() + '.jsonld.gz')
+                    .pipe(new zlib.createGunzip())
+                    .on('data', data => {
+                        rt_buffer.push(data);
+                    })
+                    .on('end', () => {
+                        // Create an array of all RT updates
+                        let rt_array = rt_buffer.join('').split('\n');
                         // Create an indexed Map object for connection IDs and position in the RT updates array
                         // containing the last Connection updates for a given moment
                         let rt_map = getIndexedMap(rt_array, mementoDate);
@@ -65,9 +69,8 @@ router.get('/:agency', function (req, res) {
                                 }
                             }
                         }
-                    }
-                    addHydraMetada(departureTime, mementoDate, host, agency, version, jsonld_graph, res);
-                });
+                        addHydraMetada(departureTime, mementoDate, host, agency, version, jsonld_graph, res);
+                    });
             } else {
                 addHydraMetada(departureTime, mementoDate, host, agency, version, jsonld_graph, res);
             }

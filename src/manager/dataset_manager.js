@@ -13,6 +13,7 @@ const config = JSON.parse(fs.readFileSync('./datasets_config.json', 'utf8'));
 const datasets = config.datasets;
 const storage = config.storage;
 
+
 module.exports.manageDatasets = function () {
     initContext();
     launchStaticCronJobs(0);
@@ -78,35 +79,75 @@ function launchRTCronJobs(i) {
                 console.log('Updating ' + datasets[i].companyName + ' GTFS-RT feed');
                 gtfsrt2lc.processFeed(datasets[i], (error, rtcs) => {
                     if (!error && rtcs != null) {
-                        let index = 0;
                         let timestamp = new Date();
+                        let updateData = {};
+                        let flag = 0;
 
-                        (function storeRTData() {
-                            try {
-                                let jodata = removeDelays(JSON.parse(rtcs[index]));
-                                let dt = new Date(jodata.departureTime);
-                                dt.setMinutes(dt.getMinutes() - (dt.getMinutes() % 10));
-                                dt.setSeconds(0);
-                                dt.setUTCMilliseconds(0);
+                        for (let x in rtcs) {
+                            let jodata = removeDelays(JSON.parse(rtcs[x]));
+                            let dt = new Date(jodata.departureTime);
+                            dt.setMinutes(dt.getMinutes() - (dt.getMinutes() % 10));
+                            dt.setSeconds(0);
+                            dt.setUTCMilliseconds(0);
 
-                                jodata['mementoVersion'] = timestamp.toISOString();
-                                let rtdata = JSON.stringify(jodata) + '\n';
+                            jodata['mementoVersion'] = timestamp.toISOString();
+                            let rtdata = JSON.stringify(jodata);
 
-                                fs.appendFile(storage + '/real_time/' + datasets[i].companyName + '/' + dt.toISOString() + '.jsonld', rtdata, (err) => {
-                                    if(err) {
-                                        throw err;
-                                    }
-                                    if (index < rtcs.length - 1) {
-                                        index++;
-                                        storeRTData();
-                                    } else {
-                                        console.log(datasets[i].companyName + ' GTFS-RT feed updated for version ' + timestamp.toISOString());
-                                    }
-                                });
-                            } catch (err) {
-                                console.error('Error getting GTFS-RT feed for ' + datasets[i].companyName + ': ' + err);
+                            if (!updateData[dt.toISOString()]) {
+                                updateData[dt.toISOString()] = [];
                             }
-                        })();
+
+                            updateData[dt.toISOString()].push(rtdata);
+                        }
+
+                        for (let y in updateData) {
+                            let compData = updateData[y].join('\n');
+
+                            if (!fs.existsSync(storage + '/real_time/' + datasets[i].companyName + '/' + y + '.jsonld.gz')) {
+                                zlib.gzip(compData, { level: 9 }, (error, result) => {
+                                    if (error) throw error;
+                                    fs.writeFile(storage + '/real_time/' + datasets[i].companyName + '/' + y + '.jsonld.gz', result, err => {
+                                        if (err) throw err;
+
+                                        flag++;
+                                        if (flag === Object.keys(updateData).length) {
+                                            let t1 = new Date().getTime();
+                                            let tf = t1 - timestamp.getTime();
+                                            console.log("Updating RT data took " + tf + " milliseconds to complete");
+                                            console.log(datasets[i].companyName + ' GTFS-RT feed updated for version ' + timestamp.toISOString());
+                                            console.log('---------------------------------------------');
+                                        }
+                                    });
+                                });
+                            } else {
+                                let buffer = [];
+                                fs.createReadStream(storage + '/real_time/' + datasets[i].companyName + '/' + y + '.jsonld.gz')
+                                    .pipe(new zlib.createGunzip())
+                                    .on('data', data => {
+                                        buffer.push(data);
+                                    })
+                                    .on('end', () => {
+                                        let stored_rtd = buffer.join('').split('\n');
+                                        stored_rtd.push(compData);
+
+                                        zlib.gzip(stored_rtd.join('\n'), { level: 9 }, (error, result) => {
+                                            if (error) throw error;
+                                            fs.writeFile(storage + '/real_time/' + datasets[i].companyName + '/' + y + '.jsonld.gz', result, err => {
+                                                if (err) throw err;
+
+                                                flag++;
+                                                if (flag === Object.keys(updateData).length) {
+                                                    let t1 = new Date().getTime();
+                                                    let tf = t1 - timestamp.getTime();
+                                                    console.log("Updating RT data took " + tf + " milliseconds to complete");
+                                                    console.log(datasets[i].companyName + ' GTFS-RT feed updated for version ' + timestamp.toISOString());
+                                                    console.log('---------------------------------------------');
+                                                }
+                                            });
+                                        });
+                                    });
+                            }
+                        }
                     } else {
                         console.error('Error getting GTFS-RT feed for ' + datasets[i].companyName + ': ' + error);
                     }
@@ -114,6 +155,8 @@ function launchRTCronJobs(i) {
             },
             start: true
         });
+
+        launchRTCronJobs(i + 1);
     }
 }
 

@@ -117,12 +117,16 @@ router.get('/:agency/connections', function (req, res) {
                                     .on('end', function () {
                                         var jsonld_graph = buffer.join('').split(',\n');
                                         // Look if there is real time data for this agency and requested time
-                                        if (fs.existsSync(storage + '/real_time/' + agency + '/' + departureTime.toISOString() + '.jsonld')) {
-                                            fs.readFile(storage + '/real_time/' + agency + '/' + departureTime.toISOString() + '.jsonld', 'utf8', (err, data) => {
-                                                if (!err) {
-                                                    // Create an array of all RT updates and remove blank line at the end
-                                                    let rt_array = data.split('\n');
-                                                    rt_array.pop();
+                                        if (fs.existsSync(storage + '/real_time/' + agency + '/' + departureTime.toISOString() + '.jsonld.gz')) {
+                                            let rt_buffer = [];
+                                            fs.createReadStream(storage + '/real_time/' + agency + '/' + departureTime.toISOString() + '.jsonld.gz')
+                                                .pipe(new zlib.createGunzip())
+                                                .on('data', data => {
+                                                    rt_buffer.push(data);
+                                                })
+                                                .on('end', () => {
+                                                    // Create an array of all RT updates
+                                                    let rt_array = rt_buffer.join('').split('\n');
                                                     // Create an indexed Map object for connection IDs and position in the RT updates array
                                                     // containing the last Connection updates for a given moment
                                                     let rt_map = getIndexedMap(rt_array, new Date());
@@ -138,9 +142,8 @@ router.get('/:agency/connections', function (req, res) {
                                                             }
                                                         }
                                                     }
-                                                }
-                                                addHydraMetada(departureTime, host, agency, last_version, jsonld_graph, res);
-                                            });
+                                                    addHydraMetada(departureTime, host, agency, last_version, jsonld_graph, res);
+                                                });
                                         } else {
                                             addHydraMetada(departureTime, host, agency, last_version, jsonld_graph, res);
                                         }
