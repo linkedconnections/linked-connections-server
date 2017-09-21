@@ -81,13 +81,17 @@ function getIndexedMap(array, timeCriteria) {
     let map = new Map();
 
     for (let i = 0; i < array.length; i++) {
-        let jo = JSON.parse(array[i]);
-        let memento_date = new Date(jo['mementoVersion']);
+        try {
+            let jo = JSON.parse(array[i]);
+            let memento_date = new Date(jo['mementoVersion']);
 
-        if (memento_date <= timeCriteria) {
-            map.set(jo['@id'], i);
-        } else {
-            break;
+            if (memento_date <= timeCriteria) {
+                map.set(jo['@id'], i);
+            } else {
+                break;
+            }
+        } catch (err) {
+            continue;
         }
     }
     return map;

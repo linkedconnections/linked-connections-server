@@ -134,7 +134,7 @@ router.get('/:agency/connections', function (req, res) {
                                                     if (rt_map.size > 0) {
                                                         for (let i = 0; i < jsonld_graph.length; i++) {
                                                             let jo = JSON.parse(jsonld_graph[i]);
-                                                            if(rt_map.has(jo['@id'])) {
+                                                            if (rt_map.has(jo['@id'])) {
                                                                 let update = JSON.parse(rt_array[rt_map.get(jo['@id'])]);
                                                                 jo['departureDelay'] = update['departureDelay'];
                                                                 jo['arrivalDelay'] = update['arrivalDelay'];
@@ -209,13 +209,17 @@ function getIndexedMap(array, timeCriteria) {
     let map = new Map();
 
     for (let i = 0; i < array.length; i++) {
-        let jo = JSON.parse(array[i]);
-        let memento_date = new Date(jo['mementoVersion']);
+        try {
+            let jo = JSON.parse(array[i]);
+            let memento_date = new Date(jo['mementoVersion']);
 
-        if (memento_date <= timeCriteria) {
-            map.set(jo['@id'], i);
-        } else {
-            break;
+            if (memento_date <= timeCriteria) {
+                map.set(jo['@id'], i);
+            } else {
+                break;
+            }
+        } catch (err) {
+            continue;
         }
     }
     return map;
