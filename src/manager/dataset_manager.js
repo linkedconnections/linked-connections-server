@@ -1,3 +1,4 @@
+const util = require('util');
 const fs = require('fs');
 const child_process = require('child_process');
 const cron = require('cron');
@@ -8,6 +9,9 @@ const unzip = require('unzip');
 const zlib = require('zlib');
 const paginator = require('../paginator/paginator');
 const gtfsrt2lc = require('./gtfsrt2lc');
+
+const writeFile = util.promisify(fs.writeFile);
+const gzip = util.promisify(zlib.gzip);
 
 const config = JSON.parse(fs.readFileSync('./datasets_config.json', 'utf8'));
 const datasets = config.datasets;
@@ -77,77 +81,53 @@ function launchRTCronJobs(i) {
             cronTime: datasets[i].realTimeData.updatePeriod,
             onTick: function () {
                 console.log('Updating ' + datasets[i].companyName + ' GTFS-RT feed');
-                gtfsrt2lc.processFeed(datasets[i], (error, rtcs) => {
+                gtfsrt2lc.processFeed(datasets[i], async (error, rtcs) => {
                     if (!error && rtcs != null) {
                         let timestamp = new Date();
                         let updateData = {};
-                        let flag = 0;
-
+                        let promises = [];
+    
                         for (let x in rtcs) {
                             let jodata = removeDelays(JSON.parse(rtcs[x]));
                             let dt = new Date(jodata.departureTime);
                             dt.setMinutes(dt.getMinutes() - (dt.getMinutes() % 10));
                             dt.setSeconds(0);
                             dt.setUTCMilliseconds(0);
-
+    
                             jodata['mementoVersion'] = timestamp.toISOString();
                             let rtdata = JSON.stringify(jodata);
-
+    
                             if (!updateData[dt.toISOString()]) {
                                 updateData[dt.toISOString()] = [];
                             }
-
+    
                             updateData[dt.toISOString()].push(rtdata);
                         }
-
+    
                         for (let y in updateData) {
-                            let compData = updateData[y].join('\n');
-
-                            if (!fs.existsSync(storage + '/real_time/' + datasets[i].companyName + '/' + y + '.jsonld.gz')) {
-                                zlib.gzip(compData, { level: 9 }, (error, result) => {
-                                    if (error) throw error;
-                                    fs.writeFile(storage + '/real_time/' + datasets[i].companyName + '/' + y + '.jsonld.gz', result, err => {
-                                        if (err) throw err;
-
-                                        flag++;
-                                        if (flag === Object.keys(updateData).length) {
-                                            let t1 = new Date().getTime();
-                                            let tf = t1 - timestamp.getTime();
-                                            console.log("Updating RT data took " + tf + " milliseconds to complete");
-                                            console.log(datasets[i].companyName + ' GTFS-RT feed updated for version ' + timestamp.toISOString());
-                                            console.log('---------------------------------------------');
-                                        }
-                                    });
-                                });
-                            } else {
-                                let buffer = [];
-                                fs.createReadStream(storage + '/real_time/' + datasets[i].companyName + '/' + y + '.jsonld.gz')
-                                    .pipe(new zlib.createGunzip())
-                                    .on('data', data => {
-                                        buffer.push(data);
-                                    })
-                                    .on('end', () => {
-                                        let stored_rtd = buffer.join('').split('\n');
-                                        stored_rtd.push(compData);
-
-                                        zlib.gzip(stored_rtd.join('\n'), { level: 9 }, (error, result) => {
-                                            if (error) throw error;
-                                            fs.writeFile(storage + '/real_time/' + datasets[i].companyName + '/' + y + '.jsonld.gz', result, err => {
-                                                if (err) throw err;
-
-                                                flag++;
-                                                if (flag === Object.keys(updateData).length) {
-                                                    let t1 = new Date().getTime();
-                                                    let tf = t1 - timestamp.getTime();
-                                                    console.log("Updating RT data took " + tf + " milliseconds to complete");
-                                                    console.log(datasets[i].companyName + ' GTFS-RT feed updated for version ' + timestamp.toISOString());
-                                                    console.log('---------------------------------------------');
-                                                }
-                                            });
-                                        });
-                                    });
+                            let updData = updateData[y].join('\n');
+                            let path = storage + '/real_time/' + datasets[i].companyName + '/' + y + '.jsonld.gz';
+                            try {
+                                if (!fs.existsSync(path)) {
+                                    promises.push(writeFile(path, await gzip(updData, { level: 9 })));
+                                } else {
+                                    let completeData = (await readAndDecompress(path)).join('').concat('\n' + updData);
+                                    promises.push(writeFile(path, await gzip(completeData, { level: 9 })));
+                                }
+                            } catch (err) {
+                                console.error(err);
                             }
                         }
+    
+                        Promise.all(promises).then(() => {
+                            let t1 = new Date().getTime();
+                            let tf = t1 - timestamp.getTime();
+                            console.log("Updating RT data took " + tf + " milliseconds to complete");
+                            console.log(datasets[i].companyName + ' GTFS-RT feed updated for version ' + timestamp.toISOString());
+                            console.log('---------------------------------------------');
+                        }).catch(err => {
+                            console.error(err);
+                        });
                     } else {
                         console.error('Error getting GTFS-RT feed for ' + datasets[i].companyName + ': ' + error);
                     }
@@ -305,4 +285,21 @@ function removeDelays(jo) {
     jo['departureTime'] = dt.toISOString();
     jo['arrivalTime'] = at.toISOString();
     return jo;
+}
+
+function readAndDecompress(path) {
+    return new Promise((resolve, reject) => {
+        let buffer = [];
+        fs.createReadStream(path)
+            .pipe(new zlib.createGunzip())
+            .on('error', err => {
+                reject(err);
+            })
+            .on('data', data => {
+                buffer.push(data);
+            })
+            .on('end', () => {
+                resolve(buffer);
+            });
+    });
 }
