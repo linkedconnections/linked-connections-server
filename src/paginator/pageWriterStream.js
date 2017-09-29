@@ -1,5 +1,5 @@
 const Writable = require('stream').Writable;
-var fs = require('fs');
+const fs = require('fs');
 
 module.exports = class pageWriterStream extends Writable {
 
@@ -32,6 +32,7 @@ module.exports = class pageWriterStream extends Writable {
 
 }
 
+// TODO: Make fragmentation configurable
 function roundDate(date_text) {
   var date = new Date(date_text);
   var round_down = date.getMinutes() - (date.getMinutes() % 10);

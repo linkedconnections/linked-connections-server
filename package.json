@@ -8,15 +8,16 @@
   "dependencies": {
     "body-parser": "~1.17.1",
     "cookie-parser": "~1.4.3",
+    "cron": "~1.2.1",
     "debug": "~2.6.3",
     "express": "~4.15.2",
-    "morgan": "~1.8.1",
-    "serve-favicon": "~2.4.2",
-    "cron": "~1.2.1",
     "follow-redirects": "~1.2.4",
-    "unzip": "~0.1.11",
+    "gtfs-realtime-bindings": "~0.0.4",
     "jsonld-stream": "~1.0.3",
     "moment-timezone": "~0.5.13",
-    "gtfs-realtime-bindings": "~0.0.4"
+    "morgan": "~1.8.1",
+    "serve-favicon": "~2.4.2",
+    "unzip": "~0.1.11",
+    "winston": "^2.3.1"
   }
 }

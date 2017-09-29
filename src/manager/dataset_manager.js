@@ -7,18 +7,22 @@ const http = require('follow-redirects').http;
 const https = require('follow-redirects').https;
 const unzip = require('unzip');
 const zlib = require('zlib');
+const logger = require('../utils/logger');
+const utils = require('../utils/utils');
 const paginator = require('../paginator/paginator');
 const gtfsrt2lc = require('./gtfsrt2lc');
 
 const writeFile = util.promisify(fs.writeFile);
 const gzip = util.promisify(zlib.gzip);
+const execFile = util.promisify(child_process.execFile);
+const exec = util.promisify(child_process.exec);
 
-const config = JSON.parse(fs.readFileSync('./datasets_config.json', 'utf8'));
+const config = utils.datasetsConfig;
 const datasets = config.datasets;
 const storage = config.storage;
 
 
-module.exports.manageDatasets = function () {
+module.exports.manageDatasets = () => {
     initContext();
     launchStaticCronJobs(0);
     launchRTCronJobs(0);
@@ -56,14 +60,28 @@ function launchStaticCronJobs(i) {
 
         new cron.CronJob({
             cronTime: datasets[i].updatePeriod,
-            onTick: function () {
-                console.log('runnig cron job to update ' + datasets[i].companyName + ' GTFS feed');
-                downloadDataset(datasets[i], (dataset, file_name) => {
-                    if (dataset) {
-                        console.log('starting pagination of new ' + dataset.companyName + ' dataset...');
-                        processDataset(dataset, file_name);
+            onTick: async () => {
+                let t0 = new Date().getTime();
+                logger.info('runnig cron job to update ' + datasets[i].companyName + ' GTFS feed');
+                try {
+                    let file_name = await downloadDataset(datasets[i]);
+                    if (file_name != null) {
+                        let dataset = datasets[i];
+                        let path = storage + '/datasets/' + dataset.companyName + '/' + file_name;
+                        await utils.readAndUnzip(path);
+                        logger.info(dataset.companyName + ' Dataset extracted');
+                        await setBaseUris(dataset);
+                        await convertGTFS2LC(dataset, file_name);
+                        logger.info('Initiating Linked Connections fragmentation process for ' + dataset.companyName + '...');
+                        await paginator.paginateDataset(dataset.companyName, file_name, storage);
+                        logger.info('Compressing Linked Connections fragments...')
+                        await exec('find . -type f -exec gzip {} +', { cwd: storage + '/linked_pages/' + dataset.companyName + '/' + file_name });
+                        let t1 = (new Date().getTime() - t0) / 1000;
+                        logger.info('Dataset conversion for ' + dataset.companyName + ' completed successfuly (took ' + t1 + ' seconds)');
                     }
-                });
+                } catch (err) {
+                    logger.error(err);
+                }
             },
             start: true
         });
@@ -79,59 +97,50 @@ function launchRTCronJobs(i) {
 
         new cron.CronJob({
             cronTime: datasets[i].realTimeData.updatePeriod,
-            onTick: function () {
-                console.log('Updating ' + datasets[i].companyName + ' GTFS-RT feed');
-                gtfsrt2lc.processFeed(datasets[i], async (error, rtcs) => {
-                    if (!error && rtcs != null) {
-                        let timestamp = new Date();
-                        let updateData = {};
-                        let promises = [];
-    
-                        for (let x in rtcs) {
-                            let jodata = removeDelays(JSON.parse(rtcs[x]));
-                            let dt = new Date(jodata.departureTime);
-                            dt.setMinutes(dt.getMinutes() - (dt.getMinutes() % 10));
-                            dt.setSeconds(0);
-                            dt.setUTCMilliseconds(0);
-    
-                            jodata['mementoVersion'] = timestamp.toISOString();
-                            let rtdata = JSON.stringify(jodata);
-    
-                            if (!updateData[dt.toISOString()]) {
-                                updateData[dt.toISOString()] = [];
-                            }
-    
-                            updateData[dt.toISOString()].push(rtdata);
+            onTick: async () => {
+                try {
+                    let rtcs = await gtfsrt2lc.processFeed(datasets[i]);
+                    let timestamp = new Date();
+                    let updateData = {};
+                    let promises = [];
+
+                    for (let x in rtcs) {
+                        let jodata = removeDelays(JSON.parse(rtcs[x]));
+                        let dt = new Date(jodata.departureTime);
+                        dt.setMinutes(dt.getMinutes() - (dt.getMinutes() % 10));
+                        dt.setSeconds(0);
+                        dt.setUTCMilliseconds(0);
+
+                        jodata['mementoVersion'] = timestamp.toISOString();
+                        let rtdata = JSON.stringify(jodata);
+
+                        if (!updateData[dt.toISOString()]) {
+                            updateData[dt.toISOString()] = [];
                         }
-    
-                        for (let y in updateData) {
-                            let updData = updateData[y].join('\n');
-                            let path = storage + '/real_time/' + datasets[i].companyName + '/' + y + '.jsonld.gz';
-                            try {
-                                if (!fs.existsSync(path)) {
-                                    promises.push(writeFile(path, await gzip(updData, { level: 9 })));
-                                } else {
-                                    let completeData = (await readAndDecompress(path)).join('').concat('\n' + updData);
-                                    promises.push(writeFile(path, await gzip(completeData, { level: 9 })));
-                                }
-                            } catch (err) {
-                                console.error(err);
-                            }
-                        }
-    
-                        Promise.all(promises).then(() => {
-                            let t1 = new Date().getTime();
-                            let tf = t1 - timestamp.getTime();
-                            console.log("Updating RT data took " + tf + " milliseconds to complete");
-                            console.log(datasets[i].companyName + ' GTFS-RT feed updated for version ' + timestamp.toISOString());
-                            console.log('---------------------------------------------');
-                        }).catch(err => {
-                            console.error(err);
-                        });
-                    } else {
-                        console.error('Error getting GTFS-RT feed for ' + datasets[i].companyName + ': ' + error);
+
+                        updateData[dt.toISOString()].push(rtdata);
                     }
-                });
+
+                    for (let y in updateData) {
+                        let updData = updateData[y].join('\n');
+                        let path = storage + '/real_time/' + datasets[i].companyName + '/' + y + '.jsonld.gz';
+
+                        if (!fs.existsSync(path)) {
+                            promises.push(writeFile(path, await gzip(updData, { level: 9 })));
+                        } else {
+                            let completeData = (await utils.readAndGunzip(path)).join('').concat('\n' + updData);
+                            promises.push(writeFile(path, await gzip(completeData, { level: 9 })));
+                        }
+                    }
+
+                    Promise.all(promises).then(() => {
+                        let t1 = new Date().getTime();
+                        let tf = t1 - timestamp.getTime();
+                        logger.info(datasets[i].companyName + ' GTFS-RT feed updated for version ' + timestamp.toISOString() + ' (took ' + tf + ' ms)');
+                    });
+                } catch (err) {
+                    logger.error('Error getting GTFS-RT feed for ' + datasets[i].companyName + ': ' + error);
+                }
             },
             start: true
         });
@@ -154,10 +163,9 @@ function initCompanyContext(name) {
     }
 }
 
-function downloadDataset(dataset, cb) {
+function downloadDataset(dataset) {
     const durl = url.parse(dataset.downloadUrl);
     if (durl.protocol == 'https:') {
-
         const options = {
             hostname: durl.hostname,
             port: 443,
@@ -165,78 +173,13 @@ function downloadDataset(dataset, cb) {
             method: 'GET'
         };
 
-        const req = https.request(options, (res) => {
-            var file_name = new Date(res.headers['last-modified']).toISOString();
-
-            if (!fs.existsSync(storage + '/datasets/' + dataset.companyName + '/' + file_name + '.zip')) {
-                var wf = fs.createWriteStream(storage + '/datasets/' + dataset.companyName + '/' + file_name + '.zip', { encoding: 'base64' });
-
-                res.on('data', (d) => {
-                    wf.write(d);
-                }).on('end', function () {
-                    wf.end();
-                    wf.on('finish', () => {
-                        cb(dataset, file_name);
-                    });
-                });
-            } else {
-                cb();
-            }
-        });
-
-        req.on('error', (e) => {
-            console.error(e);
-        });
-        req.end();
+        return download_https(dataset, options);
     } else {
-        const req = http.get(durl.href, function (res) {
-            var file_name = new Date(res.headers['last-modified']).toISOString();
-            if (!fs.existsSync(storage + '/datasets/' + dataset.companyName + '/' + file_name + '.zip')) {
-                var wf = fs.createWriteStream(storage + '/datasets/' + dataset.companyName + '/' + file_name + '.zip', { encoding: 'base64' });
-
-                res.on('data', (d) => {
-                    wf.write(d);
-                }).on('end', () => {
-                    wf.end();
-                    wf.on('finish', () => {
-                        cb(dataset, file_name);
-                    });
-                });
-            } else {
-                cb();
-            }
-        });
+        return download_http(dataset, durl.href);
     }
 }
 
-function processDataset(dataset, file_name) {
-    fs.createReadStream(storage + '/datasets/' + dataset.companyName + '/' + file_name + '.zip')
-        .pipe(unzip.Extract({ path: storage + '/datasets/' + dataset.companyName + '/' + file_name + '_tmp' }))
-        .on('close', function () {
-            console.log(dataset.companyName + ' Dataset extracted');
-            setBaseUris(dataset, (err) => {
-                if (err) {
-                    console.error('ERROR: ' + err);
-                } else {
-                    executeShellScript(dataset, file_name, function (err, msg, dataset, file_name) {
-                        if (err) {
-                            console.error('ERROR: ' + err);
-                        } else {
-                            console.log(msg);
-                            paginator.paginateDataset(dataset.companyName, file_name, storage,
-                                function () {
-                                    child_process.exec('find . -type f -exec gzip {} +', { cwd: storage + '/linked_pages/' + dataset.companyName + '/' + file_name }, function () {
-                                        console.log('Pagination for ' + dataset.companyName + ' dataset completed!!');
-                                    });
-                                });
-                        }
-                    });
-                }
-            });
-        });
-}
-
-function setBaseUris(dataset, cb) {
+async function setBaseUris(dataset, cb) {
     let uri = dataset.baseURIs;
     let config = {};
 
@@ -256,27 +199,94 @@ function setBaseUris(dataset, cb) {
         }
     }
 
-    fs.writeFile(storage + '/datasets/' + dataset.companyName + '/baseUris.json', JSON.stringify(config), function (err) {
-        if (err) {
-            cb(err);
-        } else {
-            cb();
-        }
+    await writeFile(storage + '/datasets/' + dataset.companyName + '/baseUris.json', JSON.stringify(config));
+    return Promise.resolve();
+}
+
+function convertGTFS2LC(dataset, file_name, cb) {
+    return new Promise((resolve, reject) => {
+        const child = child_process.spawn('./gtfs2lc.sh', [dataset.companyName, file_name, storage], { cwd: './src/manager', detached: true });
+        let error = '';
+
+        child.stdout.on('data', data => {
+            logger.info(data.toString().replace(/[\r\n]/g, ''));
+        });
+
+        //TODO: Fix stderr log messages in gtfs2lc to handle errors
+
+        /*child.stderr.on('data', err => {
+            error = err;
+            logger.info('stderr: ' + err);
+            process.kill(-child.pid);
+        });*/
+
+        child.on('close', (code, signal) => {
+            if (signal === 'SIGTERM') {
+                reject(new Error(error));
+            } else {
+                resolve();
+            }
+        });
     });
 }
 
-function executeShellScript(dataset, file_name, cb) {
-    child_process.exec('./gtfs2lc.sh ' + dataset.companyName + ' ' + file_name + ' ' + storage, { cwd: './src/manager' }, function (err, stdout, stderr) {
-        if (err != null) {
-            return cb(new Error(err), null);
-        } else if (typeof (stderr) != "string") {
-            return cb(new Error(stderr), null);
-        } else {
-            return cb(null, stdout, dataset, file_name);
-        }
+function download_https(dataset, options) {
+    return new Promise((resolve, reject) => {
+        const req = https.request(options, res => {
+            let file_name = new Date(res.headers['last-modified']).toISOString();
+            let path = storage + '/datasets/' + dataset.companyName + '/' + file_name + '.zip';
+
+            if (!fs.existsSync(path)) {
+                let wf = fs.createWriteStream(path, { encoding: 'base64' });
+
+                res.on('data', d => {
+                    wf.write(d);
+                }).on('end', () => {
+                    wf.end();
+                    wf.on('finish', () => {
+                        resolve(file_name);
+                    });
+                });
+            } else {
+                resolve(null);
+            }
+        });
+
+        req.on('error', err => {
+            reject(err);
+        });
+        req.end();
     });
 }
 
+function download_http(dataset, url) {
+    return new Promise((resolve, reject) => {
+        const req = http.get(url, res => {
+            let file_name = new Date(res.headers['last-modified']).toISOString();
+            let path = storage + '/datasets/' + dataset.companyName + '/' + file_name + '.zip';
+
+            if (!fs.existsSync(path)) {
+                let wf = fs.createWriteStream(path, { encoding: 'base64' });
+
+                res.on('data', d => {
+                    wf.write(d);
+                }).on('end', () => {
+                    wf.end();
+                    wf.on('finish', () => {
+                        resolve(file_name);
+                    });
+                });
+            } else {
+                resolve(null);
+            }
+            req.on('error', err => {
+                reject(err);
+            });
+        });
+    });
+}
+
+//TODO: Remove this function and handle Connections with updated times
 function removeDelays(jo) {
     let dt = new Date(jo['departureTime']);
     let at = new Date(jo['arrivalTime']);
@@ -285,21 +295,4 @@ function removeDelays(jo) {
     jo['departureTime'] = dt.toISOString();
     jo['arrivalTime'] = at.toISOString();
     return jo;
-}
-
-function readAndDecompress(path) {
-    return new Promise((resolve, reject) => {
-        let buffer = [];
-        fs.createReadStream(path)
-            .pipe(new zlib.createGunzip())
-            .on('error', err => {
-                reject(err);
-            })
-            .on('data', data => {
-                buffer.push(data);
-            })
-            .on('end', () => {
-                resolve(buffer);
-            });
-    });
 }

@@ -3,13 +3,13 @@
 /**
  * Module dependencies.
  */
-
-var app = require('../server');
-var debug = require('debug')('linked-connections-server:server');
-var http = require('http');
+const debug = require('debug')('linked-connections-server:server');
+const http = require('http');
 const fs = require('fs');
+const app = require('../server');
+const utils = require('../src/utils/utils');
 
-const server_config = JSON.parse(fs.readFileSync('./server_config.json', 'utf8'));
+const server_config = utils.serverConfig;
 
 
 /**

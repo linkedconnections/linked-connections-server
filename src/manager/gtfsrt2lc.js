@@ -5,88 +5,86 @@ const zlib = require('zlib');
 const gtfsrt = require('gtfs-realtime-bindings');
 const moment = require('moment-timezone');
 
-module.exports.processFeed = function (datasetInfo, cb) {
-    const durl = url.parse(datasetInfo.realTimeData.downloadUrl);
-    fetchFeed(durl, (error, feed) => {
-        if (!error) {
-            let rtconn = buildConnections(feed, datasetInfo.baseURIs);
-            if(rtconn != null) {
-                cb(null, rtconn);
-            } else {
-                cb('error', null);
-            }
-        } else {
-            cb(error, null);
+module.exports.processFeed = datasetInfo => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const durl = url.parse(datasetInfo.realTimeData.downloadUrl);
+            let feed = await fetchFeed(durl);
+            resolve(buildConnections(feed, datasetInfo.baseURIs));
+        } catch(err) {
+            reject(err);
         }
     });
 }
 
-function fetchFeed(url, cb) {
-    if (url.protocol === 'https:') {
-        let req = https.request(url, (res) => {
-            let encoding = res.headers['content-encoding']
-            let responseStream = res;
-            let buffer = false;
+function fetchFeed(url) {
+    return new Promise((resolve, reject) => {
+        if (url.protocol === 'https:') {
+            let req = https.request(url, res => {
+                let encoding = res.headers['content-encoding']
+                let responseStream = res;
+                let buffer = false;
 
-            if (encoding && encoding == 'gzip') {
-                responseStream = res.pipe(zlib.createGunzip());
-            } else if (encoding && encoding == 'deflate') {
-                responseStream = res.pipe(zlib.createInflate())
-            }
-
-            responseStream.on('data', function (chunk) {
-                if (!buffer) {
-                    buffer = chunk;
-                } else {
-                    buffer = Buffer.concat([buffer, chunk], buffer.length + chunk.length);
+                if (encoding && encoding == 'gzip') {
+                    responseStream = res.pipe(zlib.createGunzip());
+                } else if (encoding && encoding == 'deflate') {
+                    responseStream = res.pipe(zlib.createInflate())
                 }
+
+                responseStream.on('data', chunk => {
+                    if (!buffer) {
+                        buffer = chunk;
+                    } else {
+                        buffer = Buffer.concat([buffer, chunk], buffer.length + chunk.length);
+                    }
+                });
+                res.on('error', error => {
+                    reject(error);
+                });
+                responseStream.on('end', () => {
+                    resolve(buffer);
+                })
             });
-            res.on('error', function (error) {
-                cb(error);
+
+            req.on('error', err => {
+                reject(err);
             });
-            responseStream.on('end', function () {
-                cb(null, buffer);
-            })
-        });
 
-         req.on('error', (err) => {
-            cb(err);
-        });
+            req.end();
+        } else {
+            let req = http.request(url, res => {
+                let encoding = res.headers['content-encoding']
+                let responseStream = res;
+                let buffer = false;
 
-        req.end();
-    } else {
-        let req = http.request(url, (res) => {
-            let encoding = res.headers['content-encoding']
-            let responseStream = res;
-            let buffer = false;
-
-            if (encoding && encoding == 'gzip') {
-                responseStream = res.pipe(zlib.createGunzip());
-            } else if (encoding && encoding == 'deflate') {
-                responseStream = res.pipe(zlib.createInflate())
-            }
-
-            responseStream.on('data', function (chunk) {
-                if (!buffer) {
-                    buffer = chunk;
-                } else {
-                    buffer = Buffer.concat([buffer, chunk], buffer.length + chunk.length);
+                if (encoding && encoding == 'gzip') {
+                    responseStream = res.pipe(zlib.createGunzip());
+                } else if (encoding && encoding == 'deflate') {
+                    responseStream = res.pipe(zlib.createInflate())
                 }
-            });
-            res.on('error', function (error) {
-                cb(error);
-            });
-            responseStream.on('end', function () {
-                cb(null, buffer);
-            })
-        });
 
-         req.on('error', (err) => {
-            cb(err);
-        });
+                responseStream.on('data', chunk => {
+                    if (!buffer) {
+                        buffer = chunk;
+                    } else {
+                        buffer = Buffer.concat([buffer, chunk], buffer.length + chunk.length);
+                    }
+                });
+                res.on('error', error => {
+                    reject(error);
+                });
+                responseStream.on('end', () => {
+                    resolve(buffer);
+                })
+            });
 
-        req.end();
-    }
+            req.on('error', err => {
+                reject(err);
+            });
+
+            req.end();
+        }
+    });
 }
 
 function buildConnections(data, uris) {
@@ -94,10 +92,10 @@ function buildConnections(data, uris) {
     let feed = '';
     try {
         feed = gtfsrt.FeedMessage.decode(data);
-    } catch(err) {
+    } catch (err) {
         return null;
     }
-    
+
     let array = [];
     let index = 0;
 
