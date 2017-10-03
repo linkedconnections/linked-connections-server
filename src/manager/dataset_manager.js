@@ -91,55 +91,47 @@ function launchStaticCronJobs(i) {
 
 function launchRTCronJobs(i) {
     if (i < datasets.length && datasets[i].realTimeData) {
-        if (!fs.existsSync(storage + '/real_time/' + datasets[i].companyName)) {
-            child_process.execSync('mkdir ' + storage + '/real_time/' + datasets[i].companyName);
+        let companyName = datasets[i].companyName;
+        if (!fs.existsSync(storage + '/real_time/' + companyName)) {
+            child_process.execSync('mkdir ' + storage + '/real_time/' + companyName);
         }
 
         new cron.CronJob({
             cronTime: datasets[i].realTimeData.updatePeriod,
             onTick: async () => {
                 try {
+                    // Get RT data dump and convert it to Linked Connections
                     let rtcs = await gtfsrt2lc.processFeed(datasets[i]);
+                    // Timestamp that indicates when the data was obtained
                     let timestamp = new Date();
-                    let updateData = {};
-                    let promises = [];
+                    // Object to group the updates by fragment 
+                    let rtDataObject = {};
 
+                    // Group all connection updates into fragment wise arrays
                     for (let x in rtcs) {
                         let jodata = removeDelays(JSON.parse(rtcs[x]));
                         let dt = new Date(jodata.departureTime);
+                        //TODO: make this configurable
                         dt.setMinutes(dt.getMinutes() - (dt.getMinutes() % 10));
                         dt.setSeconds(0);
                         dt.setUTCMilliseconds(0);
+                        let dt_iso = dt.toISOString();
 
+                        // Add timestamp to RT data for versioning
                         jodata['mementoVersion'] = timestamp.toISOString();
                         let rtdata = JSON.stringify(jodata);
 
-                        if (!updateData[dt.toISOString()]) {
-                            updateData[dt.toISOString()] = [];
-                        }
-
-                        updateData[dt.toISOString()].push(rtdata);
+                        if (!rtDataObject[dt_iso]) rtDataObject[dt_iso] = [];
+                        rtDataObject[dt_iso].push(rtdata);
                     }
 
-                    for (let y in updateData) {
-                        let updData = updateData[y].join('\n');
-                        let path = storage + '/real_time/' + datasets[i].companyName + '/' + y + '.jsonld.gz';
-
-                        if (!fs.existsSync(path)) {
-                            promises.push(writeFile(path, await gzip(updData, { level: 9 })));
-                        } else {
-                            let completeData = (await utils.readAndGunzip(path)).join('').concat('\n' + updData);
-                            promises.push(writeFile(path, await gzip(completeData, { level: 9 })));
-                        }
-                    }
-
-                    Promise.all(promises).then(() => {
-                        let t1 = new Date().getTime();
-                        let tf = t1 - timestamp.getTime();
-                        logger.info(datasets[i].companyName + ' GTFS-RT feed updated for version ' + timestamp.toISOString() + ' (took ' + tf + ' ms)');
-                    });
+                    // Write new data into fragment files
+                    await updateRTData(rtDataObject, companyName);
+                    let t1 = new Date().getTime();
+                    let tf = t1 - timestamp.getTime();
+                    logger.info(companyName + ' GTFS-RT feed updated for version ' + timestamp.toISOString() + ' (took ' + tf + ' ms)');
                 } catch (err) {
-                    logger.error('Error getting GTFS-RT feed for ' + datasets[i].companyName + ': ' + error);
+                    logger.error('Error getting GTFS-RT feed for ' + companyName + ': ' + err);
                 }
             },
             start: true
@@ -286,7 +278,35 @@ function download_http(dataset, url) {
     });
 }
 
-//TODO: Remove this function and handle Connections with updated times
+function updateRTData(data, companyName) {
+    return new Promise((resolve, reject) => {
+        try {
+            // Array to store promises for writing fragment files
+            let written = [];
+
+            // Update RT fragment files with new data (asynchronously)
+            Object.entries(data).forEach(async ([key, value]) => {
+                let updData = value.join('\n');
+                let path = storage + '/real_time/' + companyName + '/' + key + '.jsonld.gz';
+
+                if (!fs.existsSync(path)) {
+                    written.push(writeFile(path, await gzip(updData, { level: 9 })));
+                } else {
+                    let completeData = (await utils.readAndGunzip(path)).join('').concat('\n' + updData);
+                    written.push(writeFile(path, await gzip(completeData, { level: 9 })));
+                }
+            });
+
+            // All RT fragment files updated. RT update completed
+            Promise.all(written).then(() => {
+                resolve();
+            });
+        } catch (err) {
+            reject(err);
+        }
+    });
+}
+
 function removeDelays(jo) {
     let dt = new Date(jo['departureTime']);
     let at = new Date(jo['arrivalTime']);
