@@ -19,7 +19,7 @@ const exec = util.promisify(child_process.exec);
 
 const config = utils.datasetsConfig;
 const datasets = config.datasets;
-const storage = config.storage;
+var storage = config.storage;
 
 
 module.exports.manageDatasets = () => {
