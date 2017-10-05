@@ -1,5 +1,5 @@
 # Linked Connections Server
-Express based Web Server that exposes [Linked Connections](http://linkedconnections.org/) data fragments using [JSON-LD](https://json-ld.org/) serialization format. It also provides a built-in tool to parse [GTFS](https://developers.google.com/tansit/gtfs/reference/) transport dataset feeds into a Linked Connections Directed Acyclic Graph using [GTFS2LC](https://github.com/linkedconnections/gtfs2lc), and create fragments of it spanning 10 minutes (to be configurable soon), according to connections departure time.
+Express based Web Server that exposes [Linked Connections](http://linkedconnections.org/) data fragments using [JSON-LD](https://json-ld.org/) serialization format. It also provides a built-in tool to parse [GTFS](https://developers.google.com/tansit/gtfs/reference/) and [GTFS Realtime](https://developers.google.com/transit/gtfs-realtime/) transport dataset feeds into a Linked Connections Directed Acyclic Graph using [GTFS2LC](https://github.com/linkedconnections/gtfs2lc), and create fragments of it spanning 10 minutes (to be configurable soon), according to connections departure time.
 
 ## Installation
 To install it follow this:
@@ -42,6 +42,8 @@ The Web Server does not provide any functionality by itself, it needs at least o
 
 - **updatePeriod:** Cron expression that defines how often should the server look for and process a new version of the dataset. We use the [node-cron](https://github.com/kelektiv/node-cron) library for this.
 
+- **realTimeData:** Here we define where (URL) and how often to download the GTFS Realtime data feed. We use node-cron here as well.
+
 - **baseURIs:** Here we define the base URIs that will be used to create the unique identifiers of each of the entities found in the Linked Connections. Is necessary to define the base URI for [Connections](http://semweb.datasciencelab.be/ns/linkedconnections#Connection), [Stops](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md), [Trips](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md) and [Routes](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md). This is the only optional parameterand in case that is not defined, all base URIs will have a http://example.org/ pattern, but we recommend to always use dereferenceable URIs.
 
 Here is an example of how to configure it:
@@ -53,6 +55,10 @@ Here is an example of how to configure it:
             "companyName": "companyX",
             "downloadUrl": "http://...",
             "updatePeriod": "0 0 2 * * *", //every day at 2am
+            "realTimeData": {
+                "downloadUrl": "http://...",
+                "updatePeriod": "*/30 * * * * *"
+            },
             "baseURIs": {
                 "connections": "http://example.org/connections/",
                 "stops": "http://example.org/stops/",
@@ -83,7 +89,7 @@ $ npm start
 After started your server will start fetching the datasets you configured according to their Cron configuration.
 
 ## Use it
-To use it make sure you already have at least one fully processed dataset (the logs will tell you when) and you can query the Linked Connections using the departure time as a parameter like this for example:
+To use it make sure you already have at least one fully processed dataset (the logs will tell you when). If so you can query the Linked Connections using the departure time as a parameter like this for example:
 ```http
 http://localhost:3000/companyX/connections?departureTime=2017-08-11T16:45:00.000Z
 ```
