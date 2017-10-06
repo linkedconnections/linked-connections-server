@@ -43,24 +43,12 @@ router.get('/:agency', async (req, res) => {
         if (fs.existsSync(rt_path)) {
             let rt_buffer = await utils.readAndGunzip(rt_path);
             // Create an array of all RT updates
-            let rt_array = rt_buffer.join('').split('\n');
-            // Create an indexed Map object for connection IDs and position in the RT updates array
-            // containing the last Connection updates for a given moment
-            let rt_map = utils.getIndexedMap(rt_array, mementoDate);
-            // Proceed to apply updates if there is any for the given criteria 
-            if (rt_map.size > 0) {
-                for (let i = 0; i < jsonld_graph.length; i++) {
-                    let jo = JSON.parse(jsonld_graph[i]);
-                    if (rt_map.has(jo['@id'])) {
-                        let update = JSON.parse(rt_array[rt_map.get(jo['@id'])]);
-                        jo['departureDelay'] = update['departureDelay'];
-                        jo['arrivalDelay'] = update['arrivalDelay'];
-                        jsonld_graph[i] = JSON.stringify(jo);
-                    }
-                }
-            }
-        } 
+            let rt_array = rt_buffer.join('').split('\n').map(JSON.parse);
+            // Combine static and real-time data
+            jsonld_graph = utils.aggregateRTData(jsonld_graph, rt_array, mementoDate);
+        }
 
+        // Finally build a JSON-LD document containing the data and return it to the client
         const headers = {
             'Memento-Datetime': mementoDate.toUTCString(),
             'Link': '<' + host + agency + '/connections?departureTime=' + departureTime.toISOString() + '>; rel=\"original timegate\"',

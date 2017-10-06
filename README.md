@@ -2,7 +2,7 @@
 Express based Web Server that exposes [Linked Connections](http://linkedconnections.org/) data fragments using [JSON-LD](https://json-ld.org/) serialization format. It also provides a built-in tool to parse [GTFS](https://developers.google.com/tansit/gtfs/reference/) and [GTFS Realtime](https://developers.google.com/transit/gtfs-realtime/) transport dataset feeds into a Linked Connections Directed Acyclic Graph using [GTFS2LC](https://github.com/linkedconnections/gtfs2lc), and create fragments of it spanning 10 minutes (to be configurable soon), according to connections departure time.
 
 ## Installation
-To install it follow this:
+Make sure to have [Node](https://nodejs.org/en/) 8.x installed. To install it follow this:
 ``` bash
 $ git clone https://github.com/julianrojas87/linked-connections-server.git
 $ cd linked-connections-server
