@@ -2,6 +2,7 @@ const util = require('util');
 const express = require('express');
 const fs = require('fs');
 const zlib = require('zlib');
+const md5 = require('md5');
 const logger = require('../utils/logger');
 const utils = require('../utils/utils');
 
@@ -14,7 +15,7 @@ const storage = datasets_config.storage;
 
 router.get('/:agency/connections', async (req, res) => {
     // Allow requests from different hosts
-    res.set({ 'Access-Control-Allow-Origin': '*' });
+    res.set({'Access-Control-Allow-Origin': '*'});
 
     // Determine protocol (i.e. HTTP or HTTPS)
     let x_forwarded_proto = req.headers['x-forwarded-proto'];
@@ -116,6 +117,11 @@ router.get('/:agency/connections', async (req, res) => {
 
                         // Look if there is real time data for this agency and requested time
                         if (fs.existsSync(rt_path)) {
+
+                            if (handleConditionalGET(req,res,rt_path)){
+                                return;
+                            }
+
                             let rt_buffer = await utils.readAndGunzip(rt_path);
                             // Create an array of all RT updates
                             let rt_array = rt_buffer.join('').split('\n');
@@ -133,6 +139,10 @@ router.get('/:agency/connections', async (req, res) => {
                                         jsonld_graph[i] = JSON.stringify(jo);
                                     }
                                 }
+                            }
+                        } else {
+                            if (handleConditionalGET(req,res,lv_path)){
+                                return;
                             }
                         }
 
@@ -160,13 +170,47 @@ router.get('/:agency/connections', async (req, res) => {
     }
 });
 
+/**
+ * Checks for Conditional GET requests, by comparing the last modified date and file hash against if-modified-since and if-none-match headers.
+ * If a match is made, a 304 response is sent and the function will return true.
+ * If the client needs a new version (ie a body should be sent), the function will return false
+ * @param req
+ * @param res
+ * @param filepath The path of the file which would be used to generate the response
+ * @returns boolean True if a 304 response was served
+ */
+function handleConditionalGET(req, res, filepath) {
+    let ifModifiedSinceHeader = req.header('if-modified-since');
+    let lastModifiedDate = fs.lastModifiedDate(filepath);
+    let etag = 'W/"' + md5(filepath + lastModifiedDate) + '"';
+
+    // If an if-modified-since header exists, and if the realtime data hasn't been updated since, just return a 304/
+    if (lastModifiedDate !== undefined && ifModifiedSinceHeader >= lastModifiedDate) {
+        res.header('Last-Modified', lastModifiedDate);
+        res.header('ETag', etag);
+        res.status(304).send();
+        return true;
+    }
+
+    let ifNoneMatchHeader = req.header('if-none-match');
+    // If an if-none-match header exists, and if the realtime data hasn't been updated since, just return a 304/
+    if (ifNoneMatchHeader !== undefined && ifNoneMatchHeader === etag) {
+        res.header('ETag', etag);
+        res.header('Last-Modified', lastModifiedDate);
+        res.status(304).send();
+        return true;
+    }
+
+    return false;
+}
+
 function sortVersions(acceptDatetime, versions) {
     let diffs = [];
     let sorted = [];
 
     for (v of versions) {
         let diff = Math.abs(acceptDatetime.getTime() - new Date(v).getTime());
-        diffs.push({ 'version': v, 'diff': diff });
+        diffs.push({'version': v, 'diff': diff});
     }
 
     diffs.sort((a, b) => {
