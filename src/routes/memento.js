@@ -3,6 +3,7 @@ const express = require('express');
 const fs = require('fs');
 const zlib = require('zlib');
 const utils = require('../utils/utils');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 const datasets_config = utils.datasetsConfig;
@@ -45,7 +46,7 @@ router.get('/:agency', async (req, res) => {
             // Create an array of all RT updates
             let rt_array = rt_buffer.join('').split('\n').map(JSON.parse);
             // Combine static and real-time data
-            jsonld_graph = utils.aggregateRTData(jsonld_graph, rt_array, mementoDate);
+            jsonld_graph = await utils.aggregateRTData(jsonld_graph, rt_array, agency, departureTime, mementoDate);
         }
 
         // Finally build a JSON-LD document containing the data and return it to the client

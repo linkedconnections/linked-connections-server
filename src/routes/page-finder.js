@@ -120,7 +120,7 @@ router.get('/:agency/connections', async (req, res) => {
                             // Create an array of all RT updates
                             let rt_array = rt_buffer.join('').split('\n').map(JSON.parse);
                             // Combine static and real-time data
-                            jsonld_graph = utils.aggregateRTData(jsonld_graph, rt_array, new Date());
+                            jsonld_graph = await utils.aggregateRTData(jsonld_graph, rt_array, agency, departureTime, new Date());
                         }
 
                         // Finally build a JSON-LD document containing the data and return it to the client
