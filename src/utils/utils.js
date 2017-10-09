@@ -76,8 +76,8 @@ module.exports = new class Utils {
                 }
             }
 
-            // Asynchronously check next 6 fragments for delays
-            for (let i = 0; i < 6; i++) {
+            // Asynchronously check next 12 fragments for delays
+            for (let i = 0; i < 12; i++) {
                 queryTime.setMinutes(queryTime.getMinutes() + 10);
                 promises.push(this.checkRTFragment(agency, queryTime, future_check, timestamp));
             }
