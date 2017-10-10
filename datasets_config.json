@@ -1,30 +1,30 @@
 {
-    "storage": "",
-    "datasets":[
+    "storage": "/home/julian/Projects/OASIS/Development/linked-connections-server",
+    "datasets": [
         {
-            "companyName": "company x",
-            "downloadUrl": "http://...",
-            "updatePeriod": "* * * * * *",
-	    "realTimeData": {
-		"downloadUrl": "http://...",
-		"updatePeriod": "* * * * * *"
-	    },
+            "companyName": "sncb",
+            "downloadUrl": "https://sncb-opendata.hafas.de/gtfs/static/c21ac6758dd25af84cca5b707f3cb3de",
+            "updatePeriod": "0 43 14 * * *",
+            "realTimeData": {
+                "downloadUrl": "https://sncb-opendata.hafas.de/gtfs/realtime/c21ac6758dd25af84cca5b707f3cb3de",
+                "updatePeriod": "*/30 * * * * *"
+            },
             "baseURIs": {
-                "stops": "http://example.org/stops/",
-                "connections": "http://example.org/connections/",
-                "trips": "http://example.org/trips/",
-                "routes": "http://example.org/routes/"
+                "stops": "http://irail.be/stations/NMBS/00",
+                "connections": "#",
+                "trips": "http://irail.be/trips/",
+                "routes": "http://irail.be/routes/"
             }
         },
         {
-            "companyName": "company y",
-            "downloadUrl": "http://...",
-            "updatePeriod": "* * * * * *",
+            "companyName": "delijn",
+            "downloadUrl": "http://gtfs.irail.be/de-lijn/de_lijn-gtfs.zip",
+            "updatePeriod": "0 0 0 1 1 *",
             "baseURIs": {
-                "stops": "http://example.org/stops/",
-                "connections": "http://example.org/connections/",
-                "trips": "http://example.org/trips/",
-                "routes": "http://example.org/routes/"
+                "stops": "http://belgium.linkedconnections.org/delijn/stops/",
+                "connections": "#",
+                "trips": "http://belgium.linkedconnections.org/delijn/trips/",
+                "routes": "http://belgium.linkedconnections.org/delijn/routes/"
             }
         }
     ]
