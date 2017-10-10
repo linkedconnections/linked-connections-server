@@ -40,65 +40,74 @@ module.exports = new class Utils {
     }
 
     aggregateRTData(static_data, rt_data, agency, queryTime, timestamp) {
-        return new Promise((resolve, reject) => {
-            // Index map for the static fragment
-            let static_index = this.getStaticIndex(static_data);
-            // Index map for the rt fragment
-            let rt_index = this.getRTIndex(rt_data, timestamp);
-            // Iterate over the RT index which contains all the connections that need to be updated or included
-            for (let [connId, index] of rt_index) {
-                // If the connection is already present in the static fragment just update its values
-                if (static_index.has(connId)) {
-                    let std = static_data[static_index.get(connId)];
-                    let rtd = rt_data[index];
-                    std['departureTime'] = rtd['departureTime'];
-                    std['arrivalTime'] = rtd['arrivalTime'];
-                    std['departureDelay'] = rtd['departureDelay'];
-                    std['arrivalDelay'] = rtd['arrivalDelay'];
-                    static_data[static_index.get(connId)] = std;
-                } else {
-                    // Is not present in the static fragment which means it's a connection that belongs to
-                    // previous fragment but the delays made it belong to this one, so inlcude it at the end.
-                    let rtd = rt_data[index];
-                    delete rtd['mementoVersion'];
-                    static_data.push(rtd);
-                }
+        //return new Promise((resolve, reject) => {
+        // Index map for the static fragment
+        let static_index = this.getStaticIndex(static_data);
+        // Index map for the rt fragment
+        let rt_index = this.getRTIndex(rt_data, timestamp);
+        // Iterate over the RT index which contains all the connections that need to be updated or included
+        for (let [connId, index] of rt_index) {
+            // If the connection is already present in the static fragment just update its values
+            if (static_index.has(connId)) {
+                let std = static_data[static_index.get(connId)];
+                let rtd = rt_data[index];
+                std['departureTime'] = rtd['departureTime'];
+                std['arrivalTime'] = rtd['arrivalTime'];
+                std['departureDelay'] = rtd['departureDelay'];
+                std['arrivalDelay'] = rtd['arrivalDelay'];
+                static_data[static_index.get(connId)] = std;
+            } else {
+                // Is not present in the static fragment which means it's a connection that belongs to
+                // previous fragment but the delays made it belong to this one, so inlcude it at the end.
+                let rtd = rt_data[index];
+                delete rtd['mementoVersion'];
+                static_data.push(rtd);
             }
+        }
 
-            // Check if there are connections with delays reported in future fragments
-            let future_check = [];
-            let promises = [];
-
-            // Gather all connections that may have delays reported in future fragments
-            for (let x in static_data) {
-                if (typeof static_data[x]['departureDelay'] === 'undefined') {
-                    future_check.push(static_data[x]);
-                }
-            }
-
-            // Asynchronously check next 12 fragments for delays
-            for (let i = 0; i < 12; i++) {
-                queryTime.setMinutes(queryTime.getMinutes() + 10);
-                promises.push(this.checkRTFragment(agency, queryTime, future_check, timestamp));
-            }
-
-            Promise.all(promises).then(remove => {
-                // Remove all connections with delays reported in future fragments
-                let r = [].concat.apply([], remove);
-                for (let y in r) {
-                    static_data.splice(static_index.get(r[y]), 1);
-                }
-
-                // Re-sort the fragment with the updated delay data
-                static_data.sort((a, b) => {
-                    let a_date = new Date(a['departureTime']).getTime();
-                    let b_date = new Date(b['departureTime']).getTime();
-                    return a_date - b_date;
-                });
-
-                resolve(static_data);
-            });
+        // Re-sort the fragment with the updated delay data
+        static_data.sort((a, b) => {
+            let a_date = new Date(a['departureTime']).getTime();
+            let b_date = new Date(b['departureTime']).getTime();
+            return a_date - b_date;
         });
+
+        return static_data;
+
+        // Check if there are connections with delays reported in future fragments
+        /*let future_check = [];
+        let promises = [];
+
+        // Gather all connections that may have delays reported in future fragments
+        for (let x in static_data) {
+            if (typeof static_data[x]['departureDelay'] === 'undefined') {
+                future_check.push(static_data[x]);
+            }
+        }
+
+        // Asynchronously check next 12 fragments for delays
+        for (let i = 0; i < 12; i++) {
+            queryTime.setMinutes(queryTime.getMinutes() + 10);
+            promises.push(this.checkRTFragment(agency, queryTime, future_check, timestamp));
+        }
+
+        Promise.all(promises).then(remove => {
+            // Remove all connections with delays reported in future fragments
+            let r = [].concat.apply([], remove);
+            for (let y in r) {
+                static_data.splice(static_index.get(r[y]), 1);
+            }
+
+            // Re-sort the fragment with the updated delay data
+            static_data.sort((a, b) => {
+                let a_date = new Date(a['departureTime']).getTime();
+                let b_date = new Date(b['departureTime']).getTime();
+                return a_date - b_date;
+            });
+
+            resolve(static_data);
+        });*/
+        // });
     }
 
     checkRTFragment(agency, fragment, conns, memento) {

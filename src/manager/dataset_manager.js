@@ -108,7 +108,7 @@ function launchRTCronJobs(i) {
 
                     // Group all connection updates into fragment wise arrays
                     for (let x in rtcs) {
-                        let jodata = JSON.parse(rtcs[x]);
+                        let jodata = removeDelays(JSON.parse(rtcs[x]));
                         let dt = new Date(jodata.departureTime);
                         //TODO: make this configurable
                         dt.setMinutes(dt.getMinutes() - (dt.getMinutes() % 10));
@@ -304,4 +304,14 @@ function updateRTData(data, companyName) {
             reject(err);
         }
     });
+}
+
+function removeDelays(jo) {
+    let dt = new Date(jo['departureTime']);
+    let at = new Date(jo['arrivalTime']);
+    dt.setTime(dt.getTime() - (jo['departureDelay'] * 1000));
+    at.setTime(at.getTime() - (jo['arrivalDelay'] * 1000));
+    jo['departureTime'] = dt.toISOString();
+    jo['arrivalTime'] = at.toISOString();
+    return jo;
 }
