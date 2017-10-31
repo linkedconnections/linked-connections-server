@@ -11,7 +11,7 @@ const readdir = util.promisify(fs.readdir);
 const router = express.Router();
 const datasets_config = utils.datasetsConfig;
 const server_config = utils.serverConfig;
-const storage = datasets_config.storage;
+let storage = datasets_config.storage;
 
 router.get('/:agency/connections', async (req, res) => {
     // Allow requests from different hosts

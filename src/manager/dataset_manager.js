@@ -54,6 +54,7 @@ function initContext() {
     }
 }
 
+// TODO: replace with for loop to make code less confusing
 function launchStaticCronJobs(i) {
     if (i < datasets.length) {
         initCompanyContext(datasets[i].companyName);
@@ -62,7 +63,7 @@ function launchStaticCronJobs(i) {
             cronTime: datasets[i].updatePeriod,
             onTick: async () => {
                 let t0 = new Date().getTime();
-                logger.info('runnig cron job to update ' + datasets[i].companyName + ' GTFS feed');
+                logger.info('running cron job to update ' + datasets[i].companyName + ' GTFS feed');
                 try {
                     let file_name = await downloadDataset(datasets[i]);
                     if (file_name != null) {
@@ -78,6 +79,8 @@ function launchStaticCronJobs(i) {
                         await exec('find . -type f -exec gzip {} +', { cwd: storage + '/linked_pages/' + dataset.companyName + '/' + file_name });
                         let t1 = (new Date().getTime() - t0) / 1000;
                         logger.info('Dataset conversion for ' + dataset.companyName + ' completed successfuly (took ' + t1 + ' seconds)');
+                    } else {
+                        logger.error("Dataset download failed");
                     }
                 } catch (err) {
                     logger.error(err);
