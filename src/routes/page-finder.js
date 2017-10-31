@@ -118,7 +118,7 @@ router.get('/:agency/connections', async (req, res) => {
                         // Look if there is real time data for this agency and requested time
                         if (fs.existsSync(rt_path)) {
 
-                            if (handleConditionalGET(req,res,rt_path)){
+                            if (handleConditionalGET(req, res, rt_path)) {
                                 return;
                             }
 
@@ -141,7 +141,7 @@ router.get('/:agency/connections', async (req, res) => {
                                 }
                             }
                         } else {
-                            if (handleConditionalGET(req,res,lv_path)){
+                            if (handleConditionalGET(req, res, lv_path)) {
                                 return;
                             }
                         }
@@ -180,25 +180,26 @@ router.get('/:agency/connections', async (req, res) => {
  * @returns boolean True if a 304 response was served
  */
 function handleConditionalGET(req, res, filepath) {
-    let ifModifiedSinceHeader = req.header('if-modified-since');
+    let ifModifiedSinceRawHeader = req.header('if-modified-since');
+
+    let ifModifiedSinceHeader = undefined;
+    if (ifModifiedSinceRawHeader !== undefined) {
+        ifModifiedSinceHeader = new Date(ifModifiedSinceRawHeader);
+    }
+
+    let ifNoneMatchHeader = req.header('if-none-match');
+
     let stats = fs.statSync(filepath);
     let lastModifiedDate = new Date(util.inspect(stats.mtime));
 
     let etag = 'W/"' + md5(filepath + lastModifiedDate) + '"';
 
     // If an if-modified-since header exists, and if the realtime data hasn't been updated since, just return a 304/
-    if (lastModifiedDate !== undefined && ifModifiedSinceHeader >= lastModifiedDate) {
-        res.header('Last-Modified', lastModifiedDate);
-        res.header('ETag', etag);
-        res.status(304).send();
-        return true;
-    }
-
-    let ifNoneMatchHeader = req.header('if-none-match');
     // If an if-none-match header exists, and if the realtime data hasn't been updated since, just return a 304/
-    if (ifNoneMatchHeader !== undefined && ifNoneMatchHeader === etag) {
+    if ((lastModifiedDate !== undefined && ifModifiedSinceHeader !== undefined && ifModifiedSinceHeader >= lastModifiedDate) ||
+        (ifNoneMatchHeader !== undefined && ifNoneMatchHeader === etag)) {
+        res.header('Last-Modified', lastModifiedDate.toISOString());
         res.header('ETag', etag);
-        res.header('Last-Modified', lastModifiedDate);
         res.status(304).send();
         return true;
     }
