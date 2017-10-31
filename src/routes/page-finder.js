@@ -181,7 +181,7 @@ router.get('/:agency/connections', async (req, res) => {
  */
 function handleConditionalGET(req, res, filepath) {
     let ifModifiedSinceHeader = req.header('if-modified-since');
-    let stats = fs.statSync("/dir/file.txt");
+    let stats = fs.statSync(filepath);
     let lastModifiedDate = new Date(util.inspect(stats.mtime));
 
     let etag = 'W/"' + md5(filepath + lastModifiedDate) + '"';
