@@ -181,7 +181,9 @@ router.get('/:agency/connections', async (req, res) => {
  */
 function handleConditionalGET(req, res, filepath) {
     let ifModifiedSinceHeader = req.header('if-modified-since');
-    let lastModifiedDate = fs.lastModifiedDate(filepath);
+    let stats = fs.statSync("/dir/file.txt");
+    let lastModifiedDate = new Date(util.inspect(stats.mtime));
+
     let etag = 'W/"' + md5(filepath + lastModifiedDate) + '"';
 
     // If an if-modified-since header exists, and if the realtime data hasn't been updated since, just return a 304/
