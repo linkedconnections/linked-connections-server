@@ -80,7 +80,7 @@ router.get('/:agency/connections', async (req, res) => {
                 // Set Memento headers pointng to the found version
                 res.location('/memento/' + agency + '?version=' + closest_version + '&departureTime=' + departureTime.toISOString());
                 res.set({
-                    'Vary': 'accept-datetime',
+                    'Vary': 'Accept-Encoding, Accept-Datetime',
                     'Link': '<' + host + agency + '/connections?departureTime=' + departureTime.toISOString() + '>; rel=\"original timegate\"'
                 });
                 // Send HTTP redirect to client
@@ -193,7 +193,8 @@ function handleConditionalGET(req, res, filepath) {
     let lastModifiedDate = new Date(util.inspect(stats.mtime));
 
     let etag = 'W/"' + md5(filepath + lastModifiedDate) + '"';
-
+    res.set({'Cache-control': 'public, s-maxage=5, max-age=15, must-revalidate'});
+    res.set({'Vary': 'Accept-encoding'});
     res.set({'Last-Modified': lastModifiedDate.toISOString()});
     res.set({'ETag': etag});
 
