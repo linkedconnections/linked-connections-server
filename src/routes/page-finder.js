@@ -194,12 +194,13 @@ function handleConditionalGET(req, res, filepath) {
 
     let etag = 'W/"' + md5(filepath + lastModifiedDate) + '"';
 
+    res.set({'Last-Modified': lastModifiedDate.toISOString()});
+    res.set({'ETag': etag});
+
     // If an if-modified-since header exists, and if the realtime data hasn't been updated since, just return a 304/
     // If an if-none-match header exists, and if the realtime data hasn't been updated since, just return a 304/
     if ((lastModifiedDate !== undefined && ifModifiedSinceHeader !== undefined && ifModifiedSinceHeader >= lastModifiedDate) ||
         (ifNoneMatchHeader !== undefined && ifNoneMatchHeader === etag)) {
-        res.header('Last-Modified', lastModifiedDate.toISOString());
-        res.header('ETag', etag);
         res.status(304).send();
         return true;
     }
