@@ -55,6 +55,7 @@ router.get('/:agency/connections', async (req, res) => {
     let lp_path = storage + '/linked_pages/' + agency;
 
     // Check if there is data for the requested company
+
     if (!fs.existsSync(lp_path)) {
         res.status(404).send("Agency not found");
         return;

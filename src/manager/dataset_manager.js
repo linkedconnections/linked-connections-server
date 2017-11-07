@@ -5,7 +5,6 @@ const cron = require('cron');
 const url = require('url');
 const http = require('follow-redirects').http;
 const https = require('follow-redirects').https;
-const unzip = require('unzip');
 const zlib = require('zlib');
 const logger = require('../utils/logger');
 const utils = require('../utils/utils');
