@@ -130,10 +130,10 @@ router.get('/:agency/connections', async (req, res) => {
         }
 
         let rt_path = storage + '/real_time/' + agency + '/' + departureTime.toISOString() + '.jsonld.gz';
-
+        let rt_exists = fs.existsSync(rt_path);
         // Check if this is a conditional get request, and if so, if we can close this request
         // Do this before heavy work like unzipping, this response needs to be FAST!
-        if (fs.existsSync(rt_path)) {
+        if (rt_exists) {
             if (handleConditionalGET(req, res, rt_path,departureTime)) {
                 return;
             }
@@ -146,29 +146,15 @@ router.get('/:agency/connections', async (req, res) => {
         // Get respective static data fragment according to departureTime query
         // and complement resource with Real-Time data and Hydra metadata before sending it back to the client
         let buffer = await utils.readAndGunzip(lv_path + departureTime.toISOString() + '.jsonld.gz');
-        let jsonld_graph = buffer.join('').split(',\n');
+        let jsonld_graph = buffer.join('').split(',\n').map(JSON.parse);
 
         // Look if there is real time data for this agency and requested time
-        if (fs.existsSync(rt_path)) {
-
+        if (rt_exists) {
             let rt_buffer = await utils.readAndGunzip(rt_path);
             // Create an array of all RT updates
-            let rt_array = rt_buffer.join('').split('\n');
-            // Create an indexed Map object for connection IDs and position in the RT updates array
-            // containing the last Connection updates for a given moment
-            let rt_map = utils.getIndexedMap(rt_array, new Date());
-            // Proceed to apply updates (if there is any) for the given criteria
-            if (rt_map.size > 0) {
-                for (let i = 0; i < jsonld_graph.length; i++) {
-                    let jo = JSON.parse(jsonld_graph[i]);
-                    if (rt_map.has(jo['@id'])) {
-                        let update = JSON.parse(rt_array[rt_map.get(jo['@id'])]);
-                        jo['departureDelay'] = update['departureDelay'];
-                        jo['arrivalDelay'] = update['arrivalDelay'];
-                        jsonld_graph[i] = JSON.stringify(jo);
-                    }
-                }
-            }
+            let rt_array = rt_buffer.join('').split('\n').map(JSON.parse);
+            // Combine static and real-time data
+            jsonld_graph = utils.aggregateRTData(jsonld_graph, rt_array, agency, departureTime, new Date());
         }
 
 
