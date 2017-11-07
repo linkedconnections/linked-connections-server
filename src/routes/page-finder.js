@@ -228,16 +228,17 @@ function handleConditionalGET(req, res, filepath,departureTime) {
         // Immutable (for browsers which support it, sometimes limited to https only
         // 1 year expiry date to keep it long enough in cache for the others
         res.set({'Cache-control': 'public, max-age=31536000000, immutable'});
-        res.set({'Expires': new Date(now + 31536000000).toISOString()});
+        res.set({'Expires': new Date(now + 31536000000).toUTCString()});
     } else {
         // Let clients hold on to this data for 1 second longer than nginx. This way nginx can update before the clients?
         res.set({'Cache-control': 'public, s-maxage='+maxage+', max-age='+ (maxage + 1) +',stale-if-error='+ (maxage + 15) +', proxy-revalidate'});
-        res.set({'Expires': validUntilDate.toISOString()});
+        res.set({'Expires': validUntilDate.toUTCString()});
     }
 
     res.set({'ETag': etag});
-    res.set({'Vary': 'Accept-encoding'});
-    res.set({'Last-Modified': lastModifiedDate.toISOString()});
+    res.set({'Vary': 'Accept-encoding, Accept-Datetime'});
+    res.set({'Last-Modified': lastModifiedDate.toUTCString()});
+    res.set({'Content-Type': 'application/ld+json'});
 
     // If an if-modified-since header exists, and if the realtime data hasn't been updated since, just return a 304/
     // If an if-none-match header exists, and if the realtime data hasn't been updated since, just return a 304/
