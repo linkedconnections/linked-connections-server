@@ -1,5 +1,5 @@
 {
-    "storage": "",
+    "storage": "/drive/folder/subfolder",
     "datasets":[
         {
             "companyName": "company x",

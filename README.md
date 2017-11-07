@@ -34,7 +34,7 @@ This is a configuration example:
 ```
 ### Datasets configuration
 The Web Server does not provide any functionality by itself, it needs at least one dataset (in GTFS format) that can be downloaded, to be processed and exposed as Linked Connections. And to tell the server where to find and store such datasets, we use the ([datasets_config.json](https://github.com/julianrojas87/linked-connections-server/blob/master/datasets_config.json)) config file. All the parameters in this config file are **Mandatory**, otherwise the server won't function properly. This file contains the following parameters:
-- **storage:** This parameters is the path that tells the server where to store and where to look for the data fragments, created from the different datasets. Make sure you have enough disk space to store datasets as, after processed, some of them may take up to 4GB.
+- **storage:** This parameters is the path that tells the server where to store and where to look for the data fragments, created from the different datasets. **This should not include a trailing slash**. Make sure you have enough disk space to store datasets. Processing can require up to 12gb of free disk space. After they are processed, some of them may take up to 4GB.
 
 - **companyName:** Name of the transport company that provides a GTFS dataset feed.
 
