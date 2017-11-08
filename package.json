@@ -14,6 +14,7 @@
     "follow-redirects": "~1.2.4",
     "gtfs-realtime-bindings": "~0.0.4",
     "jsonld-stream": "~1.0.3",
+    "md5": "^2.2.1",
     "moment-timezone": "~0.5.13",
     "morgan": "~1.8.1",
     "serve-favicon": "~2.4.2",

@@ -1,6 +1,6 @@
 {
-    "storage": "",
-    "datasets": [
+    "storage": "/drive/folder/subfolder",
+    "datasets":[
         {
             "companyName": "company x",
             "downloadUrl": "http://...",
