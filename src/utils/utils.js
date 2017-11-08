@@ -18,7 +18,7 @@ module.exports = new class Utils {
             fs.createReadStream(path)
                 .pipe(new zlib.createGunzip())
                 .on('error', err => {
-                    reject(err);
+                    reject(err + ' - ocurred on file: ' + path);
                 })
                 .on('data', data => {
                     buffer.push(data);
