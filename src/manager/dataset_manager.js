@@ -106,7 +106,7 @@ function launchRTCronJobs(i) {
                     // Object to group the updates by fragment 
                     let rtDataObject = {};
 
-                    // Group all connection updates into fragment wise arrays
+                    // Group all connection updates into fragment based arrays
                     for (let x in rtcs) {
                         let jodata = removeDelays(JSON.parse(rtcs[x]));
                         let dt = new Date(jodata.departureTime);
