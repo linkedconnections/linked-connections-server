@@ -4,9 +4,9 @@ COMPANY_NAME="$1"
 LAST_MODIFIED="$2"
 STORAGE="$3"
 
-gtfs2lc-sort ${STORAGE}/datasets/${COMPANY_NAME}/${LAST_MODIFIED}_tmp
+../../node_modules/gtfs2lc/bin/gtfs2lc-sort.sh ${STORAGE}/datasets/${COMPANY_NAME}/${LAST_MODIFIED}_tmp
 echo "Starting convertion of GTFS feed to Linked Connections..."
-gtfs2lc ${STORAGE}/datasets/${COMPANY_NAME}/${LAST_MODIFIED}_tmp -f jsonld -b ${STORAGE}/datasets/${COMPANY_NAME}/baseUris.json -S LevelStore > ${STORAGE}/linked_connections/${COMPANY_NAME}/${LAST_MODIFIED}_tmp.jsonld
+node ../../node_modules/gtfs2lc/bin/gtfs2lc ${STORAGE}/datasets/${COMPANY_NAME}/${LAST_MODIFIED}_tmp -f jsonld -b ${STORAGE}/datasets/${COMPANY_NAME}/baseUris.json -S LevelStore > ${STORAGE}/linked_connections/${COMPANY_NAME}/${LAST_MODIFIED}_tmp.jsonld
 rm -r ${STORAGE}/datasets/${COMPANY_NAME}/${LAST_MODIFIED}_tmp
 rm ${STORAGE}/datasets/${COMPANY_NAME}/baseUris.json
 echo "Sorting Linked Connections by Departure Time..."

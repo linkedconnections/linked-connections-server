@@ -101,7 +101,7 @@ router.get('/:agency/connections', async (req, res) => {
         let last_version = await findResource(agency, departureTime, versions);
         let lv_path = storage + '/linked_pages/' + agency + '/' + last_version + '/';
 
-        // Redirect a user to the correct (existing) page
+        // Redirect client to the correct (existing) page
         if (departureTime.getMinutes() % 10 != 0 || departureTime.getSeconds() !== 0 || departureTime.getUTCMilliseconds() !== 0) {
             // TODO: Make this configurable!!
             // Adjust requested resource to match 10 minutes step format
@@ -258,7 +258,7 @@ function sortVersions(acceptDatetime, versions) {
     return sorted;
 }
 
-function findResource(agency, departureTime, versions, cb) {
+function findResource(agency, departureTime, versions) {
     return new Promise((resolve, reject) => {
 
         let ver = versions.slice(0);
@@ -266,7 +266,7 @@ function findResource(agency, departureTime, versions, cb) {
             try {
                 let version = ver.splice(ver.length - 1, 1)[0];
                 // TODO: This is slow with thousands of items! find a more efficient way?
-                //let pages = await readdir(storage + '/linked_pages/' + agency + '/' + version);
+                // let pages = await readdir(storage + '/linked_pages/' + agency + '/' + version);
                 // TODO: hardcoded fix which causes a 10x performance increase,
                 // TODO: we should find a solution to keep at least a 6 to 8 times performance increase while maintaining functionality.
                 resolve(version);

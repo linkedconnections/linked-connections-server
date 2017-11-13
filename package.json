@@ -12,6 +12,7 @@
     "debug": "~2.6.3",
     "express": "~4.15.2",
     "follow-redirects": "~1.2.4",
+    "gtfs2lc": "~0.7.5",
     "gtfs-realtime-bindings": "~0.0.4",
     "jsonld-stream": "~1.0.3",
     "md5": "^2.2.1",

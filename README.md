@@ -8,10 +8,6 @@ $ git clone https://github.com/julianrojas87/linked-connections-server.git
 $ cd linked-connections-server
 $ npm install
 ```
-We also need the [GTFS2LC](https://github.com/linkedconnections/gtfs2lc) tool:
-``` bash
-$ npm install -g gtfs2lc
-```
 
 ## Configuration
 The configuration is made through 2 different config files. One is for defining Web Server parameters ([server_config.json](https://github.com/julianrojas87/linked-connections-server/blob/master/server_config.json)) and the other is for defining the different datasources that will be managed and exposed through the Linked Connections Server ([datasets_config.json](https://github.com/julianrojas87/linked-connections-server/blob/master/datasets_config.json)). Next you could find an example and a description of each config file.
@@ -94,6 +90,46 @@ To use it make sure you already have at least one fully processed dataset (the l
 http://localhost:3000/companyX/connections?departureTime=2017-08-11T16:45:00.000Z
 ```
 If available, the server will redirect you to the Linked Connections fragment that contains connections with departure times as close as possible to the one requested.
+
+## Historic Data
+The server also allows quierying historic data by means of the [Memento Framework](https://tools.ietf.org/html/rfc7089) which enables time-based content negotiation over HTTP. By using the **Accept-Datetime** header a client can request the state of a resource at a given moment. If existing, the server will respond with a 302 Found containing the URI of the stored version of such resource. For example:
+```bash
+$ curl -v -L -H "Accept-Datetime: 2017-10-06T13:00:00.000Z" http://localhost:3000/companyX/connections?departureTime=2017-10-06T15:50:00.000Z
+
+> GET /companyX/connections?departureTime=2017-10-06T15:50:00.000Z HTTP/1.1
+> Host: localhost:3000
+> User-Agent: curl/7.52.1
+> Accept: */*
+> Accept-Datetime: 2017-10-06T13:00:00.000Z
+
+< HTTP/1.1 302 Found
+< X-Powered-By: Express
+< Access-Control-Allow-Origin: *
+< Location: /memento/companyX?version=2017-10-28T03:07:47.000Z&departureTime=2017-10-06T15:50:00.000Z
+< Vary: Accept-Encoding, Accept-Datetime
+< Link: <http://localhost:3000/companyX/connections?departureTime=2017-10-06T15:50:00.000Z>; rel="original timegate"
+< Date: Mon, 13 Nov 2017 15:00:36 GMT
+< Connection: keep-alive
+< Content-Length: 0
+
+> GET /memento/companyX?version=2017-10-28T03:07:47.000Z&departureTime=2017-10-06T15:50:00.000Z HTTP/1.1
+> Host: localhost:3000
+> User-Agent: curl/7.52.1
+> Accept: */*
+> Accept-Datetime: 2017-10-06T13:00:00.000Z
+
+< HTTP/1.1 200 OK
+< X-Powered-By: Express
+< Memento-Datetime: Fri, 06 Oct 2017 13:00:00 GMT
+< Link: <http://localhost:3000/companyX/connections?departureTime=2017-10-06T15:50:00.000Z>; rel="original timegate"
+< Access-Control-Allow-Origin: *
+< Content-Type: application/ld+json; charset=utf-8
+< Content-Length: 289915
+< ETag: W/"46c7b-TOdDIcDjCvUXTC/gzqr5hxVDZjg"
+< Date: Mon, 13 Nov 2017 15:00:36 GMT
+< Connection: keep-alive
+```
+The previous example shows a request made to obtain the Connections fragment identified by the URL http://localhost:3000/companyX/connections?departureTime=2017-10-06T15:50:00.000Z, but specifically the state of this fragment as it was at **Accept-Datetime: 2017-10-06T13:00:00.000Z**. This means that is possible to know what was the state of the delays at 13:00 for the departures at 15:50 on 2017-10-06.
 
 ## Authors
 Julian Rojas - julianandres.rojasmelendez@ugent.be  
