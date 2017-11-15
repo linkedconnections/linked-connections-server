@@ -31,10 +31,16 @@ module.exports = new class Utils {
 
     readAndUnzip(path) {
         return new Promise((resolve, reject) => {
-            fs.createReadStream(path + '.zip')
-                .pipe(unzip.Extract({ path: path + '_tmp' }))
+            let dirName = path;
+            if(dirName.endsWith('.zip')) {
+                dirName = dirName.substring(0, dirName.indexOf('.zip')) + '_tmp';
+            } else {
+                path += '.zip';
+            }
+            fs.createReadStream(path)
+                .pipe(unzip.Extract({ path: dirName }))
                 .on('close', () => {
-                    resolve();
+                    resolve(dirName);
                 });
         });
     }
