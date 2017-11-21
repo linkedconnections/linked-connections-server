@@ -36,6 +36,8 @@ The Web Server does not provide any functionality by itself, it needs at least o
 
 - **downloadUrl:** URL where the GTFS dataset feed can be downloaded.
 
+- **downloadOnLaunch:** Boolean parameter that indicates if the GTFS feed is to be downloaded and processed upon server launch. 
+
 - **updatePeriod:** Cron expression that defines how often should the server look for and process a new version of the dataset. We use the [node-cron](https://github.com/kelektiv/node-cron) library for this.
 
 - **realTimeData:** Here we define where (URL) and how often to download the GTFS Realtime data feed. We use node-cron here as well.
@@ -50,6 +52,7 @@ Here is an example of how to configure it:
         {
             "companyName": "companyX",
             "downloadUrl": "http://...",
+            "downloadOnLaunch": true,
             "updatePeriod": "0 0 2 * * *", //every day at 2am
             "realTimeData": {
                 "downloadUrl": "http://...",
@@ -65,6 +68,7 @@ Here is an example of how to configure it:
         {
             "companyName": "companyY",
             "downloadUrl": "http://...",
+            "downloadOnLaunch": false,
             "updatePeriod": "0 0 3 * * *", //every day at 3am
             "baseURIs": {
                 "connections": "http://example.org/connections/",

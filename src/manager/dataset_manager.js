@@ -65,6 +65,13 @@ class DatasetManager {
                 this.initCompanyDirs(dataset.companyName);
                 // Schedule GTFS feed processing job
                 this.launchStaticJob(index, dataset);
+
+                // Download and process GTFS feed on server launch if required
+                if(dataset.downloadOnLaunch) {
+                    this.processStaticGTFS(index, dataset);
+                }
+                
+                // Handle real-time data if available
                 if (dataset.realTimeData) {
                     // Load GTFS identifiers
                     let loaded = await this.loadGTFSIdentifiers(index, dataset);
@@ -92,61 +99,65 @@ class DatasetManager {
     }
 
     launchStaticJob(index, dataset) {
-        let companyName = dataset.companyName;
         let static_job = new cron.CronJob({
             cronTime: dataset.updatePeriod,
-            onTick: async () => {
-                let t0 = new Date().getTime();
-                logger.info('running cron job to update ' + companyName + ' GTFS feed');
-                try {
-                    // Download GTFS feed
-                    let file_name = await this.downloadDataset(dataset);
-                    if (file_name != null) {
-                        let path = this.storage + '/datasets/' + companyName + '/' + file_name + '.zip';
-                        // Unzip it
-                        await utils.readAndUnzip(path);
-                        logger.info(companyName + ' Dataset extracted');
-                        // Set base URIs for conversion to Linked Connections
-                        await this.setBaseUris(dataset);
-                        // Convert to Linked Connections
-                        await this.convertGTFS2LC(companyName, file_name);
-                        logger.info('Initiating Linked Connections fragmentation process for ' + companyName + '...');
-                        // Fragment dataset into linked data documents
-                        await paginator.paginateDataset(companyName, file_name, this.storage);
-                        logger.info('Compressing Linked Connections fragments...')
-                        // Compress all linked data documents
-                        await exec('find . -type f -exec gzip {} +', { cwd: this.storage + '/linked_pages/' + companyName + '/' + file_name });
-                        let t1 = (new Date().getTime() - t0) / 1000;
-                        logger.info('Dataset conversion for ' + companyName + ' completed successfuly (took ' + t1 + ' seconds)');
-
-                        // Reload GTFS identifiers for RT processing, using new GTFS feed files
-                        if (dataset.realTimeData) {
-                            logger.info('Updating GTFS identifiers for ' + companyName + '...');
-                            // First pause RT job if is already running
-                            if (this.jobs[index]['rt_job']) {
-                                this.jobs[index]['rt_job'].stop();
-                            }
-                            await this.loadGTFSIdentifiers(index, dataset);
-                            // Start RT job again or create new one if does not exist
-                            if (this.jobs[index]['rt_job']) {
-                                this.jobs[index]['rt_job'].start();
-                            } else {
-                                this.launchRTJob(index, dataset);
-                            }
-                        }
-                    } else {
-                        logger.error(companyName + " dataset download failed");
-                    }
-                } catch (err) {
-                    logger.error(err);
-                }
+            onTick: () => {
+                this.processStaticGTFS(index, dataset);
             },
             start: true
         });
 
         if (!this.jobs[index]) this.jobs[index] = {};
         this.jobs[index]['static_job'] = static_job;
-        logger.info('GTFS job for ' + companyName + ' scheduled correctly');
+        logger.info('GTFS job for ' + dataset.companyName + ' scheduled correctly');
+    }
+
+    async processStaticGTFS(index, dataset) {
+        let t0 = new Date().getTime();
+        let companyName = dataset.companyName;
+        logger.info('Running cron job to update ' + companyName + ' GTFS feed');
+        try {
+            // Download GTFS feed
+            let file_name = await this.downloadDataset(dataset);
+            if (file_name != null) {
+                let path = this.storage + '/datasets/' + companyName + '/' + file_name + '.zip';
+                // Unzip it
+                await utils.readAndUnzip(path);
+                logger.info(companyName + ' Dataset extracted');
+                // Set base URIs for conversion to Linked Connections
+                await this.setBaseUris(dataset);
+                // Convert to Linked Connections
+                await this.convertGTFS2LC(companyName, file_name);
+                logger.info('Fragmenting ' + companyName + 'Linked Connections...');
+                // Fragment dataset into linked data documents
+                await paginator.paginateDataset(companyName, file_name, this.storage);
+                logger.info('Compressing ' + companyName + ' Linked Connections fragments...')
+                // Compress all linked data documents
+                await exec('find . -type f -exec gzip {} +', { cwd: this.storage + '/linked_pages/' + companyName + '/' + file_name });
+                let t1 = (new Date().getTime() - t0) / 1000;
+                logger.info('Dataset conversion for ' + companyName + ' completed successfuly (took ' + t1 + ' seconds)');
+
+                // Reload GTFS identifiers for RT processing, using new GTFS feed files
+                if (dataset.realTimeData) {
+                    logger.info('Updating GTFS identifiers for ' + companyName + '...');
+                    // First pause RT job if is already running
+                    if (this.jobs[index]['rt_job']) {
+                        this.jobs[index]['rt_job'].stop();
+                    }
+                    await this.loadGTFSIdentifiers(index, dataset);
+                    // Start RT job again or create new one if does not exist
+                    if (this.jobs[index]['rt_job']) {
+                        this.jobs[index]['rt_job'].start();
+                    } else {
+                        this.launchRTJob(index, dataset);
+                    }
+                }
+            } else {
+                logger.warn(companyName + " dataset was already downloaded");
+            }
+        } catch (err) {
+            logger.error(err);
+        }
     }
 
     loadGTFSIdentifiers(index, dataset) {
@@ -156,6 +167,7 @@ class DatasetManager {
 
                 // Delete previous existing GTFS identifier stores
                 if(fs.existsSync(datasets_dir + '/.routes') || fs.existsSync(datasets_dir + '/.trips')) {
+                    this.stores[index] = {};
                     await exec('rm -r .routes .trips', { cwd: datasets_dir });
                 }
 
@@ -227,7 +239,7 @@ class DatasetManager {
                     };
                 } else {
                     // There are no GTFS feeds
-                    logger.warn('There are no GTFS feeds present therefore is not possible to start the GTFS-RT process');
+                    logger.warn('There are no ' + dataset.companyName + ' GTFS feeds present, therefore is not possible to start the GTFS-RT job');
                     logger.warn('Make sure to obtain a static GTFS feed first');
                     resolve(false);
                 }

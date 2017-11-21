@@ -4,6 +4,7 @@ const https = require('follow-redirects').https;
 const zlib = require('zlib');
 const gtfsrt = require('gtfs-realtime-bindings');
 const moment = require('moment-timezone');
+const logger = require('../utils/logger');
 
 class Gtfsrt2lc {
     constructor(dataset, stores) {
@@ -119,54 +120,59 @@ class Gtfsrt2lc {
                 let st_length = stop_times.length;
 
                 for (let j = 0; j < st_length; j++) {
-                    if (j + 1 < st_length) {
-                        var departureStop = stop_times[j].stop_id.split(':')[0];
-                        var arrivalStop = trip_update.stop_time_update[j + 1].stop_id.split(':')[0];
-                        var departureTime = null;
-                        var arrivalTime = null;
-                        var departureDelay = 0;
-                        var arrivalDelay = 0;
+                    try {
+                        if (j + 1 < st_length) {
+                            var departureStop = stop_times[j].stop_id.split(':')[0];
+                            var arrivalStop = trip_update.stop_time_update[j + 1].stop_id.split(':')[0];
+                            var departureTime = null;
+                            var arrivalTime = null;
+                            var departureDelay = 0;
+                            var arrivalDelay = 0;
 
-                        if (stop_times[j].departure && stop_times[j].departure.time && stop_times[j].departure.time.low) {
-                            departureTime = moment(stop_times[j].departure.time.low * 1000);
+                            if (stop_times[j].departure && stop_times[j].departure.time && stop_times[j].departure.time.low) {
+                                departureTime = moment(stop_times[j].departure.time.low * 1000);
+                            }
+
+                            if (stop_times[j + 1].arrival && stop_times[j + 1].arrival.time && stop_times[j + 1].arrival.time.low) {
+                                arrivalTime = moment(stop_times[j + 1].arrival.time.low * 1000);
+                            }
+
+                            if (stop_times[j].departure && stop_times[j].departure.delay) {
+                                departureDelay = stop_times[j].departure.delay;
+                            }
+
+                            if (stop_times[j].arrival && stop_times[j].arrival.delay) {
+                                arrivalDelay = stop_times[j].arrival.delay;
+                            }
+
+                            // Get Trip and Route short names from GTFS stores
+                            let gtfs_trip = await this.tripsStore.get(trip_id);
+                            let trip_short_name = gtfs_trip.trip_short_name;
+                            let gtfs_route = await this.routesStore.get(gtfs_trip.route_id);
+                            let route_short_name = gtfs_route.route_short_name;
+
+                            let connectionId = uris.connections + departureStop + '/' + encodeURIComponent(departureTime.format('YYYYMMDD')) + '/'
+                                + route_short_name + trip_short_name;
+
+                            var obj = {
+                                "@id": uris.connections + connectionId,
+                                "@type": type,
+                                "departureStop": uris.stops + departureStop,
+                                "arrivalStop": uris.stops + arrivalStop,
+                                "departureTime": departureTime.toISOString(),
+                                "arrivalTime": arrivalTime != null ? arrivalTime.toISOString() : null,
+                                "direction": gtfs_trip.trip_headsign,
+                                "departureDelay": departureDelay.toString() + 'S',
+                                "arrivalDelay": arrivalDelay.toString() + 'S',
+                                "gtfs:trip": uris.trips + route_short_name + trip_short_name + '/' + encodeURIComponent(departureTime.format('YYYYMMDD')),
+                                "gtfs:route": uris.routes + route_short_name + trip_short_name
+                            }
+
+                            array.push(JSON.stringify(obj));
                         }
-
-                        if (stop_times[j + 1].arrival && stop_times[j + 1].arrival.time && stop_times[j + 1].arrival.time.low) {
-                            arrivalTime = moment(stop_times[j + 1].arrival.time.low * 1000);
-                        }
-
-                        if (stop_times[j].departure && stop_times[j].departure.delay) {
-                            departureDelay = stop_times[j].departure.delay;
-                        }
-
-                        if (stop_times[j].arrival && stop_times[j].arrival.delay) {
-                            arrivalDelay = stop_times[j].arrival.delay;
-                        }
-
-                        // Get Trip and Route short names from GTFS stores
-                        let gtfs_trip = await this.tripsStore.get(trip_id);
-                        let trip_short_name = gtfs_trip.trip_short_name;
-                        let gtfs_route = await this.routesStore.get(gtfs_trip.route_id);
-                        let route_short_name = gtfs_route.route_short_name;
-
-                        let connectionId = uris.connections + departureStop + '/' + encodeURIComponent(departureTime.format('YYYYMMDD')) + '/'
-                            + route_short_name + trip_short_name; 
-
-                        var obj = {
-                            "@id": uris.connections + connectionId,
-                            "@type": type,
-                            "departureStop": uris.stops + departureStop,
-                            "arrivalStop": uris.stops + arrivalStop,
-                            "departureTime": departureTime.toISOString(),
-                            "arrivalTime": arrivalTime != null ? arrivalTime.toISOString() : null,
-                            "direction" : gtfs_trip.trip_headsign,
-                            "departureDelay": departureDelay.toString() + 'S',
-                            "arrivalDelay": arrivalDelay.toString() + 'S',
-                            "gtfs:trip": uris.trips + route_short_name + trip_short_name + '/' + encodeURIComponent(departureTime.format('YYYYMMDD')),
-                            "gtfs:route": uris.routes + route_short_name + trip_short_name
-                        }
-
-                        array.push(JSON.stringify(obj));
+                    } catch (err) {
+                        logger.warn('Trip id ' + trip_id + ' not found in current Trips store');
+                        continue;
                     }
                 }
             }
