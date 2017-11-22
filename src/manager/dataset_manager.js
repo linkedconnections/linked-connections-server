@@ -8,7 +8,6 @@ const https = require('follow-redirects').https;
 const zlib = require('zlib');
 const csv = require('fast-csv');
 const through2 = require('through2');
-const Duration = require('duration-js');
 const logger = require('../utils/logger');
 const utils = require('../utils/utils');
 const Store = require('./store');
