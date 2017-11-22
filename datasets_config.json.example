@@ -4,6 +4,7 @@
         {
             "companyName": "company x",
             "downloadUrl": "http://...",
+            "downloadOnLaunch": true,
             "updatePeriod": "* * * * * *",
             "realTimeData": {
                 "downloadUrl": "http://...",
@@ -19,6 +20,7 @@
         {
             "companyName": "company y",
             "downloadUrl": "http://...",
+            "downloadOnLaunch": false,
             "updatePeriod": "* * * * * *",
             "baseURIs": {
                 "stops": "http://example.org/stops/",
