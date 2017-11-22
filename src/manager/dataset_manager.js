@@ -473,8 +473,8 @@ module.exports = DatasetManager;
 function removeDelays(jo) {
     let dt = new Date(jo['departureTime']);
     let at = new Date(jo['arrivalTime']);
-    dt.setTime(dt.getTime() - (new Duration(jo['departureDelay'].toLowerCase()).milliseconds()));
-    at.setTime(at.getTime() - (new Duration(jo['arrivalDelay'].toLowerCase()).milliseconds()));
+    dt.setTime(dt.getTime() - (jo['departureDelay'] * 1000));
+    at.setTime(at.getTime() - (jo['arrivalDelay'] * 1000));
     jo['departureTime'] = dt.toISOString();
     jo['arrivalTime'] = at.toISOString();
     return jo;

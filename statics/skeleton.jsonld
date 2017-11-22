@@ -23,11 +23,11 @@
     },
     "departureDelay": {
       "@id": "lc:departureDelay",
-      "@type": "xsd:duration"
+      "@type": "xsd:integer"
     },
     "arrivalDelay": {
       "@id": "lc:arrivalDelay",
-      "@type": "xsd:duration"
+      "@type": "xsd:integer"
     },
     "direction": {
       "@id": "gtfs:headsign",

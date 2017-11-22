@@ -155,15 +155,15 @@ class Gtfsrt2lc {
                                 + route_short_name + trip_short_name;
 
                             var obj = {
-                                "@id": uris.connections + connectionId,
+                                "@id": connectionId,
                                 "@type": type,
                                 "departureStop": uris.stops + departureStop,
                                 "arrivalStop": uris.stops + arrivalStop,
                                 "departureTime": departureTime.toISOString(),
                                 "arrivalTime": arrivalTime != null ? arrivalTime.toISOString() : null,
                                 "direction": gtfs_trip.trip_headsign,
-                                "departureDelay": departureDelay.toString() + 'S',
-                                "arrivalDelay": arrivalDelay.toString() + 'S',
+                                "departureDelay": departureDelay,
+                                "arrivalDelay": arrivalDelay,
                                 "gtfs:trip": uris.trips + route_short_name + trip_short_name + '/' + encodeURIComponent(departureTime.format('YYYYMMDD')),
                                 "gtfs:route": uris.routes + route_short_name + trip_short_name
                             }
