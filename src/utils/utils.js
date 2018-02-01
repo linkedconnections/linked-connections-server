@@ -63,7 +63,7 @@ module.exports = new class Utils {
                 std['arrivalDelay'] = rtd['arrivalDelay'];
                 static_data[static_index.get(connId)] = std;
             } else {
-                // Is not present in the static fragment which means it's a connection that belongs to
+                // Is not present in the static fragment which means it's a connection that belongs to a
                 // previous fragment but the delays made it belong to this one, so inlcude it at the end.
                 let rtd = rt_data[index];
                 delete rtd['mementoVersion'];

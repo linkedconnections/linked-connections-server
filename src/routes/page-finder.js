@@ -7,6 +7,7 @@ const logger = require('../utils/logger');
 const utils = require('../utils/utils');
 
 const readdir = util.promisify(fs.readdir);
+const readfile = util.promisify(fs.readFile);
 
 const router = express.Router();
 const datasets_config = utils.datasetsConfig;
@@ -15,7 +16,7 @@ let storage = datasets_config.storage;
 
 router.get('/:agency/connections', async (req, res) => {
     // Allow requests from different hosts
-    res.set({'Access-Control-Allow-Origin': '*'});
+    res.set({ 'Access-Control-Allow-Origin': '*' });
 
     // Determine protocol (i.e. HTTP or HTTPS)
     let x_forwarded_proto = req.headers['x-forwarded-proto'];
@@ -39,7 +40,7 @@ router.get('/:agency/connections', async (req, res) => {
 
     // Redirect to NOW time in case provided date is invalid
     if (!iso.test(req.query.departureTime) || departureTime.toString() === 'Invalid Date') {
-        // Just save to a variable, a redirect wil automatically follow since this wont perfectly resolve to an existing page
+        // Just save to a variable, a redirect will automatically follow since this won't perfectly resolve to an existing page
         departureTime = new Date();
     }
 
@@ -55,7 +56,6 @@ router.get('/:agency/connections', async (req, res) => {
     let lp_path = storage + '/linked_pages/' + agency;
 
     // Check if there is data for the requested company
-
     if (!fs.existsSync(lp_path)) {
         res.status(404).send("Agency not found");
         return;
@@ -68,7 +68,7 @@ router.get('/:agency/connections', async (req, res) => {
         if (req.headers['accept-datetime'] !== undefined) {
             // verify if the header is valid
             let acceptDatetime = new Date(req.headers['accept-datetime']);
-            if (acceptDatetime.toString() === 'Invalid Date'){
+            if (acceptDatetime.toString() === 'Invalid Date') {
                 res.status(400).send("Invalid accept-datetime header");
                 return;
             }
@@ -129,16 +129,25 @@ router.get('/:agency/connections', async (req, res) => {
             return;
         }
 
-        let rt_path = storage + '/real_time/' + agency + '/' + departureTime.toISOString() + '.jsonld.gz';
+        // If the real-time fragment being requested is 5 hours old or more it should be compressed.
+        let rt_path = '';
+        let compressed = false;
+        if (new Date().getTime() - departureTime.getTime() > (3600 * 5 * 1000)) {
+            rt_path = storage + '/real_time/' + agency + '/' + departureTime.toISOString() + '.jsonld.gz';
+            compressed = true;
+        } else {
+            rt_path = storage + '/real_time/' + agency + '/' + departureTime.toISOString() + '.jsonld';
+        }
+
         let rt_exists = fs.existsSync(rt_path);
         // Check if this is a conditional get request, and if so, if we can close this request
         // Do this before heavy work like unzipping, this response needs to be FAST!
         if (rt_exists) {
-            if (handleConditionalGET(req, res, rt_path,departureTime)) {
+            if (handleConditionalGET(req, res, rt_path, departureTime)) {
                 return;
             }
         } else {
-            if (handleConditionalGET(req, res, lv_path,departureTime)) {
+            if (handleConditionalGET(req, res, lv_path, departureTime)) {
                 return;
             }
         }
@@ -150,15 +159,24 @@ router.get('/:agency/connections', async (req, res) => {
 
         // Look if there is real time data for this agency and requested time
         if (rt_exists) {
-            let rt_buffer = await utils.readAndGunzip(rt_path);
-            // Create an array of all RT updates
-            let rt_array = rt_buffer.join('').split('\n').map(JSON.parse);
+            let rt_buffer = null;
+            let rt_array = [];
+            if (compressed) {
+                rt_buffer = await utils.readAndGunzip(rt_path);
+                // Create an array of all RT updates
+                rt_array = rt_buffer.join('').split('\n').map(JSON.parse);
+            } else {
+                rt_buffer = await readfile(rt_path, 'utf8');
+                // Create an array of all RT updates
+                rt_array = rt_buffer.split('\n').map(JSON.parse);
+            }
+
             // Combine static and real-time data
             jsonld_graph = utils.aggregateRTData(jsonld_graph, rt_array, agency, departureTime, new Date());
         }
 
 
-        const headers = {'Content-Type': 'application/ld+json'};
+        const headers = { 'Content-Type': 'application/ld+json' };
         const params = {
             storage: storage,
             host: host,
@@ -188,7 +206,7 @@ router.get('/:agency/connections', async (req, res) => {
  * @param departureTime The time for which this document was requested
  * @returns boolean True if a 304 response was served
  */
-function handleConditionalGET(req, res, filepath,departureTime) {
+function handleConditionalGET(req, res, filepath, departureTime) {
     let ifModifiedSinceRawHeader = req.header('if-modified-since');
 
     let ifModifiedSinceHeader = undefined;
@@ -211,21 +229,21 @@ function handleConditionalGET(req, res, filepath,departureTime) {
     let etag = 'W/"' + md5(filepath + lastModifiedDate) + '"';
 
     // If both departure time and last modified lie resp. 2 and 1 hours in the past, this becomes immutable
-    if (departureTime < (now - 7200000)  && lastModifiedDate < (now - 3600000) ){
+    if (departureTime < (now - 7200000) && lastModifiedDate < (now - 3600000)) {
         // Immutable (for browsers which support it, sometimes limited to https only
         // 1 year expiry date to keep it long enough in cache for the others
-        res.set({'Cache-control': 'public, max-age=31536000000, immutable'});
-        res.set({'Expires': new Date(now + 31536000000).toUTCString()});
+        res.set({ 'Cache-control': 'public, max-age=31536000000, immutable' });
+        res.set({ 'Expires': new Date(now + 31536000000).toUTCString() });
     } else {
         // Let clients hold on to this data for 1 second longer than nginx. This way nginx can update before the clients?
-        res.set({'Cache-control': 'public, s-maxage='+maxage+', max-age='+ (maxage + 1) +',stale-if-error='+ (maxage + 15) +', proxy-revalidate'});
-        res.set({'Expires': validUntilDate.toUTCString()});
+        res.set({ 'Cache-control': 'public, s-maxage=' + maxage + ', max-age=' + (maxage + 1) + ',stale-if-error=' + (maxage + 15) + ', proxy-revalidate' });
+        res.set({ 'Expires': validUntilDate.toUTCString() });
     }
 
-    res.set({'ETag': etag});
-    res.set({'Vary': 'Accept-encoding, Accept-Datetime'});
-    res.set({'Last-Modified': lastModifiedDate.toUTCString()});
-    res.set({'Content-Type': 'application/ld+json'});
+    res.set({ 'ETag': etag });
+    res.set({ 'Vary': 'Accept-encoding, Accept-Datetime' });
+    res.set({ 'Last-Modified': lastModifiedDate.toUTCString() });
+    res.set({ 'Content-Type': 'application/ld+json' });
 
     // If an if-modified-since header exists, and if the realtime data hasn't been updated since, just return a 304/
     // If an if-none-match header exists, and if the realtime data hasn't been updated since, just return a 304/
@@ -244,7 +262,7 @@ function sortVersions(acceptDatetime, versions) {
 
     for (v of versions) {
         let diff = Math.abs(acceptDatetime.getTime() - new Date(v).getTime());
-        diffs.push({'version': v, 'diff': diff});
+        diffs.push({ 'version': v, 'diff': diff });
     }
 
     diffs.sort((a, b) => {

@@ -66,16 +66,18 @@ class DatasetManager {
                 this.launchStaticJob(index, dataset);
 
                 // Download and process GTFS feed on server launch if required
-                if(dataset.downloadOnLaunch) {
+                if (dataset.downloadOnLaunch) {
                     this.processStaticGTFS(index, dataset);
                 }
-                
+
                 // Handle real-time data if available
                 if (dataset.realTimeData) {
                     // Load GTFS identifiers
                     let loaded = await this.loadGTFSIdentifiers(index, dataset);
                     // If identifiers were loaded schedule GTFS-RT processing job
                     if (loaded) this.launchRTJob(index, dataset);
+                    // Schedule compression or RT files
+                    this.rtCompressionJob(dataset);
                 }
             } catch (err) {
                 logger.error(err);
@@ -127,7 +129,7 @@ class DatasetManager {
                 await this.setBaseUris(dataset);
                 // Convert to Linked Connections
                 await this.convertGTFS2LC(companyName, file_name);
-                logger.info('Fragmenting ' + companyName + 'Linked Connections...');
+                logger.info('Fragmenting ' + companyName + ' Linked Connections...');
                 // Fragment dataset into linked data documents
                 await paginator.paginateDataset(companyName, file_name, this.storage);
                 logger.info('Compressing ' + companyName + ' Linked Connections fragments...')
@@ -165,7 +167,7 @@ class DatasetManager {
                 let datasets_dir = this.storage + '/datasets/' + dataset.companyName;
 
                 // Delete previous existing GTFS identifier stores
-                if(fs.existsSync(datasets_dir + '/.routes') || fs.existsSync(datasets_dir + '/.trips')) {
+                if (fs.existsSync(datasets_dir + '/.routes') || fs.existsSync(datasets_dir + '/.trips')) {
                     this.stores[index] = {};
                     await exec('rm -r .routes .trips', { cwd: datasets_dir });
                 }
@@ -302,6 +304,33 @@ class DatasetManager {
         logger.info('GTFS-RT job for ' + companyName + ' scheduled correctly');
     }
 
+    rtCompressionJob(dataset) {
+        let companyName = dataset.companyName;
+        let path = this.storage + '/real_time/' + companyName;
+
+        let rt_compression_job = new cron.CronJob({
+            cronTime: dataset.realTimeData.compressionPeriod,
+            onTick: async () => {
+                try {
+                    let now = new Date();
+                    now.setTime(now.getTime() - (5 * 3600 * 1000));
+                    now.setMinutes(now.getMinutes() - (now.getMinutes() % 10));
+                    now.setSeconds(0);
+                    now.setUTCMilliseconds(0);
+
+                    while (fs.existsSync(path + '/' + now.toISOString() + '.jsonld')) {
+                        child_process.exec('gzip ' + now.toISOString() + '.jsonld', { cwd: path });
+                        now.setTime(now.getTime() - (600 * 1000));
+                    }
+                    logger.info(companyName + ' RT files compressed successfully');
+                } catch (err) {
+                    logger.error('Error compressing RT files for ' + companyName + ': ' + err);
+                }
+            },
+            start: true
+        });
+    }
+
     downloadDataset(dataset) {
         const durl = url.parse(dataset.downloadUrl);
         if (durl.protocol == 'https:') {
@@ -434,13 +463,16 @@ class DatasetManager {
                 // Update RT fragment files with new data (asynchronously)
                 Object.entries(data).forEach(async ([key, value]) => {
                     let updData = value.join('\n');
-                    let path = this.storage + '/real_time/' + companyName + '/' + key + '.jsonld.gz';
+                    let path = this.storage + '/real_time/' + companyName + '/' + key + '.jsonld';
 
                     if (!fs.existsSync(path)) {
-                        written.push(writeFile(path, await gzip(updData, { level: 9 })));
+                        fs.appendFile(path, updData, 'utf8', err => {
+                            if (err) throw new Error();
+                        });
                     } else {
-                        let completeData = (await utils.readAndGunzip(path)).join('').concat('\n' + updData);
-                        written.push(writeFile(path, await gzip(completeData, { level: 9 })));
+                        fs.appendFile(path, '\n' + updData, 'utf8', err => {
+                            if (err) throw new Error();
+                        });
                     }
                 });
 
