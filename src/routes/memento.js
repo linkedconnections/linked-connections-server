@@ -41,18 +41,21 @@ router.get('/:agency', async (req, res) => {
         let departureTime = new Date(resource);
         let mementoDate = new Date(acceptDatetime);
 
-        // If the real-time fragment being requested is 5 hours old or more it should be compressed.
-        let rt_path = '';
+        // Check if RT fragment exists and whether it is compressed or not.
+        let rt_exists = false;
         let compressed = false;
-        if (new Date().getTime() - departureTime.getTime() > (3600 * 5 * 1000)) {
-            rt_path = storage + '/real_time/' + agency + '/' + departureTime.toISOString() + '.jsonld.gz';
+        let rt_path = storage + '/real_time/' + agency + '/' + utils.getRTDirName(departureTime) + '/'
+            + departureTime.toISOString() + '.jsonld';
+        if (fs.existsSync(rt_path)) {
+            rt_exists = true;
+        } else if (fs.existsSync(rt_path + '.gz')) {
+            rt_path = rt_path + '.gz';
+            rt_exists = true;
             compressed = true;
-        } else {
-            rt_path = storage + '/real_time/' + agency + '/' + departureTime.toISOString() + '.jsonld';
         }
 
         // Look if there is real time data for this agency and requested time
-        if (fs.existsSync(rt_path)) {
+        if (rt_exists) {
             let rt_buffer = null;
             let rt_array = [];
             if (compressed) {

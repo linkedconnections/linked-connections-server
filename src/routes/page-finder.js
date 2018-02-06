@@ -21,7 +21,7 @@ router.get('/:agency/connections', async (req, res) => {
     // Determine protocol (i.e. HTTP or HTTPS)
     let x_forwarded_proto = req.headers['x-forwarded-proto'];
     let protocol = '';
-
+    
     if (typeof x_forwarded_proto == 'undefined' || x_forwarded_proto == '') {
         if (typeof server_config.protocol == 'undefined' || server_config.protocol == '') {
             protocol = 'http';
@@ -37,7 +37,6 @@ router.get('/:agency/connections', async (req, res) => {
     const iso = /(\d{4})-(\d{2})-(\d{2})T(\d{2})\:(\d{2})\:(\d{2})\.(\d{3})Z/;
     let departureTime = new Date(decodeURIComponent(req.query.departureTime));
 
-
     // Redirect to NOW time in case provided date is invalid
     if (!iso.test(req.query.departureTime) || departureTime.toString() === 'Invalid Date') {
         // Just save to a variable, a redirect will automatically follow since this won't perfectly resolve to an existing page
@@ -51,8 +50,20 @@ router.get('/:agency/connections', async (req, res) => {
         return;
     }
 
-    // WARNING: storage should not end on a /.
+    // Redirect client to the correct page according to fragment format
+    if (departureTime.getMinutes() % 10 != 0 || departureTime.getSeconds() !== 0 || departureTime.getUTCMilliseconds() !== 0) {
+        // TODO: Make this configurable!!
+        // Adjust requested resource to match 10 minutes fragment format
+        departureTime.setMinutes(departureTime.getMinutes() - (departureTime.getMinutes() % 10));
+        departureTime.setSeconds(0);
+        departureTime.setUTCMilliseconds(0);
+        
+        res.location('/' + agency + '/connections?departureTime=' + departureTime.toISOString());
+        res.status(302).send();
+        return;
+    }
 
+    // WARNING: storage should not end on a /.
     let lp_path = storage + '/linked_pages/' + agency;
 
     // Check if there is data for the requested company
@@ -60,10 +71,10 @@ router.get('/:agency/connections', async (req, res) => {
         res.status(404).send("Agency not found");
         return;
     }
-
+    
     try {
         let versions = await readdir(lp_path);
-
+        
         // Check if previous version of resource is being requested through memento protocol
         if (req.headers['accept-datetime'] !== undefined) {
             // verify if the header is valid
@@ -77,15 +88,6 @@ router.get('/:agency/connections', async (req, res) => {
             let sortedVersions = sortVersions(acceptDatetime, versions);
             // Find closest resource to requested version
             let closest_version = await findResource(agency, departureTime, sortedVersions);
-            // TODO: Make this configurable!!
-            // Adjust requested resource to match 10 minutes step format
-            departureTime.setMinutes(departureTime.getMinutes() - (departureTime.getMinutes() % 10));
-            departureTime.setSeconds(0);
-            departureTime.setUTCMilliseconds(0);
-            // Find closest resource (static data)
-            while (!fs.existsSync(lp_path + '/' + closest_version + '/' + departureTime.toISOString() + '.jsonld.gz')) {
-                departureTime.setMinutes(departureTime.getMinutes() - 10);
-            }
             // Set Memento headers pointng to the found version
             res.location('/memento/' + agency + '?version=' + closest_version + '&departureTime=' + departureTime.toISOString());
             res.set({
@@ -98,48 +100,22 @@ router.get('/:agency/connections', async (req, res) => {
         }
 
         // Find last version containing the requested resource (static data)
-        let last_version = await findResource(agency, departureTime, versions);
+        let last_version = findResource(agency, departureTime, versions);
         let lv_path = storage + '/linked_pages/' + agency + '/' + last_version + '/';
 
-        // Redirect client to the correct (existing) page
-        if (departureTime.getMinutes() % 10 != 0 || departureTime.getSeconds() !== 0 || departureTime.getUTCMilliseconds() !== 0) {
-            // TODO: Make this configurable!!
-            // Adjust requested resource to match 10 minutes step format
-            departureTime.setMinutes(departureTime.getMinutes() - (departureTime.getMinutes() % 10));
-            departureTime.setSeconds(0);
-            departureTime.setUTCMilliseconds(0);
-            // Find closest resource (static data)
-            // TODO: see if we can speed this up. e.g. by instantly jumping to the correct time
-            // TODO: fix duplicate code
-            while (!fs.existsSync(lv_path + departureTime.toISOString() + '.jsonld.gz')) {
-                departureTime.setMinutes(departureTime.getMinutes() - 10);
-            }
-            res.location('/' + agency + '/connections?departureTime=' + departureTime.toISOString());
-            res.status(302).send();
-            return;
-        }
-
-        // TODO: fix duplicate code
-        if (!fs.existsSync(lv_path + departureTime.toISOString() + '.jsonld.gz')) {
-            while (!fs.existsSync(lv_path + departureTime.toISOString() + '.jsonld.gz')) {
-                departureTime.setMinutes(departureTime.getMinutes() - 10);
-            }
-            res.location('/' + agency + '/connections?departureTime=' + departureTime.toISOString());
-            res.status(302).send();
-            return;
-        }
-
-        // If the real-time fragment being requested is 5 hours old or more it should be compressed.
-        let rt_path = '';
+        // Check if RT fragment exists and whether it is compressed or not.
+        let rt_exists = false;
         let compressed = false;
-        if (new Date().getTime() - departureTime.getTime() > (3600 * 5 * 1000)) {
-            rt_path = storage + '/real_time/' + agency + '/' + departureTime.toISOString() + '.jsonld.gz';
+        let rt_path = storage + '/real_time/' + agency + '/' + utils.getRTDirName(departureTime) + '/'
+            + departureTime.toISOString() + '.jsonld';
+        if (fs.existsSync(rt_path)) {
+            rt_exists = true;
+        } else if (fs.existsSync(rt_path + '.gz')) {
+            rt_path = rt_path + '.gz';
+            rt_exists = true;
             compressed = true;
-        } else {
-            rt_path = storage + '/real_time/' + agency + '/' + departureTime.toISOString() + '.jsonld';
         }
 
-        let rt_exists = fs.existsSync(rt_path);
         // Check if this is a conditional get request, and if so, if we can close this request
         // Do this before heavy work like unzipping, this response needs to be FAST!
         if (rt_exists) {
@@ -156,7 +132,7 @@ router.get('/:agency/connections', async (req, res) => {
         // and complement resource with Real-Time data and Hydra metadata before sending it back to the client
         let buffer = await utils.readAndGunzip(lv_path + departureTime.toISOString() + '.jsonld.gz');
         let jsonld_graph = buffer.join('').split(',\n').map(JSON.parse);
-
+        
         // Look if there is real time data for this agency and requested time
         if (rt_exists) {
             let rt_buffer = null;
@@ -187,6 +163,7 @@ router.get('/:agency/connections', async (req, res) => {
             http_headers: headers,
             http_response: res
         };
+
         utils.addHydraMetada(params);
 
     } catch (err) {
@@ -277,35 +254,19 @@ function sortVersions(acceptDatetime, versions) {
 }
 
 function findResource(agency, departureTime, versions) {
-    return new Promise((resolve, reject) => {
+    let version = null;
+    for(let i = versions.length - 1; i >= 0; i--) {
+        if(fs.existsSync(storage + '/linked_pages/' + agency + '/' + versions[i] + '/' + departureTime.toISOString() + '.jsonld.gz')) {
+            version = versions[i];
+            break;
+        }
+    }
 
-        let ver = versions.slice(0);
-        (async function checkVer() {
-            try {
-                let version = ver.splice(ver.length - 1, 1)[0];
-                // TODO: This is slow with thousands of items! find a more efficient way?
-                // let pages = await readdir(storage + '/linked_pages/' + agency + '/' + version);
-                // TODO: hardcoded fix which causes a 10x performance increase,
-                // TODO: we should find a solution to keep at least a 6 to 8 times performance increase while maintaining functionality.
-                resolve(version);
-                if (typeof pages !== 'undefined' && pages.length > 0) {
-                    let di = new Date(pages[0].substring(0, pages[0].indexOf('.jsonld.gz')));
-                    let df = new Date(pages[pages.length - 1].substring(0, pages[pages.length - 1].indexOf('.jsonld.gz')));
-                    if (departureTime >= di && departureTime <= df) {
-                        resolve(version);
-                    } else if (ver.length === 0) {
-                        reject();
-                    } else {
-                        checkVer();
-                    }
-                } else {
-                    checkVer();
-                }
-            } catch (err) {
-                reject(err);
-            }
-        })();
-    });
+    if(version !== null) {
+        return version;
+    } else {
+        throw new Error();
+    }
 }
 
 module.exports = router;

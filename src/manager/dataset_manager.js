@@ -313,16 +313,12 @@ class DatasetManager {
             onTick: async () => {
                 try {
                     let now = new Date();
-                    now.setTime(now.getTime() - (5 * 3600 * 1000));
-                    now.setMinutes(now.getMinutes() - (now.getMinutes() % 10));
-                    now.setSeconds(0);
-                    now.setUTCMilliseconds(0);
-
-                    while (fs.existsSync(path + '/' + now.toISOString() + '.jsonld')) {
-                        child_process.exec('gzip ' + now.toISOString() + '.jsonld', { cwd: path });
-                        now.setTime(now.getTime() - (600 * 1000));
+                    now.setDate(now.getDate() - 1);
+                    let dir_name = utils.getRTDirName(now);
+                    if(fs.existsSync(path + '/' + dir_name)) {
+                        await exec('find . -type f -exec gzip {} +', { cwd: path + '/' + dir_name });
+                        logger.info(companyName + ' RT files from ' + dir_name + ' folder compressed successfully');
                     }
-                    logger.info(companyName + ' RT files compressed successfully');
                 } catch (err) {
                     logger.error('Error compressing RT files for ' + companyName + ': ' + err);
                 }
@@ -462,15 +458,23 @@ class DatasetManager {
 
                 // Update RT fragment files with new data (asynchronously)
                 Object.entries(data).forEach(async ([key, value]) => {
-                    let updData = value.join('\n');
-                    let path = this.storage + '/real_time/' + companyName + '/' + key + '.jsonld';
+                    // Create folders to store real-time updates by day
+                    let dir_date = new Date(key);
+                    let dir_name = utils.getRTDirName(dir_date);
+                    let dir_path = this.storage + '/real_time/' + companyName + '/' + dir_name;
+                    if (!fs.existsSync(dir_path)) {
+                        child_process.execSync('mkdir ' + dir_path);
+                    }
 
-                    if (!fs.existsSync(path)) {
-                        fs.appendFile(path, updData, 'utf8', err => {
+                    let updData = value.join('\n');
+                    let file_path = dir_path + '/' + key + '.jsonld';
+
+                    if (!fs.existsSync(file_path)) {
+                        fs.appendFile(file_path, updData, 'utf8', err => {
                             if (err) throw new Error();
                         });
                     } else {
-                        fs.appendFile(path, '\n' + updData, 'utf8', err => {
+                        fs.appendFile(file_path, '\n' + updData, 'utf8', err => {
                             if (err) throw new Error();
                         });
                     }

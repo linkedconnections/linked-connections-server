@@ -179,10 +179,17 @@ module.exports = new class Utils {
             let version = params.version;
 
             jsonld_skeleton['@id'] = host + agency + '/connections?departureTime=' + departureTime.toISOString();
-            jsonld_skeleton['hydra:next'] = host + agency + '/connections?departureTime='
-                + this.getAdjacentPage(params.storage, agency + '/' + version, departureTime, true);
-            jsonld_skeleton['hydra:previous'] = host + agency + '/connections?departureTime='
-                + this.getAdjacentPage(params.storage, agency + '/' + version, departureTime, false);
+
+            let next = this.getAdjacentPage(params.storage, agency + '/' + version, departureTime, true);
+            if(next !== null) {
+                jsonld_skeleton['hydra:next'] = host + agency + '/connections?departureTime=' + next;
+            }
+
+            let prev = this.getAdjacentPage(params.storage, agency + '/' + version, departureTime, false);
+            if(prev !== null) {
+                jsonld_skeleton['hydra:previous'] = host + agency + '/connections?departureTime=' + prev;
+            }
+            
             jsonld_skeleton['hydra:search']['hydra:template'] = host + agency + '/connections/{?departureTime}';
             jsonld_skeleton['@graph'] = params.data;
 
@@ -198,19 +205,30 @@ module.exports = new class Utils {
     // TODO: Make fragmentation criteria configurable
     getAdjacentPage(storage, path, departureTime, next) {
         var date = new Date(departureTime.toISOString());
+        let limit = 0;
         if (next) {
             date.setMinutes(date.getMinutes() + 10);
         } else {
             date.setMinutes(date.getMinutes() - 10);
         }
-        while (!fs.existsSync(storage + '/linked_pages/' + path + '/' + date.toISOString() + '.jsonld.gz')) {
+        while (limit < 19 && !fs.existsSync(storage + '/linked_pages/' + path + '/' + date.toISOString() + '.jsonld.gz')) {
             if (next) {
                 date.setMinutes(date.getMinutes() + 10);
             } else {
                 date.setMinutes(date.getMinutes() - 10);
             }
+            limit++;
         }
-        return date.toISOString();
+
+        if(limit >= 18) {
+            return null;
+        } else {
+            return date.toISOString();
+        }
+    }
+
+    getRTDirName(date) {
+        return date.getFullYear() + '_' + (date.getUTCMonth() + 1) + '_' + date.getUTCDate();
     }
 
     get datasetsConfig() {
