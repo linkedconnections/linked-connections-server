@@ -42,7 +42,7 @@ The Web Server does not provide any functionality by itself, it needs at least o
 
 - **realTimeData:** Here we define where (URL) and how often to download the GTFS Realtime data feed. We use node-cron here as well.
 
-- **compressionPeriod:** Cron expression that defines how often will the real-time data will be compressed using gzip in order to reduce storage consumption.
+- **compressionPeriod:** Cron expression that defines how often will the real-time data be compressed using gzip in order to reduce storage consumption. As real-time data is obtained and stored in a new folder each day, the compression process will take into account only the previous day folder from the moment is running. This to avoid compressing current files that may still be getting updated. Therefore we recomend to configure this process to be executed once per day.
 
 - **baseURIs:** Here we define the base URIs that will be used to create the unique identifiers of each of the entities found in the Linked Connections. Is necessary to define the base URI for [Connections](http://semweb.datasciencelab.be/ns/linkedconnections#Connection), [Stops](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md), [Trips](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md) and [Routes](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md). This is the only optional parameterand in case that is not defined, all base URIs will have a http://example.org/ pattern, but we recommend to always use dereferenceable URIs.
 
