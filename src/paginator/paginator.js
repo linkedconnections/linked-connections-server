@@ -7,8 +7,7 @@ const logger = require('../utils/logger');
 module.exports.paginateDataset = function (company_name, target_path, storage) {
   return new Promise((resolve, reject) => {
     try {
-      let stream = fs.createReadStream(storage + '/linked_connections/' + company_name + '/' + target_path + '.jsonld.gz')
-        .pipe(new zlib.createGunzip())
+      let stream = fs.createReadStream(storage + '/linked_connections/' + company_name + '/' + target_path + '.jsonld')
         .pipe(new jsonldstream.Deserializer())
         .pipe(new pageWriterStream(storage + '/linked_pages/' + company_name + '/' + target_path))
         .on('finish', function () {

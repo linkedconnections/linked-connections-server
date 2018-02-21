@@ -134,6 +134,7 @@ class DatasetManager {
                 await paginator.paginateDataset(companyName, file_name, this.storage);
                 logger.info('Compressing ' + companyName + ' Linked Connections fragments...')
                 // Compress all linked data documents
+                child_process.spawn('gzip', [file_name + '.jsonld'], { cwd: this.storage + '/linked_connections/' + companyName, detached: true });
                 await exec('find . -type f -exec gzip {} +', { cwd: this.storage + '/linked_pages/' + companyName + '/' + file_name });
                 let t1 = (new Date().getTime() - t0) / 1000;
                 logger.info('Dataset conversion for ' + companyName + ' completed successfuly (took ' + t1 + ' seconds)');

@@ -12,6 +12,4 @@ rm ${STORAGE}/datasets/${COMPANY_NAME}/baseUris.json
 echo "Sorting ${COMPANY_NAME} Linked Connections by Departure Time..."
 sort -T ${STORAGE}/tmp/ -t \" -k 17 ${STORAGE}/linked_connections/${COMPANY_NAME}/${LAST_MODIFIED}_tmp.jsonld > ${STORAGE}/linked_connections/${COMPANY_NAME}/${LAST_MODIFIED}.jsonld
 rm ${STORAGE}/linked_connections/${COMPANY_NAME}/${LAST_MODIFIED}_tmp.jsonld
-echo "Compressing ${COMPANY_NAME} Linked Connections..."
-gzip ${STORAGE}/linked_connections/${COMPANY_NAME}/${LAST_MODIFIED}.jsonld
 mkdir ${STORAGE}/linked_pages/${COMPANY_NAME}/${LAST_MODIFIED}
