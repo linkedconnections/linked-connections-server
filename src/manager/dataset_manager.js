@@ -166,7 +166,17 @@ class DatasetManager {
             try {
                 let datasets_dir = this.storage + '/datasets/' + dataset.companyName;
 
-                // Delete previous existing GTFS identifier stores
+                // Close and delete previous existing GTFS identifier stores
+                if (this.stores[index]) {
+                    if (this.stores[index]['trips']) {
+                        await this.stores[index]['trips'].close();
+                    }
+
+                    if (this.stores[index]['routes']) {
+                        await this.stores[index]['routes'].close();
+                    }
+                }
+
                 if (fs.existsSync(datasets_dir + '/.routes') || fs.existsSync(datasets_dir + '/.trips')) {
                     this.stores[index] = {};
                     await exec('rm -r .routes .trips', { cwd: datasets_dir });
