@@ -6,6 +6,7 @@
             "downloadUrl": "http://...",
             "downloadOnLaunch": true,
             "updatePeriod": "* * * * * *",
+            "fragmentSize": 400000,
             "realTimeData": {
                 "downloadUrl": "http://...",
                 "updatePeriod": "* * * * * *",

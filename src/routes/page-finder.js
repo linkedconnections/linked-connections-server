@@ -4,7 +4,7 @@ const fs = require('fs');
 const zlib = require('zlib');
 const md5 = require('md5');
 const logger = require('../utils/logger');
-const utils = require('../utils/utils');
+var utils = require('../utils/utils');
 
 const readdir = util.promisify(fs.readdir);
 const readfile = util.promisify(fs.readFile);
@@ -12,9 +12,12 @@ const readfile = util.promisify(fs.readFile);
 const router = express.Router();
 const datasets_config = utils.datasetsConfig;
 const server_config = utils.serverConfig;
-let storage = datasets_config.storage;
+var storage = datasets_config.storage;
 
 router.get('/:agency/connections', async (req, res) => {
+    // Check for available updates of the static fragments
+    await utils.updateStaticFragments();
+
     // Allow requests from different hosts
     res.set({ 'Access-Control-Allow-Origin': '*' });
 
@@ -50,19 +53,6 @@ router.get('/:agency/connections', async (req, res) => {
         return;
     }
 
-    // Redirect client to the correct page according to fragment format
-    if (departureTime.getMinutes() % 10 != 0 || departureTime.getSeconds() !== 0 || departureTime.getUTCMilliseconds() !== 0) {
-        // TODO: Make this configurable!!
-        // Adjust requested resource to match 10 minutes fragment format
-        departureTime.setMinutes(departureTime.getMinutes() - (departureTime.getMinutes() % 10));
-        departureTime.setSeconds(0);
-        departureTime.setUTCMilliseconds(0);
-        
-        res.location('/' + agency + '/connections?departureTime=' + departureTime.toISOString());
-        res.status(302).send();
-        return;
-    }
-
     // WARNING: storage should not end on a /.
     let lp_path = storage + '/linked_pages/' + agency;
 
@@ -73,7 +63,7 @@ router.get('/:agency/connections', async (req, res) => {
     }
     
     try {
-        let versions = await readdir(lp_path);
+        let versions = Object.keys(utils.staticFragments[agency]);
         
         // Check if previous version of resource is being requested through memento protocol
         if (req.headers['accept-datetime'] !== undefined) {
@@ -86,10 +76,10 @@ router.get('/:agency/connections', async (req, res) => {
 
             // Sort versions list according to the requested version
             let sortedVersions = sortVersions(acceptDatetime, versions);
-            // Find closest resource to requested version
-            let closest_version = await findResource(agency, departureTime, sortedVersions);
+            // Find closest resource to requested version 
+            let closest_version = findResource(agency, departureTime, sortedVersions);
             // Set Memento headers pointng to the found version
-            res.location('/memento/' + agency + '?version=' + closest_version + '&departureTime=' + departureTime.toISOString());
+            res.location('/memento/' + agency + '?version=' + closest_version[0] + '&departureTime=' + departureTime.toISOString());
             res.set({
                 'Vary': 'Accept-Encoding, Accept-Datetime',
                 'Link': '<' + host + agency + '/connections?departureTime=' + departureTime.toISOString() + '>; rel=\"original timegate\"'
@@ -99,15 +89,25 @@ router.get('/:agency/connections', async (req, res) => {
             return;
         }
 
-        // Find last version containing the requested resource (static data)
-        let last_version = findResource(agency, departureTime, versions);
-        let lv_path = storage + '/linked_pages/' + agency + '/' + last_version + '/';
+        // Sort versions from the newest to the oldest
+        let sorted_versions = sortVersions(new Date(), versions);
+        // Find the fragment that covers the requested time (static data)
+        let found_fragment = findResource(agency, departureTime, sorted_versions);
+
+        //Redirect to the client to the apropriate fragment URL
+        if(departureTime.getTime() !== found_fragment[1].getTime()) {
+            res.location('/' + agency + '/connections?departureTime=' + found_fragment[1].toISOString());
+            res.status(302).send();
+            return;
+        }
+
+        let sf_path = storage + '/linked_pages/' + agency + '/' + found_fragment[0] + '/';
 
         // Check if RT fragment exists and whether it is compressed or not.
         let rt_exists = false;
         let compressed = false;
-        let rt_path = storage + '/real_time/' + agency + '/' + utils.getRTDirName(departureTime) + '/'
-            + departureTime.toISOString() + '.jsonld';
+        let rt_path = storage + '/real_time/' + agency + '/' + utils.getRTDirName(found_fragment[1]) + '/'
+            + found_fragment[1].toISOString() + '.jsonld';
         if (fs.existsSync(rt_path)) {
             rt_exists = true;
         } else if (fs.existsSync(rt_path + '.gz')) {
@@ -123,14 +123,14 @@ router.get('/:agency/connections', async (req, res) => {
                 return;
             }
         } else {
-            if (handleConditionalGET(req, res, lv_path, departureTime)) {
+            if (handleConditionalGET(req, res, sf_path, departureTime)) {
                 return;
             }
         }
 
         // Get respective static data fragment according to departureTime query
         // and complement resource with Real-Time data and Hydra metadata before sending it back to the client
-        let buffer = await utils.readAndGunzip(lv_path + departureTime.toISOString() + '.jsonld.gz');
+        let buffer = await utils.readAndGunzip(sf_path + found_fragment[1].toISOString() + '.jsonld.gz');
         let jsonld_graph = buffer.join('').split(',\n').map(JSON.parse);
         
         // Look if there is real time data for this agency and requested time
@@ -157,8 +157,9 @@ router.get('/:agency/connections', async (req, res) => {
             storage: storage,
             host: host,
             agency: agency,
-            departureTime: departureTime,
-            version: last_version,
+            departureTime: found_fragment[1],
+            version: found_fragment[0],
+            index: found_fragment[2],
             data: jsonld_graph,
             http_headers: headers,
             http_response: res
@@ -243,7 +244,7 @@ function sortVersions(acceptDatetime, versions) {
     }
 
     diffs.sort((a, b) => {
-        return b.diff - a.diff;
+        return a.diff - b.diff;
     });
 
     for (d of diffs) {
@@ -255,15 +256,52 @@ function sortVersions(acceptDatetime, versions) {
 
 function findResource(agency, departureTime, versions) {
     let version = null;
-    for(let i = versions.length - 1; i >= 0; i--) {
-        if(fs.existsSync(storage + '/linked_pages/' + agency + '/' + versions[i] + '/' + departureTime.toISOString() + '.jsonld.gz')) {
+    let fragment = null;
+    let index = null;
+    
+    for(let i = 0; i < versions.length; i++) {
+        let fragments = utils.staticFragments[agency][versions[i]];
+        let min = 0;
+        let max = fragments.length - 1;
+        let target = departureTime.getTime();
+        let found = false;
+
+        if(target >= fragments[min] && target <= fragments[max]) {
+            while(!found) {
+                let mid = Math.floor((min + max) / 2);
+                if(target > fragments[mid]) {
+                    if(target < fragments[mid + 1]) {
+                        index = mid;
+                        found = true;
+                    } else if(target === fragments[mid + 1]) {
+                        index = mid + 1;
+                        found = true;
+                    } else {
+                        min = mid;
+                    }
+                } else if(target === fragments[mid]) {
+                    index = mid;
+                    found = true;
+                } else {
+                    if(target >= fragments[mid - 1]) {
+                        index = mid - 1;
+                        found = true;
+                    } else {
+                        max = mid;
+                    }
+                }
+            }
+        }
+
+        if(found) {
             version = versions[i];
+            fragment = new Date(fragments[index]);
             break;
         }
     }
 
-    if(version !== null) {
-        return version;
+    if(version !== null && fragment !== null) {
+        return [version, fragment, index];
     } else {
         throw new Error();
     }

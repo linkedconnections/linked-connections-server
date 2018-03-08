@@ -4,12 +4,48 @@ const zlib = require('zlib');
 const unzip = require('unzip');
 
 const readFile = util.promisify(fs.readFile);
+const readdir = util.promisify(fs.readdir);
 
 module.exports = new class Utils {
 
     constructor() {
         this._datasetsConfig = JSON.parse(fs.readFileSync('./datasets_config.json', 'utf8'));
         this._serverConfig = JSON.parse(fs.readFileSync('./server_config.json', 'utf8'));
+        this._staticFragments = {};
+        this.updateStaticFragments();
+    }
+
+    updateStaticFragments() {
+        return new Promise((resolve, reject) => {
+            try {
+                let storage = this._datasetsConfig.storage + '/linked_pages/';
+                let datasets = this._datasetsConfig.datasets;
+                let dc = 0;
+                datasets.forEach(async dataset => {
+                    let companyName = dataset.companyName;
+                    if (!this._staticFragments[companyName]) this._staticFragments[companyName] = {};
+                    let versions = await readdir(storage + companyName);
+                    let vc = 0;
+                    versions.forEach(async v => {
+                        if (!this._staticFragments[companyName][v]) {
+                            this._staticFragments[companyName][v] = (await readdir(storage + companyName + '/' + v)).map(fragment => {
+                                let fd = new Date(fragment.substring(0, fragment.indexOf('.jsonld')))
+                                return fd.getTime();
+                            });
+                        }
+                        vc++;
+                        if (vc === versions.length) {
+                            dc++;
+                            if (dc === datasets.length) resolve();
+                        }
+                    });
+                    if(versions.length === 0) dc++;
+                    if (dc === datasets.length) resolve();
+                });
+            } catch (err) {
+                reject(err);
+            }
+        });
     }
 
     readAndGunzip(path) {
@@ -32,7 +68,7 @@ module.exports = new class Utils {
     readAndUnzip(path) {
         return new Promise((resolve, reject) => {
             let dirName = path;
-            if(dirName.endsWith('.zip')) {
+            if (dirName.endsWith('.zip')) {
                 dirName = dirName.substring(0, dirName.indexOf('.zip')) + '_tmp';
             } else {
                 path += '.zip';
@@ -63,7 +99,7 @@ module.exports = new class Utils {
                 std['arrivalDelay'] = rtd['arrivalDelay'];
                 static_data[static_index.get(connId)] = std;
             } else {
-                // Is not present in the static fragment which means it's a connection that belongs to a
+                // Is not present in the static fragment which means it's a new connection or a connection that belongs to a
                 // previous fragment but the delays made it belong to this one, so inlcude it at the end.
                 let rtd = rt_data[index];
                 delete rtd['mementoVersion'];
@@ -180,16 +216,16 @@ module.exports = new class Utils {
 
             jsonld_skeleton['@id'] = host + agency + '/connections?departureTime=' + departureTime.toISOString();
 
-            let next = this.getAdjacentPage(params.storage, agency + '/' + version, departureTime, true);
-            if(next !== null) {
-                jsonld_skeleton['hydra:next'] = host + agency + '/connections?departureTime=' + next;
+            let next = this._staticFragments[agency][version][params.index + 1];
+            if (next) {
+                jsonld_skeleton['hydra:next'] = host + agency + '/connections?departureTime=' + new Date(next).toISOString();
             }
 
-            let prev = this.getAdjacentPage(params.storage, agency + '/' + version, departureTime, false);
-            if(prev !== null) {
-                jsonld_skeleton['hydra:previous'] = host + agency + '/connections?departureTime=' + prev;
+            let prev = this._staticFragments[agency][version][params.index - 1];
+            if (prev !== null) {
+                jsonld_skeleton['hydra:previous'] = host + agency + '/connections?departureTime=' + new Date(prev).toISOString();
             }
-            
+
             jsonld_skeleton['hydra:search']['hydra:template'] = host + agency + '/connections/{?departureTime}';
             jsonld_skeleton['@graph'] = params.data;
 
@@ -199,31 +235,6 @@ module.exports = new class Utils {
         } catch (err) {
             console.error(err);
             throw err;
-        }
-    }
-
-    // TODO: Make fragmentation criteria configurable
-    getAdjacentPage(storage, path, departureTime, next) {
-        var date = new Date(departureTime.toISOString());
-        let limit = 0;
-        if (next) {
-            date.setMinutes(date.getMinutes() + 10);
-        } else {
-            date.setMinutes(date.getMinutes() - 10);
-        }
-        while (limit < 19 && !fs.existsSync(storage + '/linked_pages/' + path + '/' + date.toISOString() + '.jsonld.gz')) {
-            if (next) {
-                date.setMinutes(date.getMinutes() + 10);
-            } else {
-                date.setMinutes(date.getMinutes() - 10);
-            }
-            limit++;
-        }
-
-        if(limit >= 18) {
-            return null;
-        } else {
-            return date.toISOString();
         }
     }
 
@@ -237,5 +248,9 @@ module.exports = new class Utils {
 
     get serverConfig() {
         return this._serverConfig;
+    }
+
+    get staticFragments() {
+        return this._staticFragments;
     }
 }

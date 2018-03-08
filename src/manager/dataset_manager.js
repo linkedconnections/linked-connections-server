@@ -64,7 +64,6 @@ class DatasetManager {
                 this.initCompanyDirs(dataset.companyName);
                 // Schedule GTFS feed processing job
                 this.launchStaticJob(index, dataset);
-
                 // Download and process GTFS feed on server launch if required
                 if (dataset.downloadOnLaunch) {
                     this.processStaticGTFS(index, dataset);
@@ -131,7 +130,8 @@ class DatasetManager {
                 await this.convertGTFS2LC(companyName, file_name);
                 logger.info('Fragmenting ' + companyName + ' Linked Connections...');
                 // Fragment dataset into linked data documents
-                await paginator.paginateDataset(companyName, file_name, this.storage);
+                await paginator.paginateDataset(this.storage + '/linked_connections/' + companyName + '/' + file_name + '.jsonld',
+                    this.storage + '/linked_pages/' + companyName + '/' + file_name, companyName, dataset.fragmentSize);
                 logger.info('Compressing ' + companyName + ' Linked Connections fragments...')
                 // Compress all linked data documents
                 child_process.spawn('gzip', [file_name + '.jsonld'], { cwd: this.storage + '/linked_connections/' + companyName, detached: true });
@@ -167,7 +167,17 @@ class DatasetManager {
             try {
                 let datasets_dir = this.storage + '/datasets/' + dataset.companyName;
 
-                // Delete previous existing GTFS identifier stores
+                // Close and delete previous existing GTFS identifier stores
+                if (this.stores[index]) {
+                    if (this.stores[index]['trips']) {
+                        await this.stores[index]['trips'].close();
+                    }
+
+                    if (this.stores[index]['routes']) {
+                        await this.stores[index]['routes'].close();
+                    }
+                }
+
                 if (fs.existsSync(datasets_dir + '/.routes') || fs.existsSync(datasets_dir + '/.trips')) {
                     this.stores[index] = {};
                     await exec('rm -r .routes .trips', { cwd: datasets_dir });
@@ -316,7 +326,7 @@ class DatasetManager {
                     let now = new Date();
                     now.setDate(now.getDate() - 1);
                     let dir_name = utils.getRTDirName(now);
-                    if(fs.existsSync(path + '/' + dir_name)) {
+                    if (fs.existsSync(path + '/' + dir_name)) {
                         await exec('find . -type f -exec gzip {} +', { cwd: path + '/' + dir_name });
                         logger.info(companyName + ' RT files from ' + dir_name + ' folder compressed successfully');
                     }
