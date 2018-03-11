@@ -39,7 +39,7 @@ module.exports = new class Utils {
                             if (dc === datasets.length) resolve();
                         }
                     });
-                    if(versions.length === 0) dc++;
+                    if (versions.length === 0) dc++;
                     if (dc === datasets.length) resolve();
                 });
             } catch (err) {
@@ -81,6 +81,89 @@ module.exports = new class Utils {
         });
     }
 
+    // Sort array of dates ordered from the closest to farest to a given date.
+    sortVersions(date, versions) {
+        let diffs = [];
+        let sorted = [];
+
+        for (let v of versions) {
+            let diff = Math.abs(date.getTime() - new Date(v).getTime());
+            diffs.push({ 'version': v, 'diff': diff });
+        }
+
+        diffs.sort((a, b) => {
+            return a.diff - b.diff;
+        });
+
+        for (let d of diffs) {
+            sorted.push(d.version);
+        }
+
+        return sorted;
+    }
+
+    findResource(agency, targetDate, versions) {
+        let version = null;
+        let fragment = null;
+        let index = null;
+
+        for (let i = 0; i < versions.length; i++) {
+            let fragments = this._staticFragments[agency][versions[i]];
+            let min = 0;
+            let max = fragments.length - 1;
+            let target = targetDate.getTime();
+            let found = false;
+
+            // Checking that target date is contained in the list of fragments.
+            if (target >= fragments[min] && target <= fragments[max]) {
+                // Perform binary search to find the fragment that contains the target date.
+                while (!found) {
+                    // Divide the array in half
+                    let mid = Math.floor((min + max) / 2);
+                    // Target date is in the right half
+                    if (target > fragments[mid]) {
+                        if (target < fragments[mid + 1]) {
+                            index = mid;
+                            found = true;
+                        } else if (target === fragments[mid + 1]) {
+                            index = mid + 1;
+                            found = true;
+                        } else {
+                            // Not found yet proceed to divide further this half in 2.
+                            min = mid;
+                        }
+                    // Target date is exactly equals to the middle fragment
+                    } else if (target === fragments[mid]) {
+                        index = mid;
+                        found = true;
+                    // Target date is on the left half
+                    } else {
+                        if (target >= fragments[mid - 1]) {
+                            index = mid - 1;
+                            found = true;
+                        } else {
+                            max = mid;
+                        }
+                    }
+                }
+            }
+
+            if (found) {
+                // Register in which static version was the target found
+                version = versions[i];
+                // Name of the fragment that contains the target
+                fragment = new Date(fragments[index]);
+                break;
+            }
+        }
+
+        if (version !== null && fragment !== null) {
+            return [version, fragment, index];
+        } else {
+            throw new Error('Fragment not found among current data');
+        }
+    }
+
     aggregateRTData(static_data, rt_data, agency, queryTime, timestamp) {
         //return new Promise((resolve, reject) => {
         // Index map for the static fragment
@@ -89,18 +172,15 @@ module.exports = new class Utils {
         let rt_index = this.getRTIndex(rt_data, timestamp);
         // Iterate over the RT index which contains all the connections that need to be updated or included
         for (let [connId, index] of rt_index) {
-            // If the connection is already present in the static fragment just update its values
+            // If the connection is already present in the static fragment just add/update delay values
             if (static_index.has(connId)) {
                 let std = static_data[static_index.get(connId)];
                 let rtd = rt_data[index];
-                std['departureTime'] = rtd['departureTime'];
-                std['arrivalTime'] = rtd['arrivalTime'];
                 std['departureDelay'] = rtd['departureDelay'];
                 std['arrivalDelay'] = rtd['arrivalDelay'];
                 static_data[static_index.get(connId)] = std;
             } else {
-                // Is not present in the static fragment which means it's a new connection or a connection that belongs to a
-                // previous fragment but the delays made it belong to this one, so inlcude it at the end.
+                // Is not present in the static fragment which means it's a new connection so inlcude it at the end.
                 let rtd = rt_data[index];
                 delete rtd['mementoVersion'];
                 static_data.push(rtd);

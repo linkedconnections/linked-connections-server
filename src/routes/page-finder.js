@@ -37,11 +37,10 @@ router.get('/:agency/connections', async (req, res) => {
 
     const host = protocol + '://' + server_config.hostname + '/';
     const agency = req.params.agency;
-    const iso = /(\d{4})-(\d{2})-(\d{2})T(\d{2})\:(\d{2})\:(\d{2})\.(\d{3})Z/;
     let departureTime = new Date(decodeURIComponent(req.query.departureTime));
 
     // Redirect to NOW time in case provided date is invalid
-    if (!iso.test(req.query.departureTime) || departureTime.toString() === 'Invalid Date') {
+    if (departureTime.toString() === 'Invalid Date') {
         // Just save to a variable, a redirect will automatically follow since this won't perfectly resolve to an existing page
         departureTime = new Date();
     }
@@ -75,9 +74,9 @@ router.get('/:agency/connections', async (req, res) => {
             }
 
             // Sort versions list according to the requested version
-            let sortedVersions = sortVersions(acceptDatetime, versions);
+            let sortedVersions = utils.sortVersions(acceptDatetime, versions);
             // Find closest resource to requested version 
-            let closest_version = findResource(agency, departureTime, sortedVersions);
+            let closest_version = utils.findResource(agency, departureTime, sortedVersions);
             // Set Memento headers pointng to the found version
             res.location('/memento/' + agency + '?version=' + closest_version[0] + '&departureTime=' + departureTime.toISOString());
             res.set({
@@ -90,9 +89,9 @@ router.get('/:agency/connections', async (req, res) => {
         }
 
         // Sort versions from the newest to the oldest
-        let sorted_versions = sortVersions(new Date(), versions);
+        let sorted_versions = utils.sortVersions(new Date(), versions);
         // Find the fragment that covers the requested time (static data)
-        let found_fragment = findResource(agency, departureTime, sorted_versions);
+        let found_fragment = utils.findResource(agency, departureTime, sorted_versions);
 
         //Redirect to the client to the apropriate fragment URL
         if(departureTime.getTime() !== found_fragment[1].getTime()) {
@@ -232,79 +231,6 @@ function handleConditionalGET(req, res, filepath, departureTime) {
     }
 
     return false;
-}
-
-function sortVersions(acceptDatetime, versions) {
-    let diffs = [];
-    let sorted = [];
-
-    for (v of versions) {
-        let diff = Math.abs(acceptDatetime.getTime() - new Date(v).getTime());
-        diffs.push({ 'version': v, 'diff': diff });
-    }
-
-    diffs.sort((a, b) => {
-        return a.diff - b.diff;
-    });
-
-    for (d of diffs) {
-        sorted.push(d.version);
-    }
-
-    return sorted;
-}
-
-function findResource(agency, departureTime, versions) {
-    let version = null;
-    let fragment = null;
-    let index = null;
-    
-    for(let i = 0; i < versions.length; i++) {
-        let fragments = utils.staticFragments[agency][versions[i]];
-        let min = 0;
-        let max = fragments.length - 1;
-        let target = departureTime.getTime();
-        let found = false;
-
-        if(target >= fragments[min] && target <= fragments[max]) {
-            while(!found) {
-                let mid = Math.floor((min + max) / 2);
-                if(target > fragments[mid]) {
-                    if(target < fragments[mid + 1]) {
-                        index = mid;
-                        found = true;
-                    } else if(target === fragments[mid + 1]) {
-                        index = mid + 1;
-                        found = true;
-                    } else {
-                        min = mid;
-                    }
-                } else if(target === fragments[mid]) {
-                    index = mid;
-                    found = true;
-                } else {
-                    if(target >= fragments[mid - 1]) {
-                        index = mid - 1;
-                        found = true;
-                    } else {
-                        max = mid;
-                    }
-                }
-            }
-        }
-
-        if(found) {
-            version = versions[i];
-            fragment = new Date(fragments[index]);
-            break;
-        }
-    }
-
-    if(version !== null && fragment !== null) {
-        return [version, fragment, index];
-    } else {
-        throw new Error();
-    }
 }
 
 module.exports = router;

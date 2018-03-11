@@ -139,13 +139,14 @@ class DatasetManager {
                 let t1 = (new Date().getTime() - t0) / 1000;
                 logger.info('Dataset conversion for ' + companyName + ' completed successfuly (took ' + t1 + ' seconds)');
 
-                // Reload GTFS identifiers for RT processing, using new GTFS feed files
+                // Reload GTFS identifiers and static indexes for RT processing, using new GTFS feed files
                 if (dataset.realTimeData) {
                     logger.info('Updating GTFS identifiers for ' + companyName + '...');
                     // First pause RT job if is already running
                     if (this.jobs[index]['rt_job']) {
                         this.jobs[index]['rt_job'].stop();
                     }
+                    await utils.updateStaticFragments();
                     await this.loadGTFSIdentifiers(index, dataset);
                     // Start RT job again or create new one if does not exist
                     if (this.jobs[index]['rt_job']) {
@@ -279,22 +280,23 @@ class DatasetManager {
                     // Object to group the updates by fragment 
                     let rtDataObject = {};
 
+                    // Get ordered list of versions 
+                    let lsv = utils.sortVersions(timestamp, Object.keys(utils.staticFragments[companyName]));
+
                     // Group all connection updates into fragment based arrays
                     for (let x in rtcs) {
                         let jodata = removeDelays(JSON.parse(rtcs[x]));
                         let dt = new Date(jodata.departureTime);
-                        //TODO: make this configurable
-                        dt.setMinutes(dt.getMinutes() - (dt.getMinutes() % 10));
-                        dt.setSeconds(0);
-                        dt.setUTCMilliseconds(0);
-                        let dt_iso = dt.toISOString();
+
+                        // Use binary search algorithm to find correspondent fragment according to static data.
+                        let fragment = utils.findResource(companyName, dt, lsv)[1].toISOString();
 
                         // Add timestamp to RT data for versioning
                         jodata['mementoVersion'] = timestamp.toISOString();
                         let rtdata = JSON.stringify(jodata);
 
-                        if (!rtDataObject[dt_iso]) rtDataObject[dt_iso] = [];
-                        rtDataObject[dt_iso].push(rtdata);
+                        if (!rtDataObject[fragment]) rtDataObject[fragment] = [];
+                        rtDataObject[fragment].push(rtdata);
                     }
 
                     // Write new data into fragment files
