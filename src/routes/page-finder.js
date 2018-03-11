@@ -34,11 +34,10 @@ router.get('/:agency/connections', async (req, res) => {
 
     const host = protocol + '://' + server_config.hostname + '/';
     const agency = req.params.agency;
-    const iso = /(\d{4})-(\d{2})-(\d{2})T(\d{2})\:(\d{2})\:(\d{2})\.(\d{3})Z/;
     let departureTime = new Date(decodeURIComponent(req.query.departureTime));
 
     // Redirect to NOW time in case provided date is invalid
-    if (!iso.test(req.query.departureTime) || departureTime.toString() === 'Invalid Date') {
+    if (departureTime.toString() === 'Invalid Date') {
         // Just save to a variable, a redirect will automatically follow since this won't perfectly resolve to an existing page
         departureTime = new Date();
     }
