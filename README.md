@@ -40,6 +40,8 @@ The Web Server does not provide any functionality by itself, it needs at least o
 
 - **updatePeriod:** Cron expression that defines how often should the server look for and process a new version of the dataset. We use the [node-cron](https://github.com/kelektiv/node-cron) library for this.
 
+- **fragmentSize:** Defines the maximum size of every linked data fragment in bytes .
+
 - **realTimeData:** Here we define where (URL) and how often to download the GTFS Realtime data feed. We use node-cron here as well.
 
 - **compressionPeriod:** Cron expression that defines how often will the real-time data be compressed using gzip in order to reduce storage consumption. As real-time data is obtained and stored in a new folder each day, the compression process will take into account only the previous day folder from the moment is running. This to avoid compressing current files that may still be getting updated. Therefore we recomend to configure this process to be executed once per day.
@@ -56,9 +58,11 @@ Here is an example of how to configure it:
             "downloadUrl": "http://...",
             "downloadOnLaunch": true,
             "updatePeriod": "0 0 2 * * *", //every day at 2am
+            "fragmentSize": 400000, //400 Kb
             "realTimeData": {
                 "downloadUrl": "http://...",
-                "updatePeriod": "*/30 * * * * *"
+                "updatePeriod": "*/30 * * * * *", //every 30s
+                "compressionPeriod": "0 0 3 * * *" //every day at 3am
             },
             "baseURIs": {
                 "connections": "http://example.org/connections/",

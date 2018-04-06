@@ -44,7 +44,7 @@ router.get('/:agency', async (req, res) => {
         // Check if RT fragment exists and whether it is compressed or not.
         let rt_exists = false;
         let compressed = false;
-        let rt_path = storage + '/real_time/' + agency + '/' + utils.getRTDirName(departureTime) + '/'
+        let rt_path = storage + '/real_time/' + agency + '/' + version + '/' + utils.getRTDirName(departureTime) + '/'
             + departureTime.toISOString() + '.jsonld';
         if (fs.existsSync(rt_path)) {
             rt_exists = true;
@@ -52,6 +52,17 @@ router.get('/:agency', async (req, res) => {
             rt_path = rt_path + '.gz';
             rt_exists = true;
             compressed = true;
+        }
+
+        // Check if this is a conditional get request, and if so check if we can close this request with a 304
+        if (rt_exists) {
+            if (utils.handleConditionalGET(req, res, rt_path, departureTime)) {
+                return;
+            }
+        } else {
+            if (utils.handleConditionalGET(req, res, sf_path, departureTime)) {
+                return;
+            }
         }
 
         // Look if there is real time data for this agency and requested time
@@ -68,8 +79,25 @@ router.get('/:agency', async (req, res) => {
                 rt_array = rt_buffer.split('\n').map(JSON.parse);
             }
 
+            // Path to file that contains the list of connections that shoud be removed from the static fragment due to delays
+            let remove_path = storage + '/real_time/' + agency + '/' + version + '/' + utils.getRTDirName(departureTime) + '/'
+                + departureTime.toISOString() + '_remove.json';
+            if (!fs.existsSync(remove_path) && fs.existsSync(remove_path + '.gz')) {
+                remove_path = remove_path + '.gz';
+            }
+
             // Combine static and real-time data
-            jsonld_graph = utils.aggregateRTData(jsonld_graph, rt_array, agency, departureTime, mementoDate);
+            jsonld_graph = await utils.aggregateRTData(jsonld_graph, rt_array, remove_path, mementoDate);
+        }
+
+        // Determine current fragment index for hydra next and previous links
+        let array = utils.staticFragments[agency][version];
+        let index = 0;
+        for(let i in array) {
+            if(array[i] == departureTime.getTime()) {
+                index = i;
+                break;
+            }
         }
 
         // Finally build a JSON-LD document containing the data and return it to the client
@@ -85,6 +113,7 @@ router.get('/:agency', async (req, res) => {
             agency: agency,
             departureTime: departureTime,
             version: version,
+            index: index,
             data: jsonld_graph,
             http_headers: headers,
             http_response: res

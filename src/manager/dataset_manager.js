@@ -57,14 +57,16 @@ class DatasetManager {
         }
     }
 
-    manage() {
+    async manage() {
+        // Update static fragments structure in memory
+        await utils.updateStaticFragments();
+
         this._datasets.forEach(async (dataset, index) => {
             try {
                 // Create necessary dirs
                 this.initCompanyDirs(dataset.companyName);
                 // Schedule GTFS feed processing job
                 this.launchStaticJob(index, dataset);
-
                 // Download and process GTFS feed on server launch if required
                 if (dataset.downloadOnLaunch) {
                     this.processStaticGTFS(index, dataset);
@@ -131,20 +133,25 @@ class DatasetManager {
                 await this.convertGTFS2LC(companyName, file_name);
                 logger.info('Fragmenting ' + companyName + ' Linked Connections...');
                 // Fragment dataset into linked data documents
-                await paginator.paginateDataset(companyName, file_name, this.storage);
+                await paginator.paginateDataset(this.storage + '/linked_connections/' + companyName + '/' + file_name + '.jsonld',
+                    this.storage + '/linked_pages/' + companyName + '/' + file_name, companyName, dataset.fragmentSize);
                 logger.info('Compressing ' + companyName + ' Linked Connections fragments...')
                 // Compress all linked data documents
+                child_process.spawn('gzip', [file_name + '.jsonld'], { cwd: this.storage + '/linked_connections/' + companyName, detached: true });
                 await exec('find . -type f -exec gzip {} +', { cwd: this.storage + '/linked_pages/' + companyName + '/' + file_name });
                 let t1 = (new Date().getTime() - t0) / 1000;
                 logger.info('Dataset conversion for ' + companyName + ' completed successfuly (took ' + t1 + ' seconds)');
 
-                // Reload GTFS identifiers for RT processing, using new GTFS feed files
+                // Reload GTFS identifiers and static indexes for RT processing, using new GTFS feed files
                 if (dataset.realTimeData) {
                     logger.info('Updating GTFS identifiers for ' + companyName + '...');
                     // First pause RT job if is already running
                     if (this.jobs[index]['rt_job']) {
                         this.jobs[index]['rt_job'].stop();
                     }
+                    // Update static fragments structure in memory
+                    await utils.updateStaticFragments();
+                    // Reload levelDB of GTFS identifiers
                     await this.loadGTFSIdentifiers(index, dataset);
                     // Start RT job again or create new one if does not exist
                     if (this.jobs[index]['rt_job']) {
@@ -239,7 +246,7 @@ class DatasetManager {
                     let count = 0;
                     let self = this;
                     // Function to sync streams
-                    let finish = function () {
+                    let finish = () => {
                         count++;
                         if (count === 2) {
                             // Delete temporal dir with unziped GTFS files
@@ -263,7 +270,7 @@ class DatasetManager {
     launchRTJob(index, dataset) {
         let companyName = dataset.companyName;
         if (!fs.existsSync(this.storage + '/real_time/' + companyName)) {
-            child_process.execSync('mkdir ' + this.storage + '/real_time/' + companyName);
+           fs.mkdirSync(this.storage + '/real_time/' + companyName);
         }
 
         let rt_job = new cron.CronJob({
@@ -277,27 +284,51 @@ class DatasetManager {
                     let timestamp = new Date();
                     // Object to group the updates by fragment 
                     let rtDataObject = {};
+                    // Get ordered list of versions 
+                    let lsv = utils.sortVersions(timestamp, Object.keys(utils.staticFragments[companyName]));
+                    // Object to keep track of the connections that are moved to different fragments due to delays
+                    let removeList = {};
+
+                    // Make sure the dir where real-time data will be saved corresponds with the last static version
+                    let lastStaticVersion = lsv[0];
+                    let lastPath = this.storage + '/real_time/' + companyName + '/' + lastStaticVersion;
+                    if(!fs.existsSync(lastPath)) {
+                        fs.mkdirSync(lastPath);
+                    }
 
                     // Group all connection updates into fragment based arrays
                     for (let x in rtcs) {
-                        let jodata = removeDelays(JSON.parse(rtcs[x]));
-                        let dt = new Date(jodata.departureTime);
-                        //TODO: make this configurable
-                        dt.setMinutes(dt.getMinutes() - (dt.getMinutes() % 10));
-                        dt.setSeconds(0);
-                        dt.setUTCMilliseconds(0);
-                        let dt_iso = dt.toISOString();
+                        // Determine current fragment that the connection belongs to, due to delays
+                        let jodata = rtcs[x];
+                        let ndt = new Date(jodata.departureTime);
+                        let newFragment = new Date(utils.findResource(companyName, ndt.getTime(), lsv)[1]).toISOString();
+
+                        // Determine connection's original fragment
+                        let odt = new Date(ndt.getTime() - (jodata['departureDelay'] * 1000));
+                        let fragment = new Date(utils.findResource(companyName, odt.getTime(), lsv)[1]).toISOString();
+
+                        // Check if connection should be presented in a different fragment due to delays and register it
+                        if (newFragment != fragment) {
+                            if (removeList[fragment]) {
+                                removeList[fragment].push(jodata['@id']);
+                            } else {
+                                removeList[fragment] = [jodata['@id']];
+                            }
+                        }
 
                         // Add timestamp to RT data for versioning
                         jodata['mementoVersion'] = timestamp.toISOString();
                         let rtdata = JSON.stringify(jodata);
 
-                        if (!rtDataObject[dt_iso]) rtDataObject[dt_iso] = [];
-                        rtDataObject[dt_iso].push(rtdata);
+                        if (!rtDataObject[newFragment]) rtDataObject[newFragment] = [];
+                        rtDataObject[newFragment].push(rtdata);
                     }
 
                     // Write new data into fragment files
-                    await this.updateRTData(rtDataObject, companyName);
+                    await this.updateRTData(rtDataObject, lastPath);
+                    // Write removeList into file
+                    this.storeRemoveList(removeList, lastPath, timestamp.toISOString());
+
                     let t1 = new Date().getTime();
                     let tf = t1 - timestamp.getTime();
                     logger.info(companyName + ' GTFS-RT feed updated for version ' + timestamp.toISOString() + ' (took ' + tf + ' ms)');
@@ -316,18 +347,29 @@ class DatasetManager {
 
     rtCompressionJob(dataset) {
         let companyName = dataset.companyName;
-        let path = this.storage + '/real_time/' + companyName;
 
         let rt_compression_job = new cron.CronJob({
             cronTime: dataset.realTimeData.compressionPeriod,
             onTick: async () => {
                 try {
                     let now = new Date();
+                    let lsv = utils.sortVersions(now, Object.keys(utils.staticFragments[companyName]));
+                    let path = this.storage + '/real_time/' + companyName + '/' + lsv[0];
+
                     now.setDate(now.getDate() - 1);
                     let dir_name = utils.getRTDirName(now);
-                    if(fs.existsSync(path + '/' + dir_name)) {
+
+                    // Compress previous day in the last version
+                    if (fs.existsSync(path + '/' + dir_name)) {
                         await exec('find . -type f -exec gzip {} +', { cwd: path + '/' + dir_name });
-                        logger.info(companyName + ' RT files from ' + dir_name + ' folder compressed successfully');
+                        logger.info(companyName + ' RT files from ' + dir_name + ' folder in ' + lsv[0] + ' version compressed successfully');
+                    }
+
+                     // Compress previous day in the second last version in case there was a recent update
+                     path = this.storage + '/real_time/' + companyName + '/' + lsv[1];
+                     if (fs.existsSync(path + '/' + dir_name)) {
+                        await exec('find . -type f -exec gzip {} +', { cwd: path + '/' + dir_name });
+                        logger.info(companyName + ' RT files from ' + dir_name + ' folder in ' + lsv[1] + ' version compressed successfully');
                     }
                 } catch (err) {
                     logger.error('Error compressing RT files for ' + companyName + ': ' + err);
@@ -460,7 +502,22 @@ class DatasetManager {
         });
     }
 
-    updateRTData(data, companyName) {
+    storeRemoveList(removeList, path, memento) {
+        let dir_date = new Date(memento);
+        let dir_name = utils.getRTDirName(dir_date);
+
+        Object.entries(removeList).forEach(async ([key, value]) => {
+            let obj = {};
+            let file_path = path + '/' + dir_name + '/' + key + '_remove.json';
+            obj[memento] = value;
+
+            fs.appendFile(file_path, JSON.stringify(obj) + '\n', 'utf8', err => {
+                if(err) throw err;
+            });
+        });
+    }
+
+    updateRTData(data, path) {
         return new Promise((resolve, reject) => {
             try {
                 // Array to store promises for writing fragment files
@@ -471,9 +528,9 @@ class DatasetManager {
                     // Create folders to store real-time updates by day
                     let dir_date = new Date(key);
                     let dir_name = utils.getRTDirName(dir_date);
-                    let dir_path = this.storage + '/real_time/' + companyName + '/' + dir_name;
+                    let dir_path = path + '/' + dir_name;
                     if (!fs.existsSync(dir_path)) {
-                        child_process.execSync('mkdir ' + dir_path);
+                        fs.mkdirSync(dir_path);
                     }
 
                     let updData = value.join('\n');
@@ -481,11 +538,11 @@ class DatasetManager {
 
                     if (!fs.existsSync(file_path)) {
                         fs.appendFile(file_path, updData, 'utf8', err => {
-                            if (err) throw new Error();
+                            if (err) throw err;
                         });
                     } else {
                         fs.appendFile(file_path, '\n' + updData, 'utf8', err => {
-                            if (err) throw new Error();
+                            if (err) throw err;
                         });
                     }
                 });
@@ -514,13 +571,3 @@ class DatasetManager {
 }
 
 module.exports = DatasetManager;
-
-function removeDelays(jo) {
-    let dt = new Date(jo['departureTime']);
-    let at = new Date(jo['arrivalTime']);
-    dt.setTime(dt.getTime() - (jo['departureDelay'] * 1000));
-    at.setTime(at.getTime() - (jo['arrivalDelay'] * 1000));
-    jo['departureTime'] = dt.toISOString();
-    jo['arrivalTime'] = at.toISOString();
-    return jo;
-}
