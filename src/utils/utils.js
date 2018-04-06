@@ -22,11 +22,10 @@ module.exports = new class Utils {
                 let storage = this._datasetsConfig.storage + '/linked_pages/';
                 let datasets = this._datasetsConfig.datasets;
                 let dc = 0;
-
-                if(fs.existsSync(storage)) {
-                    datasets.forEach(async dataset => {
-                        let companyName = dataset.companyName;
-                        if (!this._staticFragments[companyName]) this._staticFragments[companyName] = {};
+                datasets.forEach(async dataset => {
+                    let companyName = dataset.companyName;
+                    if (!this._staticFragments[companyName]) this._staticFragments[companyName] = {};
+                    if (fs.existsSync(storage + companyName)) {
                         let versions = await readdir(storage + companyName);
                         let vc = 0;
                         versions.forEach(async v => {
@@ -43,11 +42,11 @@ module.exports = new class Utils {
                             }
                         });
                         if (versions.length === 0) dc++;
-                        if (dc === datasets.length) resolve();
-                    });
-                } else {
-                    resolve();
-                }
+                    } else {
+                        dc++;
+                    }
+                    if (dc === datasets.length) resolve();
+                });
             } catch (err) {
                 reject(err);
             }
@@ -299,7 +298,7 @@ module.exports = new class Utils {
                 }
                 versions = versions.map(v => (new Date(v).getTime()));
                 let closest_version = this.binarySearch(timestamp.getTime(), versions);
-                if(closest_version !== null) {
+                if (closest_version !== null) {
                     let obj = JSON.parse(remove_list[closest_version[1]]);
                     return obj[Object.keys(obj)[0]];
                 } else {
