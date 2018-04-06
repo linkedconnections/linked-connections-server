@@ -36,7 +36,8 @@ router.get('/:agency', async (req, res) => {
     }
 
     try {
-        let buffer = await utils.readAndGunzip(storage + '/linked_pages/' + agency + '/' + version + '/' + resource + '.jsonld.gz');
+        let sf_path = storage + '/linked_pages/' + agency + '/' + version + '/' + resource + '.jsonld.gz';
+        let buffer = await utils.readAndGunzip(sf_path);
         let jsonld_graph = buffer.join('').split(',\n').map(JSON.parse);
         let departureTime = new Date(resource);
         let mementoDate = new Date(acceptDatetime);
