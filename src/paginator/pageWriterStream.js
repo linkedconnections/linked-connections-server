@@ -10,6 +10,7 @@ module.exports = class pageWriterStream extends Writable {
     this._byteCount = 0;
     this._currentFileName = '';
     this._wstream = '';
+    this._lastDepartureTime = null;
   }
 
   _write(data, encoding, done) {
@@ -22,7 +23,7 @@ module.exports = class pageWriterStream extends Writable {
       this._wstream.write(dataString);
       this._byteCount += buffer.byteLength;
     } else {
-      if (this._byteCount >= this._size) {
+      if (this._byteCount >= this._size && data.departureTime != this._lastDepartureTime) {
         this._wstream.end();
         this._currentFileName = data.departureTime;
         this._wstream = fs.createWriteStream(this._targetPath + this._currentFileName + '.jsonld');
@@ -33,6 +34,7 @@ module.exports = class pageWriterStream extends Writable {
         this._byteCount += buffer.byteLength;
       }
     }
+    this._lastDepartureTime = data.departureTime;
     done();
   }
 }

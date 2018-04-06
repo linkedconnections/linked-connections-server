@@ -5,6 +5,7 @@ const zlib = require('zlib');
 const gtfsrt = require('gtfs-realtime-bindings');
 const moment = require('moment-timezone');
 const logger = require('../utils/logger');
+const fs = require('fs');
 
 class Gtfsrt2lc {
     constructor(dataset, stores) {
@@ -107,6 +108,11 @@ class Gtfsrt2lc {
         let array = [];
         let index = 0;
 
+        // Snippet to quickly dump decoded real-time updates to a json file
+        /*fs.writeFile('/home/julian/Desktop/rt-update.json', JSON.stringify(feed), err => {
+            if(err) console.error(err);
+        });*/
+
         for (let i = 0; i < feed.entity.length; i++) {
             if (feed.entity[i].trip_update) {
                 var trip_update = feed.entity[i].trip_update;
@@ -145,6 +151,12 @@ class Gtfsrt2lc {
                                 arrivalDelay = stop_times[j].arrival.delay;
                             }
 
+                            // WARNING: HACK TO CORRECT NMBS 1 HOUR DISPLACEMENT OF REAL-TIME UPDATES
+                            //-----------------------------------------------------------------------
+                            departureTime.subtract(1, 'h');
+                            arrivalTime.subtract(1, 'h');
+                            //-----------------------------------------------------------------------
+
                             // Get Trip and Route short names from GTFS stores
                             let gtfs_trip = await this.tripsStore.get(trip_id);
                             let trip_short_name = gtfs_trip.trip_short_name;
@@ -168,7 +180,7 @@ class Gtfsrt2lc {
                                 "gtfs:route": uris.routes + route_short_name + trip_short_name
                             }
 
-                            array.push(JSON.stringify(obj));
+                            array.push(obj);
                         }
                     } catch (err) {
                         logger.warn('Trip id ' + trip_id + ' not found in current Trips store');
