@@ -22,27 +22,32 @@ module.exports = new class Utils {
                 let storage = this._datasetsConfig.storage + '/linked_pages/';
                 let datasets = this._datasetsConfig.datasets;
                 let dc = 0;
-                datasets.forEach(async dataset => {
-                    let companyName = dataset.companyName;
-                    if (!this._staticFragments[companyName]) this._staticFragments[companyName] = {};
-                    let versions = await readdir(storage + companyName);
-                    let vc = 0;
-                    versions.forEach(async v => {
-                        if (!this._staticFragments[companyName][v]) {
-                            this._staticFragments[companyName][v] = (await readdir(storage + companyName + '/' + v)).map(fragment => {
-                                let fd = new Date(fragment.substring(0, fragment.indexOf('.jsonld')))
-                                return fd.getTime();
-                            });
-                        }
-                        vc++;
-                        if (vc === versions.length) {
-                            dc++;
-                            if (dc === datasets.length) resolve();
-                        }
+
+                if(fs.existsSync(storage)) {
+                    datasets.forEach(async dataset => {
+                        let companyName = dataset.companyName;
+                        if (!this._staticFragments[companyName]) this._staticFragments[companyName] = {};
+                        let versions = await readdir(storage + companyName);
+                        let vc = 0;
+                        versions.forEach(async v => {
+                            if (!this._staticFragments[companyName][v]) {
+                                this._staticFragments[companyName][v] = (await readdir(storage + companyName + '/' + v)).map(fragment => {
+                                    let fd = new Date(fragment.substring(0, fragment.indexOf('.jsonld')))
+                                    return fd.getTime();
+                                });
+                            }
+                            vc++;
+                            if (vc === versions.length) {
+                                dc++;
+                                if (dc === datasets.length) resolve();
+                            }
+                        });
+                        if (versions.length === 0) dc++;
+                        if (dc === datasets.length) resolve();
                     });
-                    if (versions.length === 0) dc++;
-                    if (dc === datasets.length) resolve();
-                });
+                } else {
+                    resolve();
+                }
             } catch (err) {
                 reject(err);
             }
