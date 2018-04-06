@@ -13,6 +13,9 @@ const server_config = utils.serverConfig;
 const storage = datasets_config.storage;
 
 router.get('/:agency', async (req, res) => {
+    // Check for available updates of the static fragments
+    await utils.updateStaticFragments();
+    
     let x_forwarded_proto = req.headers['x-forwarded-proto'];
     let protocol = '';
     if (typeof x_forwarded_proto == 'undefined' || x_forwarded_proto == '') {
