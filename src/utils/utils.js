@@ -16,41 +16,31 @@ module.exports = new class Utils {
         this._staticFragments = {};
     }
 
-    updateStaticFragments() {
-        return new Promise((resolve, reject) => {
-            try {
-                let storage = this._datasetsConfig.storage + '/linked_pages/';
-                let datasets = this._datasetsConfig.datasets;
-                let dc = 0;
-                datasets.forEach(async dataset => {
-                    let companyName = dataset.companyName;
-                    if (!this._staticFragments[companyName]) this._staticFragments[companyName] = {};
-                    if (fs.existsSync(storage + companyName)) {
-                        let versions = await readdir(storage + companyName);
-                        let vc = 0;
-                        versions.forEach(async v => {
-                            if (!this._staticFragments[companyName][v]) {
-                                this._staticFragments[companyName][v] = (await readdir(storage + companyName + '/' + v)).map(fragment => {
-                                    let fd = new Date(fragment.substring(0, fragment.indexOf('.jsonld')))
-                                    return fd.getTime();
-                                });
-                            }
-                            vc++;
-                            if (vc === versions.length) {
-                                dc++;
-                                if (dc === datasets.length) resolve();
-                            }
+    async updateStaticFragments() {
+        let storage = this._datasetsConfig.storage + '/linked_pages/';
+        let datasets = this._datasetsConfig.datasets;
+
+        for (let i in datasets) {
+            let companyName = datasets[i].companyName;
+            if (fs.existsSync(storage + companyName)) {
+                if (!this._staticFragments[companyName]) {
+                    this._staticFragments[companyName] = {};
+                }
+
+                let versions = await readdir(storage + companyName);
+                for (let y in versions) {
+                    if (!this._staticFragments[companyName][versions[y]]) {
+                        let dir = await readdir(storage + companyName + '/' + versions[y]);
+                        this._staticFragments[companyName][versions[y]] = dir.map(fragment => {
+                            let fd = new Date(fragment.substring(0, fragment.indexOf('.jsonld')))
+                            return fd.getTime();
                         });
-                        if (versions.length === 0) dc++;
                     } else {
-                        dc++;
+                        continue;
                     }
-                    if (dc === datasets.length) resolve();
-                });
-            } catch (err) {
-                reject(err);
+                }
             }
-        });
+        }
     }
 
     readAndGunzip(path) {
@@ -175,14 +165,21 @@ module.exports = new class Utils {
     }
 
     async aggregateRTData(static_data, rt_data, remove_path, timestamp) {
+        let t0 = new Date();
         // Index map for the static fragment
         let static_index = this.getStaticIndex(static_data);
+        logger.info('Creating static index took: ' + (new Date().getTime() - t0.getTime()) + ' ms');
         // Index map for the rt fragment
+        let t1 = new Date();
         let rt_index = this.getRTIndex(rt_data, timestamp);
+        logger.info('Creating real-time index took: ' + (new Date().getTime() - t1.getTime()) + ' ms');
         // Array of the Connections that must be removed from static fragment due to delays
+        let t2 = new Date();
         let to_remove = await this.getConnectionsToRemove(remove_path, timestamp);
+        logger.info('Getting Connections that must be removed from disk took: ' + (new Date().getTime() - t2.getTime()) + ' ms');
 
         // Iterate over the RT index which contains all the connections that need to be updated or included
+        let t3 = new Date();
         for (let [connId, index] of rt_index) {
             // If the connection is already present in the static fragment just add/update delay values
             if (static_index.has(connId)) {
@@ -201,45 +198,28 @@ module.exports = new class Utils {
                 static_data.push(rtd);
             }
         }
+        logger.info('Updating static fragment with real-time data took: ' + (new Date().getTime() - t3.getTime()) + ' ms');
 
         // Now iterate over the array of connections that need to be removed from the static fragment due to delays and remove them
+        let t4 = new Date();
         if (to_remove !== null) {
             for (let c in to_remove) {
                 let si = static_index.get(to_remove[c]);
                 static_data.splice(si, 1);
             }
         }
+        logger.info('Removing Connections that belong elsewhere took: ' + (new Date().getTime() - t4.getTime()) + ' ms');
 
         // Re-sort the fragment with the updated delay data
+        let t5 = new Date();
         static_data.sort((a, b) => {
             let a_date = new Date(a['departureTime']).getTime();
             let b_date = new Date(b['departureTime']).getTime();
             return a_date - b_date;
         });
+        logger.info('Resorting Connections took: ' + (new Date().getTime() - t5.getTime()) + ' ms');
 
         return static_data;
-    }
-
-    checkRTFragment(agency, fragment, conns, memento) {
-        return new Promise(async (resolve) => {
-            let path = this.datasetsConfig.storage + '/real_time/' + agency + '/';
-            if (fs.existsSync(path + fragment.toISOString() + '.jsonld.gz')) {
-                let rt_fragment = (await this.readAndGunzip(path + fragment.toISOString() + '.jsonld.gz')).join('').split('\n').map(JSON.parse);
-                let rt_index = this.getRTIndex(rt_fragment, memento);
-                let toRemove = [];
-
-                for (let y in conns) {
-                    let id = conns[y]['@id'];
-                    if (rt_index.has(id)) {
-                        toRemove.push(id);
-                    }
-                }
-
-                resolve(toRemove);
-            } else {
-                resolve([]);
-            }
-        });
     }
 
     getStaticIndex(fragment) {
