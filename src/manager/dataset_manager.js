@@ -503,10 +503,9 @@ class DatasetManager {
     }
 
     storeRemoveList(removeList, path, memento) {
-        let dir_date = new Date(Object.keys(removeList)[0]);
-        let dir_name = utils.getRTDirName(dir_date);
-
         Object.entries(removeList).forEach(async ([key, value]) => {
+            let dir_date = new Date(key);
+            let dir_name = utils.getRTDirName(dir_date);
             let obj = {};
             let file_path = path + '/' + dir_name + '/' + key + '_remove.json';
             obj[memento] = value;
