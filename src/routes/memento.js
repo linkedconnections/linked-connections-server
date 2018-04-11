@@ -76,11 +76,11 @@ router.get('/:agency', async (req, res) => {
             if (compressed) {
                 rt_buffer = await utils.readAndGunzip(rt_path);
                 // Create an array of all RT updates
-                rt_array = rt_buffer.join('').split('\n').map(JSON.parse);
+                rt_array = rt_buffer.join('').split('\n');
             } else {
                 rt_buffer = await readfile(rt_path, 'utf8');
                 // Create an array of all RT updates
-                rt_array = rt_buffer.split('\n').map(JSON.parse);
+                rt_array = rt_buffer.split('\n');
             }
 
             // Path to file that contains the list of connections that shoud be removed from the static fragment due to delays

@@ -16,41 +16,31 @@ module.exports = new class Utils {
         this._staticFragments = {};
     }
 
-    updateStaticFragments() {
-        return new Promise((resolve, reject) => {
-            try {
-                let storage = this._datasetsConfig.storage + '/linked_pages/';
-                let datasets = this._datasetsConfig.datasets;
-                let dc = 0;
-                datasets.forEach(async dataset => {
-                    let companyName = dataset.companyName;
-                    if (!this._staticFragments[companyName]) this._staticFragments[companyName] = {};
-                    if (fs.existsSync(storage + companyName)) {
-                        let versions = await readdir(storage + companyName);
-                        let vc = 0;
-                        versions.forEach(async v => {
-                            if (!this._staticFragments[companyName][v]) {
-                                this._staticFragments[companyName][v] = (await readdir(storage + companyName + '/' + v)).map(fragment => {
-                                    let fd = new Date(fragment.substring(0, fragment.indexOf('.jsonld')))
-                                    return fd.getTime();
-                                });
-                            }
-                            vc++;
-                            if (vc === versions.length) {
-                                dc++;
-                                if (dc === datasets.length) resolve();
-                            }
+    async updateStaticFragments() {
+        let storage = this._datasetsConfig.storage + '/linked_pages/';
+        let datasets = this._datasetsConfig.datasets;
+
+        for (let i in datasets) {
+            let companyName = datasets[i].companyName;
+            if (fs.existsSync(storage + companyName)) {
+                if (!this._staticFragments[companyName]) {
+                    this._staticFragments[companyName] = {};
+                }
+
+                let versions = await readdir(storage + companyName);
+                for (let y in versions) {
+                    if (!this._staticFragments[companyName][versions[y]]) {
+                        let dir = await readdir(storage + companyName + '/' + versions[y]);
+                        this._staticFragments[companyName][versions[y]] = dir.map(fragment => {
+                            let fd = new Date(fragment.substring(0, fragment.indexOf('.jsonld')))
+                            return fd.getTime();
                         });
-                        if (versions.length === 0) dc++;
                     } else {
-                        dc++;
+                        continue;
                     }
-                    if (dc === datasets.length) resolve();
-                });
-            } catch (err) {
-                reject(err);
+                }
             }
-        });
+        }
     }
 
     readAndGunzip(path) {
@@ -187,7 +177,7 @@ module.exports = new class Utils {
             // If the connection is already present in the static fragment just add/update delay values
             if (static_index.has(connId)) {
                 let std = static_data[static_index.get(connId)];
-                let rtd = rt_data[index];
+                let rtd = JSON.parse(rt_data[index]);
                 std['departureDelay'] = rtd['departureDelay'];
                 std['arrivalDelay'] = rtd['arrivalDelay'];
                 // Update departure and arrival times with delays
@@ -196,7 +186,7 @@ module.exports = new class Utils {
                 static_data[static_index.get(connId)] = std;
             } else {
                 // Is not present in the static fragment which means it's a new connection so inlcude it at the end.
-                let rtd = rt_data[index];
+                let rtd = JSON.parse(rt_data[index]);
                 delete rtd['mementoVersion'];
                 static_data.push(rtd);
             }
@@ -220,28 +210,6 @@ module.exports = new class Utils {
         return static_data;
     }
 
-    checkRTFragment(agency, fragment, conns, memento) {
-        return new Promise(async (resolve) => {
-            let path = this.datasetsConfig.storage + '/real_time/' + agency + '/';
-            if (fs.existsSync(path + fragment.toISOString() + '.jsonld.gz')) {
-                let rt_fragment = (await this.readAndGunzip(path + fragment.toISOString() + '.jsonld.gz')).join('').split('\n').map(JSON.parse);
-                let rt_index = this.getRTIndex(rt_fragment, memento);
-                let toRemove = [];
-
-                for (let y in conns) {
-                    let id = conns[y]['@id'];
-                    if (rt_index.has(id)) {
-                        toRemove.push(id);
-                    }
-                }
-
-                resolve(toRemove);
-            } else {
-                resolve([]);
-            }
-        });
-    }
-
     getStaticIndex(fragment) {
         try {
             let map = new Map();
@@ -256,20 +224,52 @@ module.exports = new class Utils {
     }
 
     getRTIndex(array, timeCriteria) {
+        let lastObj = array[array.length - 1].split('"');
+        let lastMemento = new Date(lastObj[43]);
         let map = new Map();
-        for (let i in array) {
-            try {
-                let jo = array[i];
-                let memento_date = new Date(jo['mementoVersion']);
-                if (memento_date <= timeCriteria) {
-                    map.set(jo['@id'], i);
+
+        // Last update is being requested
+        if (timeCriteria >= lastMemento) {
+            // Register last update in the index already
+            map.set(lastObj[3], (array.length - 1));
+            // Iterate in reverse over the rt data getting only the last update according to memento
+            for (let i = array.length - 2; i >= 0; i--) {
+                let obj = array[i].split('"');
+                let memento_date = new Date(obj[43]);
+                if (memento_date.getTime() === lastMemento.getTime()) {
+                    map.set(obj[3], i);
                 } else {
                     break;
                 }
-            } catch (err) {
-                continue;
+            }
+        } else {
+            let index = 0;
+            // Find the closest previous update to the requested memento
+            for (let i = 0; i < array.length; i++) {
+                let obj = array[i].split('"');
+                let memento_date = new Date(obj[43]);
+                if (timeCriteria > memento_date) {
+                    index = i - 1;
+                    break;
+                }
+            }
+
+            if (index > 0) {
+                let closestObj = array[index].split('"');
+                let closestMemento = new Date(closestObj[43]);
+                // Iterate in reverse over the rt data getting only the closest updates according to memento
+                for (let i = index; i >= 0; i--) {
+                    let obj = array[i].split('"');
+                    let memento_date = new Date(obj[43]);
+                    if (memento_date.getTime() === closestMemento.getTime()) {
+                        map.set(obj[3], i);
+                    } else {
+                        break;
+                    }
+                }
             }
         }
+
         return map;
     }
 

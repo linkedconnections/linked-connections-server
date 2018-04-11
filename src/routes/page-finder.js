@@ -13,6 +13,9 @@ const datasets_config = utils.datasetsConfig;
 const server_config = utils.serverConfig;
 var storage = datasets_config.storage;
 
+// Create static fragments index structure
+utils.updateStaticFragments();
+
 router.get('/:agency/connections', async (req, res) => {
     // Check for available updates of the static fragments
     await utils.updateStaticFragments();
@@ -137,11 +140,11 @@ router.get('/:agency/connections', async (req, res) => {
             if (compressed) {
                 rt_buffer = await utils.readAndGunzip(rt_path);
                 // Create an array of all RT updates
-                rt_array = rt_buffer.join('').split('\n').map(JSON.parse);
+                rt_array = rt_buffer.join('').split('\n');
             } else {
                 rt_buffer = await readfile(rt_path, 'utf8');
                 // Create an array of all RT updates
-                rt_array = rt_buffer.split('\n').map(JSON.parse);
+                rt_array = rt_buffer.split('\n');
             }
 
             // Path to file that contains the list of connections that shoud be removed from the static fragment due to delays
@@ -167,8 +170,8 @@ router.get('/:agency/connections', async (req, res) => {
             http_headers: headers,
             http_response: res
         };
-
-        utils.addHydraMetada(params);
+        
+        await utils.addHydraMetada(params);
 
     } catch (err) {
         if (err) logger.error(err);
