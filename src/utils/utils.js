@@ -384,7 +384,7 @@ module.exports = new class Utils {
             // Immutable (for browsers which support it, sometimes limited to https only
             // 1 year expiry date to keep it long enough in cache for the others
             res.set({ 'Cache-control': 'public, max-age=31536000000, immutable' });
-            res.set({ 'Expires': new Date(now + 31536000000).toUTCString() });
+            res.set({ 'Expires': new Date(now.getTime() + 31536000000).toUTCString() });
         } else {
             // Let clients hold on to this data for 1 second longer than nginx. This way nginx can update before the clients?
             res.set({ 'Cache-control': 'public, s-maxage=' + maxage + ', max-age=' + (maxage + 1) + ',stale-if-error=' + (maxage + 15) + ', proxy-revalidate' });
