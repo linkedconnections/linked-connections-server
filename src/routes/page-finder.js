@@ -13,12 +13,12 @@ const datasets_config = utils.datasetsConfig;
 const server_config = utils.serverConfig;
 var storage = datasets_config.storage;
 
+// Create static fragments index structure
+utils.updateStaticFragments();
+
 router.get('/:agency/connections', async (req, res) => {
-    logger.info('-------------------------------------------------------------------------------------------');
     // Check for available updates of the static fragments
-    let t0 = new Date();
     await utils.updateStaticFragments();
-    logger.info('Update static fragments indexes took: ' + (new Date().getTime() - t0.getTime()) + ' ms');
 
     // Allow requests from different hosts
     res.set({ 'Access-Control-Allow-Origin': '*' });
@@ -93,10 +93,7 @@ router.get('/:agency/connections', async (req, res) => {
         // Sort versions from the newest to the oldest
         let sorted_versions = utils.sortVersions(new Date(), versions);
         // Find the fragment that covers the requested time (static data)
-        let t1 = new Date();
         let found_fragment = utils.findResource(agency, departureTime.getTime(), sorted_versions);
-        logger.info('Find fragment through binary search took: ' + (new Date().getTime() - t1.getTime()) + ' ms');
-
         let ff = new Date(found_fragment[1]);
 
         //Redirect client to the apropriate fragment URL
@@ -133,26 +130,22 @@ router.get('/:agency/connections', async (req, res) => {
 
         // Get respective static data fragment according to departureTime query
         // and complement resource with Real-Time data and Hydra metadata before sending it back to the client
-        let t2 = new Date();
         let buffer = await utils.readAndGunzip(sf_path + ff.toISOString() + '.jsonld.gz');
         let jsonld_graph = buffer.join('').split(',\n').map(JSON.parse);
-        logger.info('Load and parse static data from disk took: ' + (new Date().getTime() - t2.getTime()) + ' ms');
 
         // Look if there is real time data for this agency and requested time
         if (rt_exists) {
             let rt_buffer = null;
             let rt_array = [];
-            let t3 = new Date();
             if (compressed) {
                 rt_buffer = await utils.readAndGunzip(rt_path);
                 // Create an array of all RT updates
-                rt_array = rt_buffer.join('').split('\n').map(JSON.parse);
+                rt_array = rt_buffer.join('').split('\n');
             } else {
                 rt_buffer = await readfile(rt_path, 'utf8');
                 // Create an array of all RT updates
-                rt_array = rt_buffer.split('\n').map(JSON.parse);
+                rt_array = rt_buffer.split('\n');
             }
-            logger.info('Load and parse real-time data from disk took: ' + (new Date().getTime() - t3.getTime()) + ' ms');
 
             // Path to file that contains the list of connections that shoud be removed from the static fragment due to delays
             let remove_path =  storage + '/real_time/' + agency + '/' + sorted_versions[0] + '/' + utils.getRTDirName(ff) + '/' 
@@ -178,11 +171,7 @@ router.get('/:agency/connections', async (req, res) => {
             http_response: res
         };
         
-        let t4 = new Date();
         await utils.addHydraMetada(params);
-        logger.info('Add metadata took: ' + (new Date().getTime() - t4.getTime()) + ' ms');
-        logger.info('-------------------------------------------------------------------------------------------');
-        logger.info('TOTAL = ' + (new Date().getTime() - t0.getTime()) + ' ms');
 
     } catch (err) {
         if (err) logger.error(err);

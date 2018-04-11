@@ -165,26 +165,19 @@ module.exports = new class Utils {
     }
 
     async aggregateRTData(static_data, rt_data, remove_path, timestamp) {
-        let t0 = new Date();
         // Index map for the static fragment
         let static_index = this.getStaticIndex(static_data);
-        logger.info('Creating static index took: ' + (new Date().getTime() - t0.getTime()) + ' ms');
         // Index map for the rt fragment
-        let t1 = new Date();
         let rt_index = this.getRTIndex(rt_data, timestamp);
-        logger.info('Creating real-time index took: ' + (new Date().getTime() - t1.getTime()) + ' ms');
         // Array of the Connections that must be removed from static fragment due to delays
-        let t2 = new Date();
         let to_remove = await this.getConnectionsToRemove(remove_path, timestamp);
-        logger.info('Getting Connections that must be removed from disk took: ' + (new Date().getTime() - t2.getTime()) + ' ms');
 
         // Iterate over the RT index which contains all the connections that need to be updated or included
-        let t3 = new Date();
         for (let [connId, index] of rt_index) {
             // If the connection is already present in the static fragment just add/update delay values
             if (static_index.has(connId)) {
                 let std = static_data[static_index.get(connId)];
-                let rtd = rt_data[index];
+                let rtd = JSON.parse(rt_data[index]);
                 std['departureDelay'] = rtd['departureDelay'];
                 std['arrivalDelay'] = rtd['arrivalDelay'];
                 // Update departure and arrival times with delays
@@ -193,31 +186,26 @@ module.exports = new class Utils {
                 static_data[static_index.get(connId)] = std;
             } else {
                 // Is not present in the static fragment which means it's a new connection so inlcude it at the end.
-                let rtd = rt_data[index];
+                let rtd = JSON.parse(rt_data[index]);
                 delete rtd['mementoVersion'];
                 static_data.push(rtd);
             }
         }
-        logger.info('Updating static fragment with real-time data took: ' + (new Date().getTime() - t3.getTime()) + ' ms');
 
         // Now iterate over the array of connections that need to be removed from the static fragment due to delays and remove them
-        let t4 = new Date();
         if (to_remove !== null) {
             for (let c in to_remove) {
                 let si = static_index.get(to_remove[c]);
                 static_data.splice(si, 1);
             }
         }
-        logger.info('Removing Connections that belong elsewhere took: ' + (new Date().getTime() - t4.getTime()) + ' ms');
 
         // Re-sort the fragment with the updated delay data
-        let t5 = new Date();
         static_data.sort((a, b) => {
             let a_date = new Date(a['departureTime']).getTime();
             let b_date = new Date(b['departureTime']).getTime();
             return a_date - b_date;
         });
-        logger.info('Resorting Connections took: ' + (new Date().getTime() - t5.getTime()) + ' ms');
 
         return static_data;
     }
@@ -236,20 +224,52 @@ module.exports = new class Utils {
     }
 
     getRTIndex(array, timeCriteria) {
+        let lastObj = array[array.length - 1].split('"');
+        let lastMemento = new Date(lastObj[43]);
         let map = new Map();
-        for (let i in array) {
-            try {
-                let jo = array[i];
-                let memento_date = new Date(jo['mementoVersion']);
-                if (memento_date <= timeCriteria) {
-                    map.set(jo['@id'], i);
+
+        // Last update is being requested
+        if (timeCriteria >= lastMemento) {
+            // Register last update in the index already
+            map.set(lastObj[3], (array.length - 1));
+            // Iterate in reverse over the rt data getting only the last update according to memento
+            for (let i = array.length - 2; i >= 0; i--) {
+                let obj = array[i].split('"');
+                let memento_date = new Date(obj[43]);
+                if (memento_date.getTime() === lastMemento.getTime()) {
+                    map.set(obj[3], i);
                 } else {
                     break;
                 }
-            } catch (err) {
-                continue;
+            }
+        } else {
+            let index = 0;
+            // Find the closest previous update to the requested memento
+            for (let i = 0; i < array.length; i++) {
+                let obj = array[i].split('"');
+                let memento_date = new Date(obj[43]);
+                if (timeCriteria > memento_date) {
+                    index = i - 1;
+                    break;
+                }
+            }
+
+            if (index > 0) {
+                let closestObj = array[index].split('"');
+                let closestMemento = new Date(closestObj[43]);
+                // Iterate in reverse over the rt data getting only the closest updates according to memento
+                for (let i = index; i >= 0; i--) {
+                    let obj = array[i].split('"');
+                    let memento_date = new Date(obj[43]);
+                    if (memento_date.getTime() === closestMemento.getTime()) {
+                        map.set(obj[3], i);
+                    } else {
+                        break;
+                    }
+                }
             }
         }
+
         return map;
     }
 
