@@ -15,6 +15,7 @@ const paginator = require('../paginator/paginator');
 const Gtfsrt2lc = require('./gtfsrt2lc');
 
 const writeFile = util.promisify(fs.writeFile);
+const readFile = util.promisify(fs.readFile);
 const readdir = util.promisify(fs.readdir);
 const gzip = util.promisify(zlib.gzip);
 const execFile = util.promisify(child_process.execFile);
@@ -134,7 +135,7 @@ class DatasetManager {
                 logger.info('Fragmenting ' + companyName + ' Linked Connections...');
                 // Fragment dataset into linked data documents
                 await paginator.paginateDataset(this.storage + '/linked_connections/' + companyName + '/' + file_name + '.jsonld',
-                    this.storage + '/linked_pages/' + companyName + '/' + file_name, companyName, dataset.fragmentSize);
+                    this.storage + '/linked_pages/' + companyName + '/' + file_name, companyName, dataset.fragmentSize || 300000);
                 logger.info('Compressing ' + companyName + ' Linked Connections fragments...')
                 // Compress all linked data documents
                 child_process.spawn('gzip', [file_name + '.jsonld'], { cwd: this.storage + '/linked_connections/' + companyName, detached: true });
@@ -269,8 +270,9 @@ class DatasetManager {
 
     launchRTJob(index, dataset) {
         let companyName = dataset.companyName;
-        if (!fs.existsSync(this.storage + '/real_time/' + companyName)) {
-           fs.mkdirSync(this.storage + '/real_time/' + companyName);
+        let rt_path = this.storage + '/real_time/' + companyName;
+        if (!fs.existsSync(rt_path)) {
+            fs.mkdirSync(rt_path);
         }
 
         let rt_job = new cron.CronJob({
@@ -284,28 +286,19 @@ class DatasetManager {
                     let timestamp = new Date();
                     // Object to group the updates by fragment 
                     let rtDataObject = {};
-                    // Get ordered list of versions 
-                    let lsv = utils.sortVersions(timestamp, Object.keys(utils.staticFragments[companyName]));
                     // Object to keep track of the connections that are moved to different fragments due to delays
                     let removeList = {};
 
-                    // Make sure the dir where real-time data will be saved corresponds with the last static version
-                    let lastStaticVersion = lsv[0];
-                    let lastPath = this.storage + '/real_time/' + companyName + '/' + lastStaticVersion;
-                    if(!fs.existsSync(lastPath)) {
-                        fs.mkdirSync(lastPath);
-                    }
-
-                    // Group all connection updates into fragment based arrays
+                    // Group all connection updates into fragment based arrays according to predefined fragment time span
+                    let fragTimeSpan = dataset.realTimeData.fragmentTimeSpan || 600;
                     for (let x in rtcs) {
                         // Determine current fragment that the connection belongs to, due to delays
                         let jodata = rtcs[x];
                         let ndt = new Date(jodata.departureTime);
-                        let newFragment = new Date(utils.findResource(companyName, ndt.getTime(), lsv)[1]).toISOString();
-
+                        let newFragment = new Date(ndt.getTime() - (ndt.getTime() % (fragTimeSpan * 1000))).toISOString();
                         // Determine connection's original fragment
                         let odt = new Date(ndt.getTime() - (jodata['departureDelay'] * 1000));
-                        let fragment = new Date(utils.findResource(companyName, odt.getTime(), lsv)[1]).toISOString();
+                        let fragment = new Date(odt.getTime() - (odt.getTime() % (fragTimeSpan * 1000))).toISOString();
 
                         // Check if connection should be presented in a different fragment due to delays and register it
                         if (newFragment != fragment) {
@@ -318,16 +311,15 @@ class DatasetManager {
 
                         // Add timestamp to RT data for versioning
                         jodata['mementoVersion'] = timestamp.toISOString();
-                        let rtdata = JSON.stringify(jodata);
 
                         if (!rtDataObject[newFragment]) rtDataObject[newFragment] = [];
-                        rtDataObject[newFragment].push(rtdata);
+                        rtDataObject[newFragment].push(JSON.stringify(jodata));
                     }
 
                     // Write new data into fragment files
-                    await this.updateRTData(rtDataObject, lastPath);
+                    await this.updateRTData(rtDataObject, rt_path);
                     // Write removeList into file
-                    this.storeRemoveList(removeList, lastPath, timestamp.toISOString());
+                    this.storeRemoveList(removeList, rt_path, timestamp.toISOString());
 
                     let t1 = new Date().getTime();
                     let tf = t1 - timestamp.getTime();
@@ -352,25 +344,24 @@ class DatasetManager {
             cronTime: dataset.realTimeData.compressionPeriod,
             onTick: async () => {
                 try {
+                    let path = this.storage + '/real_time/' + companyName + '/';
                     let now = new Date();
-                    let lsv = utils.sortVersions(now, Object.keys(utils.staticFragments[companyName]));
-                    let path = this.storage + '/real_time/' + companyName + '/' + lsv[0];
 
-                    now.setDate(now.getDate() - 1);
-                    let dir_name = utils.getRTDirName(now);
+                    let fgmts = await readdir(path);
 
-                    // Compress previous day in the last version
-                    if (fs.existsSync(path + '/' + dir_name)) {
-                        await exec('find . -type f -exec gzip {} +', { cwd: path + '/' + dir_name });
-                        logger.info(companyName + ' RT files from ' + dir_name + ' folder in ' + lsv[0] + ' version compressed successfully');
-                    }
+                    fgmts.forEach(fg => {
+                        if (fg.indexOf('.gz') < 0) {
+                            // Get last modification time of the file
+                            let stats = fs.statSync(path + '/' + fg);
+                            let lastModified = new Date(util.inspect(stats.mtime));
 
-                     // Compress previous day in the second last version in case there was a recent update
-                     path = this.storage + '/real_time/' + companyName + '/' + lsv[1];
-                     if (fs.existsSync(path + '/' + dir_name)) {
-                        await exec('find . -type f -exec gzip {} +', { cwd: path + '/' + dir_name });
-                        logger.info(companyName + ' RT files from ' + dir_name + ' folder in ' + lsv[1] + ' version compressed successfully');
-                    }
+                            // If the file hasn't been modified in the last 4 hours, compress it
+                            if (now.getTime() - lastModified.getTime() >= 14400000) {
+                                child_process.spawn('gzip', [fg], { cwd: path, detached: true });
+                            }
+                        }
+                    });
+
                 } catch (err) {
                     logger.error('Error compressing RT files for ' + companyName + ': ' + err);
                 }
@@ -504,15 +495,19 @@ class DatasetManager {
 
     storeRemoveList(removeList, path, memento) {
         Object.entries(removeList).forEach(async ([key, value]) => {
-            let dir_date = new Date(key);
-            let dir_name = utils.getRTDirName(dir_date);
-            let obj = {};
-            let file_path = path + '/' + dir_name + '/' + key + '_remove.json';
-            obj[memento] = value;
-
-            fs.appendFile(file_path, JSON.stringify(obj) + '\n', 'utf8', err => {
-                if(err) throw err;
-            });
+            let file_path = path + '/' + key + '.remove';
+            let data = value.join(',' + memento + '\n').concat(',' + memento);
+            
+            // Register every connection is not in its original fragment due to delays
+            if (fs.existsSync(file_path)) {
+                fs.appendFile(file_path, '\n' + data, 'utf8', err => {
+                    if (err) throw err;
+                });
+            } else {
+                fs.appendFile(file_path, data, 'utf8', err => {
+                    if (err) throw err;
+                });
+            }
         });
     }
 
@@ -524,16 +519,8 @@ class DatasetManager {
 
                 // Update RT fragment files with new data (asynchronously)
                 Object.entries(data).forEach(async ([key, value]) => {
-                    // Create folders to store real-time updates by day
-                    let dir_date = new Date(key);
-                    let dir_name = utils.getRTDirName(dir_date);
-                    let dir_path = path + '/' + dir_name;
-                    if (!fs.existsSync(dir_path)) {
-                        fs.mkdirSync(dir_path);
-                    }
-
                     let updData = value.join('\n');
-                    let file_path = dir_path + '/' + key + '.jsonld';
+                    let file_path = path + '/' + key + '.jsonld';
 
                     if (!fs.existsSync(file_path)) {
                         fs.appendFile(file_path, updData, 'utf8', err => {

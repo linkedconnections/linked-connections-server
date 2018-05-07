@@ -105,13 +105,13 @@ class Gtfsrt2lc {
             return null;
         }
 
-        let array = [];
-        let index = 0;
-
         // Snippet to quickly dump decoded real-time updates to a json file
-        /*fs.writeFile('/home/julian/Desktop/rt-update.json', JSON.stringify(feed), err => {
-            if(err) console.error(err);
+        /*fs.writeFile('/home/julian/Desktop/trip_cancelled.json', JSON.stringify(feed), err => {
+            if (err) console.error(err);
+            logger.info('FILE WRITTEN!!!!!!');
         });*/
+
+        let array = [];
 
         for (let i = 0; i < feed.entity.length; i++) {
             if (feed.entity[i].trip_update) {
