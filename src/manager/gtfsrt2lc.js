@@ -4,14 +4,17 @@ const https = require('follow-redirects').https;
 const zlib = require('zlib');
 const gtfsrt = require('gtfs-realtime-bindings');
 const moment = require('moment-timezone');
-const logger = require('../utils/logger');
+const utils = require('../utils/utils');
+const Logger = require('../utils/logger');
 const fs = require('fs');
+var logger = null;
 
 class Gtfsrt2lc {
     constructor(dataset, stores) {
         this._dataset = dataset;
         this._routesStore = stores['routes'];
         this._tripsStore = stores['trips'];
+        logger = Logger.getLogger(utils.serverConfig.logLevel || 'info');
     }
 
     processFeed() {
