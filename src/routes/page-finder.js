@@ -16,8 +16,10 @@ var storage = utils.datasetsConfig.storage;
 utils.updateStaticFragments();
 
 router.get('/:agency/connections', async (req, res) => {
+    let t0 = new Date();
     // Check for available updates of the static fragments
     await utils.updateStaticFragments();
+    logger.info('updateStaticFragments() took ' + (new Date().getTime() - t0.getTime()) + ' ms');
 
     // Allow requests from different hosts
     res.set({ 'Access-Control-Allow-Origin': '*' });
@@ -94,7 +96,9 @@ router.get('/:agency/connections', async (req, res) => {
         // Sort versions from the newest to the oldest
         let sorted_versions = utils.sortVersions(now, versions);
         // Find the fragment that covers the requested time (static data)
+        t0 = new Date();
         let [static_version, found_fragment, index] = utils.findResource(agency, departureTime.getTime(), sorted_versions);
+        logger.info('findResource() took ' + (new Date().getTime() - t0.getTime()) + ' ms');
         let ff = new Date(found_fragment);
 
         //Redirect client to the apropriate fragment URL
@@ -110,7 +114,9 @@ router.get('/:agency/connections', async (req, res) => {
         let highLimit = utils.staticFragments[agency][static_version][index + 1];
 
         // Get all real-time fragments and remove_files needed to cover the requested static fragment
+        t0 = new Date();
         let [rtfs, rtfs_remove] = utils.findRTData(agency, lowLimit, highLimit);
+        logger.info('findRTData() took ' + (new Date().getTime() - t0.getTime()) + ' ms');
         
         if (rtfs.length > 0) {
             // There are real-time data fragments available for this request
@@ -137,6 +143,7 @@ router.get('/:agency/connections', async (req, res) => {
         if (rt_exists) {
             let rt_data = [];
 
+            t0 = new Date();
             await Promise.all(rtfs.map(async rt => {
                 let rt_buffer = [];
                 if (rt.indexOf('.gz') > 0) {
@@ -147,9 +154,12 @@ router.get('/:agency/connections', async (req, res) => {
 
                 rt_data.push(rt_buffer.join('').split('\n'));
             }));
+            logger.info('Load all RT fragments (' + rtfs.length + ') took ' + (new Date().getTime() - t0.getTime()) + ' ms');
 
             // Combine static and real-time data
+            t0 = new Date();
             jsonld_graph = await utils.aggregateRTData(jsonld_graph, rt_data, rtfs_remove, lowLimit, highLimit, now);
+            logger.info('aggregateRTData() took ' + (new Date().getTime() - t0.getTime()) + ' ms');
         }
 
 

@@ -226,14 +226,21 @@ module.exports = new class Utils {
 
     async aggregateRTData(static_data, rt_data, remove_paths, lowLimit, highLimit, timestamp) {
         // Index map for the static fragment
+        let t0 = new date();
         let static_index = this.getStaticIndex(static_data);
+        logger.info('getStaticIndex() took ' + (new Date().getTime() - t0.getTime()) + ' ms');
         // Index map for the associated real-time fragments
+        t0 = new date();
         let rt_index = await this.getRTIndex(rt_data, lowLimit, highLimit, timestamp);
+        logger.info('getRTIndex() took ' + (new Date().getTime() - t0.getTime()) + ' ms');
 
         // Array of the Connections that may be removed from the static fragment due to delays
+        t0 = new date();
         let to_remove = await this.getConnectionsToRemove(remove_paths, timestamp);
+        logger.info('getConnectionsToRemove() took ' + (new Date().getTime() - t0.getTime()) + ' ms');
 
         // Iterate over the RT index which contains all the connections that need to be updated or included
+        t0 = new date();
         for (let [connId, conn] of rt_index) {
             // If the connection is already present in the static fragment just add delay values
             if (static_index.has(connId)) {
@@ -254,9 +261,11 @@ module.exports = new class Utils {
                 static_index.set(connId, static_data.length - 1);
             }
         }
+        logger.info('Combine static and rt indexes took ' + (new Date().getTime() - t0.getTime()) + ' ms');
 
         // Now iterate over the array of connections that were reported to change real-time fragment due to delays and see 
         // if it necessary to remove them.
+        t0 = new date();
         for (let [connId, timestamp] of to_remove) {
             // Check if they have been reported in real-time updates
             if (rt_index.has(connId)) {
@@ -280,14 +289,16 @@ module.exports = new class Utils {
                 }
             }
         }
+        logger.info('Connection removal process took ' + (new Date().getTime() - t0.getTime()) + ' ms');
 
         // Re-sort the fragment with the updated delay data
+        t0 = new date();
         static_data.sort((a, b) => {
             let a_date = new Date(a['departureTime']).getTime();
             let b_date = new Date(b['departureTime']).getTime();
             return a_date - b_date;
         });
-
+        logger.info('Re-sorting process took ' + (new Date().getTime() - t0.getTime()) + ' ms');
         return static_data;
     }
 
