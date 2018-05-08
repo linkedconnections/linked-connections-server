@@ -229,6 +229,7 @@ module.exports = new class Utils {
         let static_index = this.getStaticIndex(static_data);
         // Index map for the associated real-time fragments
         let rt_index = await this.getRTIndex(rt_data, lowLimit, highLimit, timestamp);
+
         // Array of the Connections that may be removed from the static fragment due to delays
         let to_remove = await this.getConnectionsToRemove(remove_paths, timestamp);
 
@@ -406,7 +407,7 @@ module.exports = new class Utils {
     * @param departureTime The time for which this document was requested
     * @returns boolean True if a 304 response is to be served
     */
-    handleConditionalGET(req, res, filepath, departureTime) {
+    handleConditionalGET(req, res, filepath, departureTime, memento) {
         let ifModifiedSinceRawHeader = req.header('if-modified-since');
 
         let ifModifiedSinceHeader = undefined;
@@ -426,7 +427,16 @@ module.exports = new class Utils {
         validUntilDate.setSeconds(validUntilDate.getSeconds() - (validUntilDate.getSeconds() % 30) + 31);
 
         let maxage = (validUntilDate - now) / 1000;
-        let etag = 'W/"' + md5(filepath + lastModifiedDate) + '"';
+        let etag_reference = null;
+
+        // Take into account Memento requests to define the ETag header
+        if(memento) {
+            etag_reference = filepath + lastModifiedDate + memento;
+        } else {
+            etag_reference = filepath + lastModifiedDate;
+        }
+
+        let etag = 'W/"' + md5(etag_reference) + '"';
 
         // If both departure time and last modified lie resp. 2 and 1 hours in the past, this becomes immutable
         if (departureTime < (now - 7200000) && lastModifiedDate < (now - 3600000)) {
