@@ -3,7 +3,7 @@ const express = require('express');
 const fs = require('fs');
 const zlib = require('zlib');
 const utils = require('../utils/utils');
-const logger = require('../utils/logger');
+const Logger = require('../utils/logger');
 
 const readfile = util.promisify(fs.readFile);
 
@@ -11,10 +11,13 @@ const router = express.Router();
 const datasets_config = utils.datasetsConfig;
 const server_config = utils.serverConfig;
 const storage = datasets_config.storage;
+const logger = Logger.getLogger(server_config.logLevel || 'info');
 
 router.get('/:agency', async (req, res) => {
     // Check for available updates of the static fragments
+    let t0 = new Date();
     await utils.updateStaticFragments();
+    logger.debug('updateStaticFragments() took ' + (new Date().getTime() - t0.getTime()) + ' ms');
     
     let x_forwarded_proto = req.headers['x-forwarded-proto'];
     let protocol = '';
@@ -40,8 +43,10 @@ router.get('/:agency', async (req, res) => {
 
     try {
         let sf_path = storage + '/linked_pages/' + agency + '/' + version + '/' + resource + '.jsonld.gz';
+        t0 = new Date();
         let buffer = await utils.readAndGunzip(sf_path);
         let jsonld_graph = buffer.join('').split(',\n').map(JSON.parse);
+        logger.debug('Read and process static fragment took ' + (new Date().getTime() - t0.getTime()) + ' ms');
         let departureTime = new Date(resource);
         let mementoDate = new Date(acceptDatetime);
 
@@ -51,7 +56,9 @@ router.get('/:agency', async (req, res) => {
         let highLimit = utils.staticFragments[agency][version][low_index + 1];
 
         // Get all real-time fragments and remove_files needed to cover the requested static fragment
+        t0 = new Date();
         let [rtfs, rtfs_remove] = utils.findRTData(agency, lowLimit, highLimit);
+        logger.debug('findRTData() took ' + (new Date().getTime() - t0.getTime()) + ' ms');
 
         if (rtfs.length > 0) {
             // There are real-time data fragments available for this request
@@ -73,6 +80,7 @@ router.get('/:agency', async (req, res) => {
         if (rt_exists) {
             let rt_data = [];
 
+            t0 = new Date();
             await Promise.all(rtfs.map(async rt => {
                 let rt_buffer = [];
                 if (rt.indexOf('.gz') > 0) {
@@ -83,9 +91,14 @@ router.get('/:agency', async (req, res) => {
 
                 rt_data.push(rt_buffer.join('').split('\n'));
             }));
+            logger.debug('Load all RT fragments (' + rtfs.length + ') took ' + (new Date().getTime() - t0.getTime()) + ' ms');
 
             // Combine static and real-time data
+            t0 = new Date();
+            logger.debug('-----------aggregateRTData()-----------');
             jsonld_graph = await utils.aggregateRTData(jsonld_graph, rt_data, rtfs_remove, lowLimit, highLimit, mementoDate);
+            logger.debug('---------------------------------------');
+            logger.debug('aggregateRTData() took ' + (new Date().getTime() - t0.getTime()) + ' ms');
         }
 
         // Finally build a JSON-LD document containing the data and return it to the client
@@ -107,7 +120,9 @@ router.get('/:agency', async (req, res) => {
             http_response: res
         }
 
-        utils.addHydraMetada(params);
+        t0 = new Date();
+        await utils.addHydraMetada(params);
+        logger.debug('Add Metadata took ' + (new Date().getTime() - t0.getTime()) + ' ms');
     } catch (err) {
         if (err) logger.error(err);
         res.status(404).send();

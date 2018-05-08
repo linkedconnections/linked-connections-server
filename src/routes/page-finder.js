@@ -2,7 +2,7 @@ const util = require('util');
 const express = require('express');
 const fs = require('fs');
 const zlib = require('zlib');
-const logger = require('../utils/logger');
+const Logger = require('../utils/logger');
 var utils = require('../utils/utils');
 
 const readdir = util.promisify(fs.readdir);
@@ -10,14 +10,17 @@ const readfile = util.promisify(fs.readFile);
 
 const router = express.Router();
 const server_config = utils.serverConfig;
-var storage = utils.datasetsConfig.storage;
+const storage = utils.datasetsConfig.storage;
+const logger = Logger.getLogger(server_config.logLevel || 'info');
 
 // Create static fragments index structure
 utils.updateStaticFragments();
 
 router.get('/:agency/connections', async (req, res) => {
+    let t0 = new Date();
     // Check for available updates of the static fragments
     await utils.updateStaticFragments();
+    logger.debug('updateStaticFragments() took ' + (new Date().getTime() - t0.getTime()) + ' ms');
 
     // Allow requests from different hosts
     res.set({ 'Access-Control-Allow-Origin': '*' });
@@ -94,7 +97,9 @@ router.get('/:agency/connections', async (req, res) => {
         // Sort versions from the newest to the oldest
         let sorted_versions = utils.sortVersions(now, versions);
         // Find the fragment that covers the requested time (static data)
+        t0 = new Date();
         let [static_version, found_fragment, index] = utils.findResource(agency, departureTime.getTime(), sorted_versions);
+        logger.debug('findResource() took ' + (new Date().getTime() - t0.getTime()) + ' ms');
         let ff = new Date(found_fragment);
 
         //Redirect client to the apropriate fragment URL
@@ -110,7 +115,9 @@ router.get('/:agency/connections', async (req, res) => {
         let highLimit = utils.staticFragments[agency][static_version][index + 1];
 
         // Get all real-time fragments and remove_files needed to cover the requested static fragment
+        t0 = new Date();
         let [rtfs, rtfs_remove] = utils.findRTData(agency, lowLimit, highLimit);
+        logger.debug('findRTData() took ' + (new Date().getTime() - t0.getTime()) + ' ms');
         
         if (rtfs.length > 0) {
             // There are real-time data fragments available for this request
@@ -130,13 +137,16 @@ router.get('/:agency/connections', async (req, res) => {
 
         // Get respective static data fragment according to departureTime query
         // and complement resource with Real-Time data and Hydra metadata before sending it back to the client
+        t0 = new Date();
         let static_buffer = await utils.readAndGunzip(sf_path + ff.toISOString() + '.jsonld.gz');
         let jsonld_graph = static_buffer.join('').split(',\n').map(JSON.parse);
+        logger.debug('Read and process static fragment took ' + (new Date().getTime() - t0.getTime()) + ' ms');
 
         // Get real time data for this agency and requested time
         if (rt_exists) {
             let rt_data = [];
 
+            t0 = new Date();
             await Promise.all(rtfs.map(async rt => {
                 let rt_buffer = [];
                 if (rt.indexOf('.gz') > 0) {
@@ -147,9 +157,14 @@ router.get('/:agency/connections', async (req, res) => {
 
                 rt_data.push(rt_buffer.join('').split('\n'));
             }));
+            logger.debug('Load all RT fragments (' + rtfs.length + ') took ' + (new Date().getTime() - t0.getTime()) + ' ms');
 
             // Combine static and real-time data
+            t0 = new Date();
+            logger.debug('-----------aggregateRTData()-----------');
             jsonld_graph = await utils.aggregateRTData(jsonld_graph, rt_data, rtfs_remove, lowLimit, highLimit, now);
+            logger.debug('---------------------------------------');
+            logger.debug('aggregateRTData() took ' + (new Date().getTime() - t0.getTime()) + ' ms');
         }
 
 
@@ -166,7 +181,9 @@ router.get('/:agency/connections', async (req, res) => {
             http_response: res
         };
 
+        t0 = new Date();
         await utils.addHydraMetada(params);
+        logger.debug('Add Metadata took ' + (new Date().getTime() - t0.getTime()) + ' ms');
 
     } catch (err) {
         if (err) logger.error(err);

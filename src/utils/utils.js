@@ -4,10 +4,11 @@ const zlib = require('zlib');
 const unzip = require('unzip');
 const md5 = require('md5');
 const moment = require('moment-timezone');
-const logger = require('./logger');
+const Logger = require('./logger');
 
 const readFile = util.promisify(fs.readFile);
 const readdir = util.promisify(fs.readdir);
+var logger = null;
 
 module.exports = new class Utils {
 
@@ -15,6 +16,7 @@ module.exports = new class Utils {
         this._datasetsConfig = JSON.parse(fs.readFileSync('./datasets_config.json', 'utf8'));
         this._serverConfig = JSON.parse(fs.readFileSync('./server_config.json', 'utf8'));
         this._staticFragments = {};
+        logger = Logger.getLogger(this._serverConfig.logLevel || 'info');
     }
 
     async updateStaticFragments() {
@@ -226,14 +228,21 @@ module.exports = new class Utils {
 
     async aggregateRTData(static_data, rt_data, remove_paths, lowLimit, highLimit, timestamp) {
         // Index map for the static fragment
+        let t0 = new Date();
         let static_index = this.getStaticIndex(static_data);
+        logger.debug('getStaticIndex() took ' + (new Date().getTime() - t0.getTime()) + ' ms');
         // Index map for the associated real-time fragments
+        t0 = new Date();
         let rt_index = await this.getRTIndex(rt_data, lowLimit, highLimit, timestamp);
+        logger.debug('getRTIndex() took ' + (new Date().getTime() - t0.getTime()) + ' ms');
 
         // Array of the Connections that may be removed from the static fragment due to delays
+        t0 = new Date();
         let to_remove = await this.getConnectionsToRemove(remove_paths, timestamp);
+        logger.debug('getConnectionsToRemove() took ' + (new Date().getTime() - t0.getTime()) + ' ms');
 
         // Iterate over the RT index which contains all the connections that need to be updated or included
+        t0 = new Date();
         for (let [connId, conn] of rt_index) {
             // If the connection is already present in the static fragment just add delay values
             if (static_index.has(connId)) {
@@ -254,9 +263,11 @@ module.exports = new class Utils {
                 static_index.set(connId, static_data.length - 1);
             }
         }
+        logger.debug('Combine static and rt indexes took ' + (new Date().getTime() - t0.getTime()) + ' ms');
 
         // Now iterate over the array of connections that were reported to change real-time fragment due to delays and see 
         // if it necessary to remove them.
+        t0 = new Date();
         for (let [connId, timestamp] of to_remove) {
             // Check if they have been reported in real-time updates
             if (rt_index.has(connId)) {
@@ -280,14 +291,16 @@ module.exports = new class Utils {
                 }
             }
         }
+        logger.debug('Connection removal process took ' + (new Date().getTime() - t0.getTime()) + ' ms');
 
         // Re-sort the fragment with the updated delay data
+        t0 = new Date();
         static_data.sort((a, b) => {
             let a_date = new Date(a['departureTime']).getTime();
             let b_date = new Date(b['departureTime']).getTime();
             return a_date - b_date;
         });
-
+        logger.debug('Re-sorting process took ' + (new Date().getTime() - t0.getTime()) + ' ms');
         return static_data;
     }
 
