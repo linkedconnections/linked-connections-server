@@ -8,7 +8,7 @@ const https = require('follow-redirects').https;
 const zlib = require('zlib');
 const csv = require('fast-csv');
 const through2 = require('through2');
-const logger = require('../utils/logger');
+const Logger = require('../utils/logger');
 const utils = require('../utils/utils');
 const Store = require('./store');
 const paginator = require('../paginator/paginator');
@@ -20,6 +20,7 @@ const readdir = util.promisify(fs.readdir);
 const gzip = util.promisify(zlib.gzip);
 const execFile = util.promisify(child_process.execFile);
 const exec = util.promisify(child_process.exec);
+var logger = null;
 
 class DatasetManager {
     constructor() {
@@ -28,7 +29,7 @@ class DatasetManager {
         this._storage = this._config.storage;
         this._jobs = [];
         this._stores = [];
-
+        logger = Logger.getLogger(utils.serverConfig.logLevel || 'info');
         this.initDirs();
     }
 

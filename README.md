@@ -21,6 +21,8 @@ As mentioned above the Web server configuration is made using the ([server_confi
 
 - **protocol:** Used to define the accepted protocol by the Web Server which could be either HTTP o HTTPS. In case that both protocols are supported there is no need to define this parameter, but all requests made to the server **MUST** contain the **X-Forwarded-Proto** header stating the procotol being used. This is useful when the server is used along with cache management servers.
 
+- **logLevel:** Used to define the logging level of the server. We use the [Winston](https://github.com/winstonjs/winston#logging-levels) library to manage logs. If not specified, the default level is `info`.
+
 This is a configuration example:
 
 ```js
@@ -28,6 +30,7 @@ This is a configuration example:
     "hostname": "localhost:3000",
     "port": 3000,
     "protocol": "http" // or https
+    "logLevel": "info" //error, warn, info, verbose, debug, silly
 }
 ```
 
