@@ -60,11 +60,11 @@ router.get('/:agency', async (req, res) => {
 
         // Check if this is a conditional get request, and if so check if we can close this request with a 304
         if (rt_exists) {
-            if (utils.handleConditionalGET(req, res, rtfs[rtfs.length - 1], departureTime)) {
+            if (utils.handleConditionalGET(req, res, rtfs[rtfs.length - 1], departureTime, mementoDate)) {
                 return;
             }
         } else {
-            if (utils.handleConditionalGET(req, res, sf_path, departureTime)) {
+            if (utils.handleConditionalGET(req, res, sf_path, departureTime, mementoDate)) {
                 return;
             }
         }
