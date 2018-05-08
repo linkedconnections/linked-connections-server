@@ -220,7 +220,7 @@ module.exports = new class Utils {
 
             return [rtfs, rtfs_remove];
         } else {
-            return null;
+            return [[], []];
         }
     }
 
