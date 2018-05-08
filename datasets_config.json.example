@@ -10,6 +10,7 @@
             "realTimeData": {
                 "downloadUrl": "http://...",
                 "updatePeriod": "* * * * * *",
+                "fragmentTimeSpan": 600,
                 "compressionPeriod": "* * * * * *"
             },
             "baseURIs": {

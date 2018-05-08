@@ -45,22 +45,22 @@ router.get('/:agency', async (req, res) => {
         let departureTime = new Date(resource);
         let mementoDate = new Date(acceptDatetime);
 
-        // Check if RT fragment exists and whether it is compressed or not.
         let rt_exists = false;
-        let compressed = false;
-        let rt_path = storage + '/real_time/' + agency + '/' + version + '/' + utils.getRTDirName(departureTime) + '/'
-            + departureTime.toISOString() + '.jsonld';
-        if (fs.existsSync(rt_path)) {
+        let lowLimit = departureTime.getTime();
+        let low_index = (utils.staticFragments[agency][version]).indexOf(lowLimit);
+        let highLimit = utils.staticFragments[agency][version][low_index + 1];
+
+        // Get all real-time fragments and remove_files needed to cover the requested static fragment
+        let [rtfs, rtfs_remove] = utils.findRTData(agency, lowLimit, highLimit);
+
+        if (rtfs.length > 0) {
+            // There are real-time data fragments available for this request
             rt_exists = true;
-        } else if (fs.existsSync(rt_path + '.gz')) {
-            rt_path = rt_path + '.gz';
-            rt_exists = true;
-            compressed = true;
         }
 
         // Check if this is a conditional get request, and if so check if we can close this request with a 304
         if (rt_exists) {
-            if (utils.handleConditionalGET(req, res, rt_path, departureTime)) {
+            if (utils.handleConditionalGET(req, res, rtfs[rtfs.length - 1], departureTime)) {
                 return;
             }
         } else {
@@ -69,39 +69,23 @@ router.get('/:agency', async (req, res) => {
             }
         }
 
-        // Look if there is real time data for this agency and requested time
+        // Get real time data for this agency and requested time
         if (rt_exists) {
-            let rt_buffer = null;
-            let rt_array = [];
-            if (compressed) {
-                rt_buffer = await utils.readAndGunzip(rt_path);
-                // Create an array of all RT updates
-                rt_array = rt_buffer.join('').split('\n');
-            } else {
-                rt_buffer = await readfile(rt_path, 'utf8');
-                // Create an array of all RT updates
-                rt_array = rt_buffer.split('\n');
-            }
+            let rt_data = [];
 
-            // Path to file that contains the list of connections that shoud be removed from the static fragment due to delays
-            let remove_path = storage + '/real_time/' + agency + '/' + version + '/' + utils.getRTDirName(departureTime) + '/'
-                + departureTime.toISOString() + '_remove.json';
-            if (!fs.existsSync(remove_path) && fs.existsSync(remove_path + '.gz')) {
-                remove_path = remove_path + '.gz';
-            }
+            await Promise.all(rtfs.map(async rt => {
+                let rt_buffer = [];
+                if (rt.indexOf('.gz') > 0) {
+                    rt_buffer.push((await utils.readAndGunzip(rt)));
+                } else {
+                    rt_buffer.push((await readfile(rt, 'utf8')));
+                }
+
+                rt_data.push(rt_buffer.join('').split('\n'));
+            }));
 
             // Combine static and real-time data
-            jsonld_graph = await utils.aggregateRTData(jsonld_graph, rt_array, remove_path, mementoDate);
-        }
-
-        // Determine current fragment index for hydra next and previous links
-        let array = utils.staticFragments[agency][version];
-        let index = 0;
-        for(let i in array) {
-            if(array[i] == departureTime.getTime()) {
-                index = i;
-                break;
-            }
+            jsonld_graph = await utils.aggregateRTData(jsonld_graph, rt_data, rtfs_remove, lowLimit, highLimit, mementoDate);
         }
 
         // Finally build a JSON-LD document containing the data and return it to the client
@@ -117,7 +101,7 @@ router.get('/:agency', async (req, res) => {
             agency: agency,
             departureTime: departureTime,
             version: version,
-            index: index,
+            index: low_index,
             data: jsonld_graph,
             http_headers: headers,
             http_response: res

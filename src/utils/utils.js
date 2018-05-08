@@ -3,6 +3,7 @@ const fs = require('fs');
 const zlib = require('zlib');
 const unzip = require('unzip');
 const md5 = require('md5');
+const moment = require('moment-timezone');
 const logger = require('./logger');
 
 const readFile = util.promisify(fs.readFile);
@@ -20,9 +21,13 @@ module.exports = new class Utils {
         let storage = this._datasetsConfig.storage + '/linked_pages/';
         let datasets = this._datasetsConfig.datasets;
 
+        // Iterate over all companies
         for (let i in datasets) {
             let companyName = datasets[i].companyName;
+
+            // If there is at least on static version available proceed to scan it
             if (fs.existsSync(storage + companyName)) {
+                // Object for keeping fragment scan of every static version
                 if (!this._staticFragments[companyName]) {
                     this._staticFragments[companyName] = {};
                 }
@@ -31,10 +36,23 @@ module.exports = new class Utils {
                 for (let y in versions) {
                     if (!this._staticFragments[companyName][versions[y]]) {
                         let dir = await readdir(storage + companyName + '/' + versions[y]);
-                        this._staticFragments[companyName][versions[y]] = dir.map(fragment => {
-                            let fd = new Date(fragment.substring(0, fragment.indexOf('.jsonld')))
-                            return fd.getTime();
-                        });
+                        let arr = [];
+                        // Keep each fragment in milliseconds since epoch in the scan
+                        for (let z in dir) {
+                            // Check that this version is not being currently converted
+                            if (dir[z].indexOf('.gz') >= 0) {
+                                let fd = new Date(dir[z].substring(0, dir[z].indexOf('.jsonld')));
+                                arr.push(fd.getTime());
+                            } else {
+                                // Version is being processed now, discard it to avoid incomlete scans 
+                                arr = [];
+                                break;
+                            }
+                        }
+
+                        if (arr.length > 0) {
+                            this._staticFragments[companyName][versions[y]] = arr;
+                        }
                     } else {
                         continue;
                     }
@@ -164,20 +182,62 @@ module.exports = new class Utils {
         return [array[index], index];
     }
 
-    async aggregateRTData(static_data, rt_data, remove_path, timestamp) {
+    findRTData(agency, lowerLimit, upperLimit) {
+        let dataConfig = this.getCompanyDatasetConfig(agency);
+
+        if (dataConfig.realTimeData) {
+            let fts = (dataConfig.realTimeData.fragmentTimeSpan || 600) * 1000;
+            let rtfs = [];
+            let rtfs_remove = [];
+
+            let lowerDate = new Date(lowerLimit - (lowerLimit % fts));
+            let upperDate = new Date(upperLimit - (upperLimit % fts));
+
+            // Only one real-time fragment is needed to cover the requested static fragment
+            if (lowerDate === upperDate) {
+                let path = this.getRTFilePath(lowerDate.toISOString(), agency);
+                let path_remove = this.getRTRemoveFilePath(lowerDate.toISOString(), agency);
+                if (path !== null) {
+                    rtfs.push(path);
+                }
+                if (path_remove !== null) {
+                    rtfs_remove.push(path_remove);
+                }
+            } else {
+                // Get all real-time fragments that cover the requested static fragment
+                while (lowerDate.getTime() <= upperDate.getTime()) {
+                    let path = this.getRTFilePath(lowerDate.toISOString(), agency);
+                    let path_remove = this.getRTRemoveFilePath(lowerDate.toISOString(), agency);
+                    if (path !== null) {
+                        rtfs.push(path);
+                    }
+                    if (path_remove !== null) {
+                        rtfs_remove.push(path_remove);
+                    }
+                    lowerDate.setTime(lowerDate.getTime() + fts);
+                }
+            }
+
+            return [rtfs, rtfs_remove];
+        } else {
+            return [[], []];
+        }
+    }
+
+    async aggregateRTData(static_data, rt_data, remove_paths, lowLimit, highLimit, timestamp) {
         // Index map for the static fragment
         let static_index = this.getStaticIndex(static_data);
-        // Index map for the rt fragment
-        let rt_index = this.getRTIndex(rt_data, timestamp);
-        // Array of the Connections that must be removed from static fragment due to delays
-        let to_remove = await this.getConnectionsToRemove(remove_path, timestamp);
+        // Index map for the associated real-time fragments
+        let rt_index = await this.getRTIndex(rt_data, lowLimit, highLimit, timestamp);
+        // Array of the Connections that may be removed from the static fragment due to delays
+        let to_remove = await this.getConnectionsToRemove(remove_paths, timestamp);
 
         // Iterate over the RT index which contains all the connections that need to be updated or included
-        for (let [connId, index] of rt_index) {
-            // If the connection is already present in the static fragment just add/update delay values
+        for (let [connId, conn] of rt_index) {
+            // If the connection is already present in the static fragment just add delay values
             if (static_index.has(connId)) {
                 let std = static_data[static_index.get(connId)];
-                let rtd = JSON.parse(rt_data[index]);
+                let rtd = JSON.parse(conn);
                 std['departureDelay'] = rtd['departureDelay'];
                 std['arrivalDelay'] = rtd['arrivalDelay'];
                 // Update departure and arrival times with delays
@@ -185,18 +245,38 @@ module.exports = new class Utils {
                 std['arrivalTime'] = new Date(new Date(std['arrivalTime']).getTime() + (Number(rtd['arrivalDelay'])) * 1000).toISOString();
                 static_data[static_index.get(connId)] = std;
             } else {
-                // Is not present in the static fragment which means it's a new connection so inlcude it at the end.
-                let rtd = JSON.parse(rt_data[index]);
+                // Is not present in the static fragment which means it's a connection that comes from a different fragment 
+                // and it is here due to delays.
+                let rtd = JSON.parse(conn);
                 delete rtd['mementoVersion'];
                 static_data.push(rtd);
+                static_index.set(connId, static_data.length - 1);
             }
         }
 
-        // Now iterate over the array of connections that need to be removed from the static fragment due to delays and remove them
-        if (to_remove !== null) {
-            for (let c in to_remove) {
-                let si = static_index.get(to_remove[c]);
-                static_data.splice(si, 1);
+        // Now iterate over the array of connections that were reported to change real-time fragment due to delays and see 
+        // if it necessary to remove them.
+        for (let [connId, timestamp] of to_remove) {
+            // Check if they have been reported in real-time updates
+            if (rt_index.has(connId)) {
+                // Date of the last real-time update registered for this connection within the scope of the requested static fragment
+                let rt_memento = new Date(rt_index.get(connId).split('"')[43]);
+                // Date of the last remove update registered for this connection
+                let remove_memento = new Date(timestamp);
+                // If the real-time update is older than the remove update proceed to remove the connection. The reason for this
+                // is that an older real-time update means that the connection already has a delay that puts it beyond the range
+                // of the requested static fragment.
+                if (remove_memento > rt_memento) {
+                    let si = static_index.get(connId);
+                    static_data.splice(si, 1);
+                }
+            } else {
+                // If the connection is present in the static fragment without an associated real-time update, this means that its
+                // real-time updates are beyond the static fragment range so proceed to remove it. 
+                if (static_index.has(connId)) {
+                    let si = static_index.get(connId);
+                    static_data.splice(si, 1);
+                }
             }
         }
 
@@ -223,91 +303,64 @@ module.exports = new class Utils {
         }
     }
 
-    getRTIndex(array, timeCriteria) {
-        let lastObj = array[array.length - 1].split('"');
-        let lastMemento = new Date(lastObj[43]);
+    async getRTIndex(arrays, lowLimit, highLimit, timeCriteria) {
         let map = new Map();
+        let low = new Date(lowLimit);
+        let high = new Date(highLimit);
 
-        // Last update is being requested
-        if (timeCriteria >= lastMemento) {
-            // Register last update in the index already
-            map.set(lastObj[3], (array.length - 1));
-            // Iterate in reverse over the rt data getting only the last update according to memento
-            for (let i = array.length - 2; i >= 0; i--) {
+        // Process every real-time fragment asynchronously to speed up the process
+        await Promise.all(arrays.map(async array => {
+            for (let i in array) {
                 let obj = array[i].split('"');
                 let memento_date = new Date(obj[43]);
-                if (memento_date.getTime() === lastMemento.getTime()) {
-                    map.set(obj[3], i);
+                // Check that we are dealing with data according to the requested time
+                if (memento_date <= timeCriteria) {
+                    //Check that this connection belongs to the time range of the requested static fragment
+                    let depDate = new Date(obj[19]);
+                    if (depDate >= low && depDate < high) {
+                        if (map.has(obj[3])) {
+                            // Check that this is more updated data
+                            let sm = new Date(map.get(obj[3]).split('"')[43]);
+                            if (memento_date > sm) {
+                                map.set(obj[3], array[i]);
+                            }
+                        } else {
+                            map.set(obj[3], array[i]);
+                        }
+                    }
                 } else {
                     break;
                 }
             }
-        } else {
-            let index = 0;
-            // Find the closest previous update to the requested memento
-            for (let i = 0; i < array.length; i++) {
-                let obj = array[i].split('"');
-                let memento_date = new Date(obj[43]);
-                if (timeCriteria > memento_date) {
-                    index = i - 1;
-                    break;
-                }
-            }
-
-            if (index > 0) {
-                let closestObj = array[index].split('"');
-                let closestMemento = new Date(closestObj[43]);
-                // Iterate in reverse over the rt data getting only the closest updates according to memento
-                for (let i = index; i >= 0; i--) {
-                    let obj = array[i].split('"');
-                    let memento_date = new Date(obj[43]);
-                    if (memento_date.getTime() === closestMemento.getTime()) {
-                        map.set(obj[3], i);
-                    } else {
-                        break;
-                    }
-                }
-            }
-        }
+        }));
 
         return map;
     }
 
-    async getConnectionsToRemove(path, timestamp) {
-        if (fs.existsSync(path)) {
-            let remove_list = null;
+    async getConnectionsToRemove(paths, timestamp) {
+        let remove_list = new Map();
+        // Process every .remove file asynchronously to speed up the process
+        await Promise.all(paths.map(async path => {
+            // Read .remove file
+            let remove_data = null;
             if (path.endsWith('.gz')) {
-                remove_list = (await this.readAndGunzip(path)).toString().split('\n');
+                remove_data = (await this.readAndGunzip(path)).toString().split('\n');
             } else {
-                remove_list = (await readFile(path)).toString().split('\n');
+                remove_data = (await readFile(path, 'utf8')).split('\n');
             }
-            // Remove empty space at the end of the array
-            remove_list.pop();
 
-            // Check if what is being requested is the last update
-            let last_update = new Date(Object.keys(JSON.parse(remove_list[remove_list.length - 1]))[0]).getTime();
-            if (timestamp.getTime() >= last_update) {
-                // Since updates are in chronological order get and return the last element
-                let last_obj = JSON.parse(remove_list[remove_list.length - 1]);
-                return last_obj[Object.keys(last_obj)[0]];
-            } else {
-                // Use binary search algorithm to determine the closest update to what is being requested
-                let versions = [];
-                for (let i in remove_list) {
-                    versions.push(Object.keys(JSON.parse(remove_list[i]))[0]);
-                }
-                versions = versions.map(v => (new Date(v).getTime()));
-                let closest_version = this.binarySearch(timestamp.getTime(), versions);
-                if (closest_version !== null) {
-                    let obj = JSON.parse(remove_list[closest_version[1]]);
-                    return obj[Object.keys(obj)[0]];
+            for (let i in remove_data) {
+                let remove = remove_data[i].split(',');
+                let memento = new Date(remove[1]);
+                if (memento <= timestamp) {
+                    remove_list.set(remove[0], memento);
                 } else {
-                    return null;
+                    break;
                 }
             }
-        } else {
-            return null;
-        }
+        }));
+
+        return remove_list;
     }
 
     async addHydraMetada(params) {
@@ -341,10 +394,6 @@ module.exports = new class Utils {
             console.error(err);
             throw err;
         }
-    }
-
-    getRTDirName(date) {
-        return date.getFullYear() + '_' + (date.getUTCMonth() + 1) + '_' + date.getUTCDate();
     }
 
     /**
@@ -405,6 +454,37 @@ module.exports = new class Utils {
         }
 
         return false;
+    }
+
+    getCompanyDatasetConfig(company) {
+        let datasets = this._datasetsConfig.datasets
+        for (let i in datasets) {
+            if (company == datasets[i].companyName) {
+                return datasets[i];
+            }
+        }
+    }
+
+    getRTFilePath(fragment, company) {
+        let path = this._datasetsConfig.storage + '/real_time/' + company + '/';
+        if (fs.existsSync(path + fragment + '.jsonld')) {
+            return path + fragment + '.jsonld';
+        } else if (fs.existsSync(path + fragment + '.jsonld.gz')) {
+            return path + fragment + '.jsonld.gz';
+        } else {
+            return null;
+        }
+    }
+
+    getRTRemoveFilePath(fragment, company) {
+        let path = this._datasetsConfig.storage + '/real_time/' + company + '/';
+        if (fs.existsSync(path + fragment + '.remove')) {
+            return path + fragment + '.remove';
+        } else if (fs.existsSync(path + fragment + '.remove.gz')) {
+            return path + fragment + '.remove.gz';
+        } else {
+            return null;
+        }
     }
 
     get datasetsConfig() {

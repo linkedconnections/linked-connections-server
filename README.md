@@ -1,8 +1,8 @@
 # Linked Connections Server
-Express based Web Server that exposes [Linked Connections](http://linkedconnections.org/) data fragments using [JSON-LD](https://json-ld.org/) serialization format. It also provides a built-in tool to parse [GTFS](https://developers.google.com/tansit/gtfs/reference/) and [GTFS Realtime](https://developers.google.com/transit/gtfs-realtime/) transport dataset feeds into a Linked Connections Directed Acyclic Graph using [GTFS2LC](https://github.com/linkedconnections/gtfs2lc), and create fragments of it spanning 10 minutes (to be configurable soon), according to connections departure time.
+Express based Web Server that exposes [Linked Connections](http://linkedconnections.org/) data fragments using [JSON-LD](https://json-ld.org/) serialization format. It also provides a built-in tool to parse [GTFS](https://developers.google.com/tansit/gtfs/reference/) and [GTFS Realtime](https://developers.google.com/transit/gtfs-realtime/) transport dataset feeds into a Linked Connections Directed Acyclic Graph using [GTFS2LC](https://github.com/linkedconnections/gtfs2lc) and fragment it following a configurable predefined size.
 
 ## Installation
-Make sure to have [Node](https://nodejs.org/en/) 8.x installed. To install it follow this:
+First make sure to have [Node](https://nodejs.org/en/) 8.x or superior installed. To install the server proceed as follows:
 ``` bash
 $ git clone https://github.com/julianrojas87/linked-connections-server.git
 $ cd linked-connections-server
@@ -10,10 +10,11 @@ $ npm install
 ```
 
 ## Configuration
-The configuration is made through 2 different config files. One is for defining Web Server parameters ([server_config.json](https://github.com/julianrojas87/linked-connections-server/blob/master/server_config.json)) and the other is for defining the different datasources that will be managed and exposed through the Linked Connections Server ([datasets_config.json](https://github.com/julianrojas87/linked-connections-server/blob/master/datasets_config.json)). Next you could find an example and a description of each config file.
+The configuration is made through two different config files. One is for defining Web Server parameters ([server_config.json](https://github.com/julianrojas87/linked-connections-server/blob/master/server_config.json)) and the other is for defining the different data sources that will be managed and exposed through the Linked Connections Server ([datasets_config.json](https://github.com/julianrojas87/linked-connections-server/blob/master/datasets_config.json)). Next you could find an example and a description of each config file.
 
 ### Web Server configuration
 As mentioned above the Web server configuration is made using the ([server_config.json](https://github.com/julianrojas87/linked-connections-server/blob/master/server_config.json)) config file which uses the JSON format and defines the following properties:
+
 - **hostname:** Used to define the Web Server host name. **Is a mandatory parameter**.
 
 - **port:** TCP/IP port to be used by the Web Server to receive requests. **Is a mandatory parameter**.
@@ -21,32 +22,41 @@ As mentioned above the Web server configuration is made using the ([server_confi
 - **protocol:** Used to define the accepted protocol by the Web Server which could be either HTTP o HTTPS. In case that both protocols are supported there is no need to define this parameter, but all requests made to the server **MUST** contain the **X-Forwarded-Proto** header stating the procotol being used. This is useful when the server is used along with cache management servers.
 
 This is a configuration example:
+
 ```js
 {
     "hostname": "localhost:3000",
     "port": 3000,
-    "protocol": "http"
+    "protocol": "http" // or https
 }
 ```
+
 ### Datasets configuration
-The Web Server does not provide any functionality by itself, it needs at least one dataset (in GTFS format) that can be downloaded, to be processed and exposed as Linked Connections. And to tell the server where to find and store such datasets, we use the ([datasets_config.json](https://github.com/julianrojas87/linked-connections-server/blob/master/datasets_config.json)) config file. All the parameters in this config file are **Mandatory**, otherwise the server won't function properly. This file contains the following parameters:
-- **storage:** This parameters is the path that tells the server where to store and where to look for the data fragments, created from the different datasets. **This should not include a trailing slash**. Make sure you have enough disk space to store datasets. Processing can require up to 12gb of free disk space. After they are processed, some of them may take up to 4GB.
+The Web Server does not provide any functionality by itself, it needs at least one dataset (in GTFS format) that can be downloaded to be processed and exposed as Linked Connections. To tell the server where to find and store such datasets, we use the ([datasets_config.json](https://github.com/julianrojas87/linked-connections-server/blob/master/datasets_config.json)) config file. All the parameters in this config file are **Mandatory**, otherwise the server won't function properly. This file contains the following parameters:
+
+- **storage:** This is the path that tells the server where to store and where to look for the data fragments, created from the different datasets. **This should not include a trailing slash**. Make sure you have enough disk space to store and process datasets.
 
 - **companyName:** Name of the transport company that provides a GTFS dataset feed.
 
 - **downloadUrl:** URL where the GTFS dataset feed can be downloaded.
 
-- **downloadOnLaunch:** Boolean parameter that indicates if the GTFS feed is to be downloaded and processed upon server launch. 
+- **downloadOnLaunch:** Boolean parameter that indicates if the GTFS feed is to be downloaded and processed upon server launch.
 
 - **updatePeriod:** Cron expression that defines how often should the server look for and process a new version of the dataset. We use the [node-cron](https://github.com/kelektiv/node-cron) library for this.
 
-- **fragmentSize:** Defines the maximum size of every linked data fragment in bytes .
+- **fragmentSize:** Defines the maximum size of every linked data fragment in bytes.
 
-- **realTimeData:** Here we define where (URL) and how often to download the GTFS Realtime data feed. We use node-cron here as well.
+- **realTimeData:** If available, here we define all the parameters related with a GTFS-RT feed.
 
-- **compressionPeriod:** Cron expression that defines how often will the real-time data be compressed using gzip in order to reduce storage consumption. As real-time data is obtained and stored in a new folder each day, the compression process will take into account only the previous day folder from the moment is running. This to avoid compressing current files that may still be getting updated. Therefore we recomend to configure this process to be executed once per day.
+    - **downloadUrl:** Here we define the URL to download the GTFS-RT data feed.
 
-- **baseURIs:** Here we define the base URIs that will be used to create the unique identifiers of each of the entities found in the Linked Connections. Is necessary to define the base URI for [Connections](http://semweb.datasciencelab.be/ns/linkedconnections#Connection), [Stops](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md), [Trips](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md) and [Routes](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md). This is the only optional parameterand in case that is not defined, all base URIs will have a http://example.org/ pattern, but we recommend to always use dereferenceable URIs.
+    - **updatePeriod:** Cron expression that defines how often should the server look for and process a new version of the dataset. We use the [node-cron](https://github.com/kelektiv/node-cron) library for this.
+
+    - **fragmentTimeSpan:** This defines the fragmentation of real-time data. It represents the time span of every fragment in seconds.
+
+    - **compressionPeriod:** Cron expression that defines how often will the real-time data be compressed using gzip in order to reduce storage consumption.
+
+- **baseURIs:** Here we define the base URIs that will be used to create the unique identifiers of each of the entities found in the Linked Connections. Is necessary to define the base URI for [Connections](http://semweb.datasciencelab.be/ns/linkedconnections#Connection), [Stops](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md), [Trips](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md) and [Routes](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md). This is the only optional parameter and in case that is not defined, all base URIs will have a http://example.org/ pattern, but we recommend to always use dereferenceable URIs.
 
 Here is an example of how to configure it:
 ```js
@@ -62,6 +72,7 @@ Here is an example of how to configure it:
             "realTimeData": {
                 "downloadUrl": "http://...",
                 "updatePeriod": "*/30 * * * * *", //every 30s
+                "fragmentTimeSpan": 600, // 10 minutes
                 "compressionPeriod": "0 0 3 * * *" //every day at 3am
             },
             "baseURIs": {
