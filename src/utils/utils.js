@@ -464,7 +464,7 @@ module.exports = new class Utils {
         }
 
         res.set({ 'ETag': etag });
-        res.set({ 'Vary': 'Accept-encoding, Accept-Datetime' });
+        res.set({ 'Vary': 'Accept-Encoding, Accept-Datetime' });
         res.set({ 'Last-Modified': lastModifiedDate.toUTCString() });
         res.set({ 'Content-Type': 'application/ld+json' });
 
