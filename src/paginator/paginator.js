@@ -2,9 +2,11 @@ const fs = require('fs');
 const jsonldstream = require('jsonld-stream');
 const zlib = require('zlib');
 const pageWriterStream = require('./pageWriterStream.js');
-const logger = require('../utils/logger');
+const utils = require('../utils/utils');
+const Logger = require('../utils/logger');
 
 module.exports.paginateDataset = function (source, target_path, company_name, size) {
+  const logger = Logger.getLogger(utils.serverConfig.logLevel || 'info');
   return new Promise((resolve, reject) => {
     try {
       let stream = fs.createReadStream(source)
