@@ -37,6 +37,18 @@ router.get('/:agency', async (req, res) => {
     const resource = req.query.departureTime;
     const acceptDatetime = req.headers['accept-datetime'];
 
+    if (new Date(resource).toString() === 'Invalid Date') {
+        // Cannot provide memento version of an undefined resource 
+        res.status(400).send("Invalid departure time");
+        return;
+    }
+
+    if (new Date(acceptDatetime).toString() === 'Invalid Date') {
+        // Cannot provide memento version without valid accept-datetime header 
+        res.status(400).send("Invalid accept-datetime header");
+        return;
+    }
+
     if (storage.endsWith('/')) {
         storage = storage.substring(0, storage.length - 1);
     }
