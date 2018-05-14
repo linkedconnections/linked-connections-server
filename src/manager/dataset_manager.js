@@ -150,7 +150,7 @@ class DatasetManager {
                 let t1 = (new Date().getTime() - t0) / 1000;
                 logger.info('Dataset conversion for ' + companyName + ' completed successfuly (took ' + t1 + ' seconds)');
                 // GTFS feed completed successfuly, proceed to delete .lock file
-                del([this.storage + '/datasets/' + companyName + '/' + file_name + '.lock']);
+                del([this.storage + '/datasets/' + companyName + '/' + file_name + '.lock'], {force: true});
 
                 // Reload GTFS identifiers and static indexes for RT processing, using new GTFS feed files
                 if (dataset.realTimeData) {
@@ -196,11 +196,11 @@ class DatasetManager {
 
                 if (fs.existsSync(datasets_dir + '/.routes') || fs.existsSync(datasets_dir + '/.trips')) {
                     this.stores[index] = {};
-                    await del([datasets_dir + '/.routes', datasets_dir + '/.trips']);
+                    await del([datasets_dir + '/.routes', datasets_dir + '/.trips'], {force: true});
                 }
 
                 // Delete any _tmp folders (this means something went wrong last time)
-                await del([datasets_dir + '/*_tmp']);
+                await del([datasets_dir + '/*_tmp'], {force: true});
 
                 // Get the last obtained GTFS feed 
                 let gtfs_files = await readdir(datasets_dir);
@@ -263,7 +263,7 @@ class DatasetManager {
                         count++;
                         if (count === 2) {
                             // Delete temporal dir with unziped GTFS files
-                            del([unziped_gtfs]);
+                            del([unziped_gtfs], {force: true});
                             logger.info('GTFS identifiers updated for ' + dataset.companyName);
                             resolve(true);
                         }
@@ -574,7 +574,7 @@ class DatasetManager {
                     this.storage + '/datasets/' + dataset.companyName + '/' + incomplete + '.zip',
                     this.storage + '/datasets/' + dataset.companyName + '/' + incomplete + '.lock',
                     this.storage + '/linked_connections/' + dataset.companyName + '/*_tmp*',
-                    this.storage + '/linked_pages/' + dataset.companyName + '/' + incomplete]);
+                    this.storage + '/linked_pages/' + dataset.companyName + '/' + incomplete], {force: true});
                 logger.info('Incomplete ' + dataset.companyName + ' GTFS feed from ' + incomplete + ' cleaned correctly');
             }
         }));
