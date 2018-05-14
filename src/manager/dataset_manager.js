@@ -1,5 +1,6 @@
 const util = require('util');
 const fs = require('fs');
+const del = require('del');
 const child_process = require('child_process');
 const cron = require('cron');
 const url = require('url');
@@ -18,7 +19,6 @@ const writeFile = util.promisify(fs.writeFile);
 const readFile = util.promisify(fs.readFile);
 const readdir = util.promisify(fs.readdir);
 const gzip = util.promisify(zlib.gzip);
-const execFile = util.promisify(child_process.execFile);
 const exec = util.promisify(child_process.exec);
 var logger = null;
 
@@ -39,27 +39,29 @@ class DatasetManager {
         }
 
         if (!fs.existsSync(this.storage + '/tmp')) {
-            child_process.execSync('mkdir ' + this.storage + '/tmp');
+            fs.mkdirSync(this.storage + '/tmp');
         }
 
         if (!fs.existsSync(this.storage + '/datasets')) {
-            child_process.execSync('mkdir ' + this.storage + '/datasets');
+            fs.mkdirSync(this.storage + '/datasets');
         }
 
         if (!fs.existsSync(this.storage + '/linked_connections')) {
-            child_process.execSync('mkdir ' + this.storage + '/linked_connections');
+            fs.mkdirSync(this.storage + '/linked_connections');
         }
 
         if (!fs.existsSync(this.storage + '/linked_pages')) {
-            child_process.execSync('mkdir ' + this.storage + '/linked_pages');
+            fs.mkdirSync(this.storage + '/linked_pages');
         }
 
         if (!fs.existsSync(this.storage + '/real_time')) {
-            child_process.execSync('mkdir ' + this.storage + '/real_time');
+            fs.mkdirSync(this.storage + '/real_time');
         }
     }
 
     async manage() {
+        // Verify that there are no incomplete processes
+        await this.cleanUpIncompletes();
         // Update static fragments structure in memory
         await utils.updateStaticFragments();
 
@@ -91,15 +93,15 @@ class DatasetManager {
 
     initCompanyDirs(name) {
         if (!fs.existsSync(this.storage + '/datasets/' + name)) {
-            child_process.execSync('mkdir ' + this.storage + '/datasets/' + name);
+            fs.mkdirSync(this.storage + '/datasets/' + name);
         }
 
         if (!fs.existsSync(this.storage + '/linked_connections/' + name)) {
-            child_process.execSync('mkdir ' + this.storage + '/linked_connections/' + name);
+            fs.mkdirSync(this.storage + '/linked_connections/' + name);
         }
 
         if (!fs.existsSync(this.storage + '/linked_pages/' + name)) {
-            child_process.execSync('mkdir ' + this.storage + '/linked_pages/' + name);
+            fs.mkdirSync(this.storage + '/linked_pages/' + name);
         }
     }
 
@@ -125,6 +127,10 @@ class DatasetManager {
             // Download GTFS feed
             let file_name = await this.downloadDataset(dataset);
             if (file_name != null) {
+                // Create .lock file to prevent incomplete transformations
+                writeFile(this.storage + '/datasets/' + companyName + '/' + file_name + '.lock', file_name
+                    + ' GTFS feed being transformed to Linked Connections');
+
                 let path = this.storage + '/datasets/' + companyName + '/' + file_name + '.zip';
                 // Unzip it
                 await utils.readAndUnzip(path);
@@ -143,6 +149,8 @@ class DatasetManager {
                 await exec('find . -type f -exec gzip {} +', { cwd: this.storage + '/linked_pages/' + companyName + '/' + file_name });
                 let t1 = (new Date().getTime() - t0) / 1000;
                 logger.info('Dataset conversion for ' + companyName + ' completed successfuly (took ' + t1 + ' seconds)');
+                // GTFS feed completed successfuly, proceed to delete .lock file
+                del([this.storage + '/datasets/' + companyName + '/' + file_name + '.lock']);
 
                 // Reload GTFS identifiers and static indexes for RT processing, using new GTFS feed files
                 if (dataset.realTimeData) {
@@ -188,8 +196,11 @@ class DatasetManager {
 
                 if (fs.existsSync(datasets_dir + '/.routes') || fs.existsSync(datasets_dir + '/.trips')) {
                     this.stores[index] = {};
-                    await exec('rm -r .routes .trips', { cwd: datasets_dir });
+                    await del([datasets_dir + '/.routes', datasets_dir + '/.trips']);
                 }
+
+                // Delete any _tmp folders (this means something went wrong last time)
+                await del([datasets_dir + '/*_tmp']);
 
                 // Get the last obtained GTFS feed 
                 let gtfs_files = await readdir(datasets_dir);
@@ -252,15 +263,15 @@ class DatasetManager {
                         count++;
                         if (count === 2) {
                             // Delete temporal dir with unziped GTFS files
-                            exec('rm -r ' + unziped_gtfs, { cwd: datasets_dir });
+                            del([unziped_gtfs]);
                             logger.info('GTFS identifiers updated for ' + dataset.companyName);
                             resolve(true);
                         }
                     };
                 } else {
                     // There are no GTFS feeds
-                    logger.warn('There are no ' + dataset.companyName + ' GTFS feeds present, therefore is not possible to start the GTFS-RT job');
-                    logger.warn('Make sure to obtain a static GTFS feed first');
+                    logger.warn('There are no ' + dataset.companyName + ' GTFS feeds present, therefore is not possible to'
+                        + ' start the GTFS-RT job. Make sure to obtain a static GTFS feed first');
                     resolve(false);
                 }
             } catch (err) {
@@ -498,7 +509,7 @@ class DatasetManager {
         Object.entries(removeList).forEach(async ([key, value]) => {
             let file_path = path + '/' + key + '.remove';
             let data = value.join(',' + memento + '\n').concat(',' + memento);
-            
+
             // Register every connection is not in its original fragment due to delays
             if (fs.existsSync(file_path)) {
                 fs.appendFile(file_path, '\n' + data, 'utf8', err => {
@@ -542,6 +553,31 @@ class DatasetManager {
                 reject(err);
             }
         });
+    }
+
+    cleanUpIncompletes() {
+        return Promise.all(this._datasets.map(async dataset => {
+            let files = await readdir(this.storage + '/datasets/' + dataset.companyName);
+            let incomplete = null;
+
+            for (let i in files) {
+                if (files[i].endsWith('.lock')) {
+                    incomplete = files[i].substring(0, files[i].indexOf('.lock'));
+                    break;
+                }
+            }
+
+            if (incomplete !== null) {
+                logger.warn('Incomplete ' + dataset.companyName + ' GTFS feed found (' + incomplete + ')');
+                await del([this.storage + '/datasets/' + dataset.companyName + '/baseUris.json',
+                    this.storage + '/datasets/' + dataset.companyName + '/' + incomplete + '_tmp',
+                    this.storage + '/datasets/' + dataset.companyName + '/' + incomplete + '.zip',
+                    this.storage + '/datasets/' + dataset.companyName + '/' + incomplete + '.lock',
+                    this.storage + '/linked_connections/' + dataset.companyName + '/*_tmp*',
+                    this.storage + '/linked_pages/' + dataset.companyName + '/' + incomplete]);
+                logger.info('Incomplete ' + dataset.companyName + ' GTFS feed from ' + incomplete + ' cleaned correctly');
+            }
+        }));
     }
 
     get storage() {
