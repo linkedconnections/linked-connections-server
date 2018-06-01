@@ -10,10 +10,10 @@ $ npm install
 ```
 
 ## Configuration
-The configuration is made through two different config files. One is for defining Web Server parameters ([server_config.json](https://github.com/julianrojas87/linked-connections-server/blob/master/server_config.json)) and the other is for defining the different data sources that will be managed and exposed through the Linked Connections Server ([datasets_config.json](https://github.com/julianrojas87/linked-connections-server/blob/master/datasets_config.json)). Next you could find an example and a description of each config file.
+The configuration is made through two different config files. One is for defining Web Server parameters ([server_config.json](https://github.com/julianrojas87/linked-connections-server/blob/master/server_config.json.example)) and the other is for defining the different data sources that will be managed and exposed through the Linked Connections Server ([datasets_config.json](https://github.com/julianrojas87/linked-connections-server/blob/master/datasets_config.json.example)). Next you could find an example and a description of each config file.
 
 ### Web Server configuration
-As mentioned above the Web server configuration is made using the ([server_config.json](https://github.com/julianrojas87/linked-connections-server/blob/master/server_config.json)) config file which uses the JSON format and defines the following properties:
+As mentioned above the Web server configuration is made using the ([server_config.json](https://github.com/julianrojas87/linked-connections-server/blob/master/server_config.json.example)) config file which uses the JSON format and defines the following properties:
 
 - **hostname:** Used to define the Web Server host name. **Is a mandatory parameter**.
 
@@ -35,7 +35,7 @@ This is a configuration example:
 ```
 
 ### Datasets configuration
-The Web Server does not provide any functionality by itself, it needs at least one dataset (in GTFS format) that can be downloaded to be processed and exposed as Linked Connections. To tell the server where to find and store such datasets, we use the ([datasets_config.json](https://github.com/julianrojas87/linked-connections-server/blob/master/datasets_config.json)) config file. All the parameters in this config file are **Mandatory**, otherwise the server won't function properly. This file contains the following parameters:
+The Web Server does not provide any functionality by itself, it needs at least one dataset (in GTFS format) that can be downloaded to be processed and exposed as Linked Connections. To tell the server where to find and store such datasets, we use the ([datasets_config.json](https://github.com/julianrojas87/linked-connections-server/blob/master/datasets_config.json.example)) config file. All the parameters in this config file are **Mandatory**, otherwise the server won't function properly. This file contains the following parameters:
 
 - **storage:** This is the path that tells the server where to store and where to look for the data fragments, created from the different datasets. **This should not include a trailing slash**. Make sure you have enough disk space to store and process datasets.
 
@@ -59,9 +59,8 @@ The Web Server does not provide any functionality by itself, it needs at least o
 
     - **compressionPeriod:** Cron expression that defines how often will the real-time data be compressed using gzip in order to reduce storage consumption.
 
-- **baseURIs:** Here we define the base URIs that will be used to create the unique identifiers of each of the entities found in the Linked Connections. Is necessary to define the base URI for [Connections](http://semweb.datasciencelab.be/ns/linkedconnections#Connection), [Stops](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md), [Trips](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md) and [Routes](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md). This is the only optional parameter and in case that is not defined, all base URIs will have a http://example.org/ pattern, but we recommend to always use dereferenceable URIs.
+- **baseURIs:** Here we define the URI templates that will be used to create the unique identifiers of each of the entities found in the Linked Connections. Is necessary to define URIs for [Connections](http://semweb.datasciencelab.be/ns/linkedconnections#Connection), [Stops](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md), [Trips](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md) and [Routes](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md). This is the only optional parameter and in case that is not defined, all base URIs will have a http://example.org/ pattern, but we recommend to always use dereferenceable URIs. Follow the [RFC 6570](https://tools.ietf.org/html/rfc6570) specification to define your URIs using the column names of the `routes` and `trips` GTFS source files. See an example next. 
 
-Here is an example of how to configure it:
 ```js
 {
     "storage": "/opt/linked-connections-data", //datasets storage path
@@ -79,10 +78,10 @@ Here is an example of how to configure it:
                 "compressionPeriod": "0 0 3 * * *" //every day at 3am
             },
             "baseURIs": {
-                "connections": "http://example.org/connections/",
-                "stops": "http://example.org/stops/",
-                "trips": "http://example.org/trips/",
-                "routes": "http://example.org/routes/"
+                "stop": "http://example.org/stops/{stop_id}",
+                "route": "http://example.org/routes/{routes.route_id}",
+                "trip": "http://example.org/trips/{trips.trip_id}",
+                "connection:" 'http://example.org/connections/{connection.departureTime(YYYYMMDD)}{connection.departureStop}{trips.trip_id}'
             }
         },
         {
@@ -91,15 +90,18 @@ Here is an example of how to configure it:
             "downloadOnLaunch": false,
             "updatePeriod": "0 0 3 * * *", //every day at 3am
             "baseURIs": {
-                "connections": "http://example.org/connections/",
-                "stops": "http://example.org/stops/",
-                "trips": "http://example.org/trips/",
-                "routes": "http://example.org/routes/"
+                "stop": "http://example.org/stops/{stop_id}",
+                "route": "http://example.org/routes/{routes.route_id}",
+                "trip": "http://example.org/trips/{trips.trip_id}",
+                "connection:" 'http://example.org/connections/{connection.departureTime(YYYYMMDD)}{connection.departureStop}{trips.trip_id}'
             }
         }
     ]
 }
 ```
+Note that for defining the URI templates you can use the entity `connection` which consists of a `departureStop`, `departureTime`, `arrivalStop` and an `arrivalTime`. Furthermore, if using any of the times you can define a specific format as shown in the previous example.
+
+
 ## Run it
 Once you have properly configured the server you can start it like this:
 ```bash

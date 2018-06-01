@@ -6,8 +6,8 @@
 const debug = require('debug')('linked-connections-server:server');
 const http = require('http');
 const fs = require('fs');
-const app = require('../server');
-const utils = require('../src/utils/utils');
+const app = require('../lib/server');
+const utils = require('../lib/utils/utils');
 
 const server_config = utils.serverConfig;
 

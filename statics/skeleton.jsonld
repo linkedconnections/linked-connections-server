@@ -39,6 +39,18 @@
     "gtfs:route": {
       "@type": "@id"
     },
+    "gtfs:pickupType": {
+      "@type": "@id"
+    },
+    "gtfs:dropOffType": {
+      "@type": "@id"
+    },
+    "gtfs:Regular": {
+      "@type": "@id"
+    },
+    "gtfs:NotAvailable": {
+      "@type": "@id"
+    },
     "hydra:next" : {
       "@type":"@id"
     },

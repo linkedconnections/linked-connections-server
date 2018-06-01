@@ -3,7 +3,7 @@
 /**
  * Module dependencies.
  */
-const DataserManager = require('../src/manager/dataset_manager');
+const DataserManager = require('../lib/manager/dataset_manager');
 
 /**
  * Start dataset managing process
