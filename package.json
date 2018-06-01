@@ -16,7 +16,7 @@
     "follow-redirects": "^1.5.0",
     "gtfs-realtime-bindings": "~0.0.4",
     "gtfs2lc": "^0.8.0",
-    "gtfsrt2lc": "git+https://github.com/linkedconnections/gtfsrt2lc.git#feature-nmbs",
+    "gtfsrt2lc": "^0.2.0",
     "jsonld-stream": "^1.0.3",
     "level": "^2.1.2",
     "md5": "^2.2.1",
