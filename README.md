@@ -59,9 +59,8 @@ The Web Server does not provide any functionality by itself, it needs at least o
 
     - **compressionPeriod:** Cron expression that defines how often will the real-time data be compressed using gzip in order to reduce storage consumption.
 
-- **baseURIs:** Here we define the base URIs that will be used to create the unique identifiers of each of the entities found in the Linked Connections. Is necessary to define the base URI for [Connections](http://semweb.datasciencelab.be/ns/linkedconnections#Connection), [Stops](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md), [Trips](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md) and [Routes](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md). This is the only optional parameter and in case that is not defined, all base URIs will have a http://example.org/ pattern, but we recommend to always use dereferenceable URIs.
+- **baseURIs:** Here we define the URI templates that will be used to create the unique identifiers of each of the entities found in the Linked Connections. Is necessary to define URIs for [Connections](http://semweb.datasciencelab.be/ns/linkedconnections#Connection), [Stops](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md), [Trips](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md) and [Routes](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md). This is the only optional parameter and in case that is not defined, all base URIs will have a http://example.org/ pattern, but we recommend to always use dereferenceable URIs. Follow the [RFC 6570](https://tools.ietf.org/html/rfc6570) specification to define your URIs using the column names of the `routes` and `trips` GTFS source files. See an example next. 
 
-Here is an example of how to configure it:
 ```js
 {
     "storage": "/opt/linked-connections-data", //datasets storage path
@@ -79,10 +78,10 @@ Here is an example of how to configure it:
                 "compressionPeriod": "0 0 3 * * *" //every day at 3am
             },
             "baseURIs": {
-                "connections": "http://example.org/connections/",
-                "stops": "http://example.org/stops/",
-                "trips": "http://example.org/trips/",
-                "routes": "http://example.org/routes/"
+                "stop": "http://example.org/stops/{stop_id}",
+                "route": "http://example.org/routes/{routes.route_id}",
+                "trip": "http://example.org/trips/{trips.trip_id}",
+                "connection:" 'http://example.org/connections/{connection.departureTime(YYYYMMDD)}{connection.departureStop}{trips.trip_id}'
             }
         },
         {
@@ -91,15 +90,18 @@ Here is an example of how to configure it:
             "downloadOnLaunch": false,
             "updatePeriod": "0 0 3 * * *", //every day at 3am
             "baseURIs": {
-                "connections": "http://example.org/connections/",
-                "stops": "http://example.org/stops/",
-                "trips": "http://example.org/trips/",
-                "routes": "http://example.org/routes/"
+                "stop": "http://example.org/stops/{stop_id}",
+                "route": "http://example.org/routes/{routes.route_id}",
+                "trip": "http://example.org/trips/{trips.trip_id}",
+                "connection:" 'http://example.org/connections/{connection.departureTime(YYYYMMDD)}{connection.departureStop}{trips.trip_id}'
             }
         }
     ]
 }
 ```
+Note that for defining the URI templates you can use the entity `connection` which consists of a `departureStop`, `departureTime`, `arrivalStop` and an `arrivalTime`. Furthermore, if using any of the times you can define a specific format as shown in the previous example.
+
+
 ## Run it
 Once you have properly configured the server you can start it like this:
 ```bash
