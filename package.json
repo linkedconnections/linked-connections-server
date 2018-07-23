@@ -15,7 +15,7 @@
     "fast-csv": "^2.4.1",
     "follow-redirects": "^1.5.0",
     "gtfs-realtime-bindings": "~0.0.4",
-    "gtfs2lc": "^0.8.0",
+    "gtfs2lc": "^0.8.1",
     "gtfsrt2lc": "git+https://github.com/linkedconnections/gtfsrt2lc.git#feature-nmbs",
     "jsonld-stream": "^1.0.3",
     "level": "^2.1.2",
