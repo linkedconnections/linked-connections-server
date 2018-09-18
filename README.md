@@ -39,7 +39,13 @@ The Web Server does not provide any functionality by itself, it needs at least o
 
 - **storage:** This is the path that tells the server where to store and where to look for the data fragments, created from the different datasets. **This should not include a trailing slash**. Make sure you have enough disk space to store and process datasets.
 
-- **companyName:** Name of the transport company that provides a GTFS dataset feed.
+- **organization:** URI and name of the data publisher.
+
+- **keywords:** Related keywords for a given dataset. E.g. types of vehicles available.
+
+- **companyName:** Name of the transport company that provides the GTFS dataset feed.
+
+- **geographicArea:** Geonames URI that represents the geographic area served by the public transport provider.
 
 - **downloadUrl:** URL where the GTFS dataset feed can be downloaded.
 
