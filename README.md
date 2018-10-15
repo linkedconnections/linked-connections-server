@@ -70,13 +70,17 @@ The Web Server does not provide any functionality by itself, it needs at least o
 ```js
 {
     "storage": "/opt/linked-connections-data", //datasets storage path
+    "organization": {
+        "id": "https://...",
+        "name": "Organization name"
+    },
     "datasets":[
         {
-            "companyName": "nmbs",
-            "keywords": ["Train", "Stops"],
-            "geographicArea": "http://sws.geonames.org/2802361", // Geo names URI for Belgium
+            "companyName": "companyX",
+            "keywords": ["Keyword1", "Keyword2"],
+            "geographicArea": "http://sws.geonames.org/...", // Geo names URI
             "downloadUrl": "https://...",
-            "downloadOnLaunch": true,
+            "downloadOnLaunch": false,
             "updatePeriod": "0 0 3 * * *", //every day at 3 am
             "fragmentSize": 50000, // 50 Kb
             "realTimeData": {
@@ -86,14 +90,16 @@ The Web Server does not provide any functionality by itself, it needs at least o
                 "compressionPeriod": "0 0 3 * * *" // Every day at 3 am
             },
             "baseURIs": {
-                "stop": "http://irail.be/stations/NMBS/00{stop_id}",
-                "connection": "http://irail.be/connections/{connection.departureStop}/{connection.departureTime(YYYYMMDD)}/{routes.route_short_name}{trips.trip_short_name}",
-                "trip": "http://irail.be/vehicle/{routes.route_short_name}{trips.trip_short_name}/{connection.departureTime(YYYYMMDD)}",
-                "route": "http://irail.be/vehicle/{routes.route_short_name}{trips.trip_short_name}"
+                "stop": "http://example.org/stops/{stop_id}",
+                "route": "http://example.org/routes/{routes.route_id}",
+                "trip": "http://example.org/trips/{trips.trip_id}",
+                "connection:" 'http://example.org/connections/{connection.departureTime(YYYYMMDD)}{connection.departureStop}{trips.trip_id}'
             }
         },
         {
             "companyName": "companyY",
+            "keywords": ["Keyword1", "Keyword2"],
+            "geographicArea": "http://sws.geonames.org/...", // Geo names URI
             "downloadUrl": "http://...",
             "downloadOnLaunch": false,
             "updatePeriod": "0 0 3 * * *", //every day at 3am
