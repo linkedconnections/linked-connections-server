@@ -72,22 +72,24 @@ The Web Server does not provide any functionality by itself, it needs at least o
     "storage": "/opt/linked-connections-data", //datasets storage path
     "datasets":[
         {
-            "companyName": "companyX",
-            "downloadUrl": "http://...",
+            "companyName": "nmbs",
+            "keywords": ["Train", "Stops"],
+            "geographicArea": "http://sws.geonames.org/2802361", // Geo names URI for Belgium
+            "downloadUrl": "https://...",
             "downloadOnLaunch": true,
-            "updatePeriod": "0 0 2 * * *", //every day at 2am
-            "fragmentSize": 400000, //400 Kb
+            "updatePeriod": "0 0 3 * * *", //every day at 3 am
+            "fragmentSize": 50000, // 50 Kb
             "realTimeData": {
-                "downloadUrl": "http://...",
+                "downloadUrl": "https://...",
                 "updatePeriod": "*/30 * * * * *", //every 30s
-                "fragmentTimeSpan": 600, // 10 minutes
-                "compressionPeriod": "0 0 3 * * *" //every day at 3am
+                "fragmentTimeSpan": 600, // 600 seconds
+                "compressionPeriod": "0 0 3 * * *" // Every day at 3 am
             },
             "baseURIs": {
-                "stop": "http://example.org/stops/{stop_id}",
-                "route": "http://example.org/routes/{routes.route_id}",
-                "trip": "http://example.org/trips/{trips.trip_id}",
-                "connection:" 'http://example.org/connections/{connection.departureTime(YYYYMMDD)}{connection.departureStop}{trips.trip_id}'
+                "stop": "http://irail.be/stations/NMBS/00{stop_id}",
+                "connection": "http://irail.be/connections/{connection.departureStop}/{connection.departureTime(YYYYMMDD)}/{routes.route_short_name}{trips.trip_short_name}",
+                "trip": "http://irail.be/vehicle/{routes.route_short_name}{trips.trip_short_name}/{connection.departureTime(YYYYMMDD)}",
+                "route": "http://irail.be/vehicle/{routes.route_short_name}{trips.trip_short_name}"
             }
         },
         {
