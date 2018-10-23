@@ -15,7 +15,7 @@
     "fast-csv": "^2.4.1",
     "follow-redirects": "^1.5.8",
     "gtfs-realtime-bindings": "~0.0.4",
-    "gtfs2lc": "^0.8.1",
+    "gtfs2lc": "^0.8.2",
     "gtfsrt2lc": "^0.2.0",
     "jsonld-stream": "^1.0.3",
     "level": "^2.1.2",
