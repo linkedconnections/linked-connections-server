@@ -65,7 +65,7 @@
     }
   },
   "@id":"",
-  "@type":"hydra:PagedCollection",
+  "@type":"hydra:PartialCollectionView",
   "hydra:next":"",
   "hydra:previous":"",
   "hydra:search":{
