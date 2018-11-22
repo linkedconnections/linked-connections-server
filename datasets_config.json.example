@@ -20,9 +20,9 @@
                 "compressionPeriod": "* * * * * *"
             },
             "baseURIs": {
-                "stop": "http://example.org/stations/NMBS/00{connection.departureStop}",
-                "connection": "http://example.org/connections/{connection.departureTime(YYYYMMDD)}/{connection.departureStop}/{routes.route_short_name}{trips.trip_short_name}",
-                "trip": "http://example.org/vehicle/{routes.route_short_name}{trips.trip_short_name}/{connection.departureTime(YYYYMMDD)}",
+                "stop": "http://example.org/stations/{stop_id}",
+                "connection": "http://example.org/connections/{routes.route_short_name}{trips.trip_short_name}/{trips.startTime(YYYYMMDD)}/{connection.departureStop}",
+                "trip": "http://example.org/vehicle/{routes.route_short_name}{trips.trip_short_name}/{trips.startTime(YYYYMMDD)}",
                 "route": "http://example.org/routes/{routes.route_short_name}{trips.trip_short_name}"
             }
         },

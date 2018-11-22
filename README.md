@@ -92,8 +92,8 @@ The Web Server does not provide any functionality by itself, it needs at least o
             "baseURIs": {
                 "stop": "http://example.org/stops/{stop_id}",
                 "route": "http://example.org/routes/{routes.route_id}",
-                "trip": "http://example.org/trips/{trips.trip_id}",
-                "connection:" 'http://example.org/connections/{connection.departureTime(YYYYMMDD)}{connection.departureStop}{trips.trip_id}'
+                "trip": "http://example.org/trips/{routes.route_id}/{trips.startTime(YYYYMMDD)}",
+                "connection:" 'http://example.org/connections/{routes.route_id}/{trips.startTime(YYYYMMDD)}{connection.departureStop}'
             }
         },
         {
@@ -106,14 +106,14 @@ The Web Server does not provide any functionality by itself, it needs at least o
             "baseURIs": {
                 "stop": "http://example.org/stops/{stop_id}",
                 "route": "http://example.org/routes/{routes.route_id}",
-                "trip": "http://example.org/trips/{trips.trip_id}",
-                "connection:" 'http://example.org/connections/{connection.departureTime(YYYYMMDD)}{connection.departureStop}{trips.trip_id}'
+                "trip": "http://example.org/trips/{routes.route_id}/{trips.startTime(YYYYMMDD)}",
+                "connection:" 'http://example.org/connections/{routes.route_id}/{trips.startTime(YYYYMMDD)}{connection.departureStop}'
             }
         }
     ]
 }
 ```
-Note that for defining the URI templates you can use the entity `connection` which consists of a `departureStop`, `departureTime`, `arrivalStop` and an `arrivalTime`. Furthermore, if using any of the times you can define a specific format as shown in the previous example.
+Note that for defining the URI templates you can use the entity `connection` which consists of a `departureStop`, `departureTime`, `arrivalStop` and an `arrivalTime`. We have also noticed that using the start time of a trip (`trip.startTime`) is also a good practice to uniquely identify trips or even connections. If using any of the times variables you can define a specific format (see [here](https://www.w3.org/TR/NOTE-datetime)) as shown in the previous example.
 
 
 ## Run it
