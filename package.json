@@ -6,12 +6,12 @@
     "start": "node ./bin/web-server | node ./bin/datasets"
   },
   "dependencies": {
-    "body-parser": "~1.17.1",
+    "body-parser": "^1.18.3",
     "cookie-parser": "~1.4.3",
     "cron": "~1.2.1",
     "debug": "~2.6.3",
     "del": "^3.0.0",
-    "express": "~4.15.2",
+    "express": "^4.16.4",
     "fast-csv": "^2.4.1",
     "follow-redirects": "^1.5.10",
     "gtfs-realtime-bindings": "~0.0.4",
@@ -20,7 +20,7 @@
     "jsonld-stream": "^1.0.3",
     "level": "^2.1.2",
     "md5": "^2.2.1",
-    "morgan": "~1.8.1",
+    "morgan": "^1.9.1",
     "serve-favicon": "^2.5.0",
     "unzipper": "^0.8.14",
     "winston": "^2.4.4"
