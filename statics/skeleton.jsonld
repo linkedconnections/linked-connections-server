@@ -5,6 +5,7 @@
     "hydra":"http://www.w3.org/ns/hydra/core#",
     "gtfs":"http://vocab.gtfs.org/terms#",
     "Connection":"lc:Connection",
+    "CancelledConnection":"lc:CancelledConnection",
     "arrivalTime": {
       "@id": "lc:arrivalTime",
       "@type": "xsd:dateTime"
