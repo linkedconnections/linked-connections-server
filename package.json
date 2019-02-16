@@ -7,6 +7,7 @@
   },
   "dependencies": {
     "body-parser": "^1.18.3",
+    "chokidar": "^2.1.1",
     "cookie-parser": "~1.4.3",
     "cron": "~1.2.1",
     "debug": "~2.6.3",
@@ -22,7 +23,6 @@
     "md5": "^2.2.1",
     "morgan": "^1.9.1",
     "rdf-patricia-tree": "^1.0.6",
-    "redis": "^2.8.0",
     "serve-favicon": "^2.5.0",
     "unzipper": "^0.8.14",
     "winston": "^2.4.4"
