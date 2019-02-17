@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h1>SSE client demo</h1>
+<code id="result"></code>
+
+<script>
+    if(typeof(EventSource) !== "undefined") {
+        var source = new EventSource("http://localhost:3000/sncb/events?lastSyncTime=" + new Date().toISOString());
+        source.onmessage = function(event) {
+            document.getElementById("result").innerHTML += event.data + "<br><br>";
+        };
+    } else {
+        document.getElementById("result").innerHTML = "Sorry, your browser does not support Server-Sent Events...";
+    }
+</script>
+
+</body>
+</html>
