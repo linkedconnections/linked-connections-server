@@ -7,7 +7,9 @@
 
 <script>
     if(typeof(EventSource) !== "undefined") {
-        var source = new EventSource("http://localhost:3000/sncb/events?lastSyncTime=" + new Date().toISOString());
+        var d = new Date();
+        d.setHours(d.getHours() - 1);
+        var source = new EventSource("http://localhost:3000/sncb/events?lastSyncTime=" + d.toISOString());
         source.onmessage = function(event) {
             document.getElementById("result").innerHTML += event.data + "<br><br>";
         };
