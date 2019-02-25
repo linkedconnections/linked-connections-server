@@ -22,7 +22,6 @@
     "level": "^2.1.2",
     "md5": "^2.2.1",
     "morgan": "^1.9.1",
-    "rdf-patricia-tree": "^1.0.6",
     "serve-favicon": "^2.5.0",
     "unzipper": "^0.8.14",
     "winston": "^2.4.4"
