@@ -23,6 +23,7 @@
     "morgan": "^1.9.1",
     "serve-favicon": "^2.5.0",
     "unzipper": "^0.8.14",
+    "uri-templates": "^0.2.0",
     "winston": "^2.4.4"
   }
 }
