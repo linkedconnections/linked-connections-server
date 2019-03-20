@@ -6,9 +6,11 @@
     "start": "node ./bin/web-server | node ./bin/datasets"
   },
   "dependencies": {
+    "@toverux/expresse": "^2.4.0",
     "body-parser": "^1.18.3",
     "chokidar": "^2.1.1",
     "cookie-parser": "~1.4.3",
+    "cors": "^2.8.5",
     "cron": "~1.2.1",
     "debug": "~2.6.3",
     "del": "^3.0.0",
@@ -17,7 +19,7 @@
     "follow-redirects": "^1.5.10",
     "gtfs-realtime-bindings": "~0.0.4",
     "gtfs2lc": "git+https://github.com/linkedconnections/gtfs2lc.git#development",
-    "gtfsrt2lc": "^0.2.1",
+    "gtfsrt2lc": "git+https://github.com/linkedconnections/gtfsrt2lc.git#development",
     "jsonld-stream": "^1.0.3",
     "level": "^2.1.2",
     "md5": "^2.2.1",

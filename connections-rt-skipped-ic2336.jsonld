@@ -1,0 +1,1133 @@
+{
+  "@context": {
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "lc": "http://semweb.mmlab.be/ns/linkedconnections#",
+    "hydra": "http://www.w3.org/ns/hydra/core#",
+    "gtfs": "http://vocab.gtfs.org/terms#",
+    "sosa": "http://www.w3.org/ns/sosa#",
+    "Event": "sosa:Observation",
+    "Connection": "lc:Connection",
+    "CancelledConnection": "lc:CancelledConnection",
+    "arrivalTime": {
+      "@id": "lc:arrivalTime",
+      "@type": "xsd:dateTime"
+    },
+    "departureTime": {
+      "@id": "lc:departureTime",
+      "@type": "xsd:dateTime"
+    },
+    "arrivalStop": {
+      "@type": "@id",
+      "@id": "lc:arrivalStop"
+    },
+    "departureStop": {
+      "@type": "@id",
+      "@id": "lc:departureStop"
+    },
+    "departureDelay": {
+      "@id": "lc:departureDelay",
+      "@type": "xsd:integer"
+    },
+    "arrivalDelay": {
+      "@id": "lc:arrivalDelay",
+      "@type": "xsd:integer"
+    },
+    "direction": {
+      "@id": "gtfs:headsign",
+      "@type": "xsd:string"
+    },
+    "gtfs:trip": {
+      "@type": "@id"
+    },
+    "gtfs:route": {
+      "@type": "@id"
+    },
+    "gtfs:pickupType": {
+      "@type": "@id"
+    },
+    "gtfs:dropOffType": {
+      "@type": "@id"
+    },
+    "gtfs:Regular": {
+      "@type": "@id"
+    },
+    "gtfs:NotAvailable": {
+      "@type": "@id"
+    },
+    "hydra:previous": {
+      "@type": "@id"
+    },
+    "hydra:property": {
+      "@type": "@id"
+    },
+    "hydra:variableRepresentation": {
+      "@type": "@id"
+    }
+  },
+  "@id": "http://lc.dylanvanassche.be/sncb/events?lastSyncTime=2019-03-15T14:37:00.000Z",
+  "@type": "hydra:PartialCollectionView",
+  "hydra:previous": "http://lc.dylanvanassche.be/sncb/events?lastSyncTime=2019-03-15T14:36:30.000Z",
+  "hydra:search": {
+    "@type": "hydra:IriTemplate",
+    "hydra:template": "http://lc.dylanvanassche.be/sncb/events{?lastSyncTime}",
+    "hydra:variableRepresentation": "hydra:BasicRepresentation",
+    "hydra:mapping": {
+      "@type": "IriTemplateMapping",
+      "hydra:variable": "departureTime",
+      "hydra:required": true,
+      "hydra:property": "lc:departureTimeQuery"
+    }
+  },
+  "@graph": [
+    {
+      "@id": "http://irail.be/connections/IC2336/20190315/8892205#2019-03-15T14:37:01.799Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T14:26:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:01.799Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/IC2336/20190315/8892205",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008892205",
+          "arrivalStop": "http://irail.be/stations/NMBS/008891264",
+          "departureTime": "2019-03-15T14:26:00.000Z",
+          "arrivalTime": "2019-03-15T14:37:00.000Z",
+          "departureDelay": 120,
+          "arrivalDelay": 60,
+          "direction": "Ostende",
+          "gtfs:trip": "http://irail.be/vehicle/IC2336/20190315",
+          "gtfs:route": "http://irail.be/routes/IC2336",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/IC2336/20190315/8891264#2019-03-15T14:37:01.805Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T14:37:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:01.805Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/IC2336/20190315/8891264",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008891264",
+          "arrivalStop": "http://irail.be/stations/NMBS/008891009",
+          "departureTime": "2019-03-15T14:37:00.000Z",
+          "arrivalTime": "2019-03-15T14:47:00.000Z",
+          "departureDelay": 60,
+          "arrivalDelay": 60,
+          "direction": "Ostende",
+          "gtfs:trip": "http://irail.be/vehicle/IC2336/20190315",
+          "gtfs:route": "http://irail.be/routes/IC2336",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/IC3637/20190315/8893542#2019-03-15T14:37:02.250Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T14:34:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:02.250Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/IC3637/20190315/8893542",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008893542",
+          "arrivalStop": "http://irail.be/stations/NMBS/008893559",
+          "departureTime": "2019-03-15T14:34:00.000Z",
+          "arrivalTime": "2019-03-15T14:37:00.000Z",
+          "departureDelay": 180,
+          "arrivalDelay": 180,
+          "direction": "Gand-Saint-Pierre",
+          "gtfs:trip": "http://irail.be/vehicle/IC3637/20190315",
+          "gtfs:route": "http://irail.be/routes/IC3637",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/IC3637/20190315/8893559#2019-03-15T14:37:02.257Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T14:38:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:02.257Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/IC3637/20190315/8893559",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008893559",
+          "arrivalStop": "http://irail.be/stations/NMBS/008892007",
+          "departureTime": "2019-03-15T14:38:00.000Z",
+          "arrivalTime": "2019-03-15T14:51:00.000Z",
+          "departureDelay": 180,
+          "arrivalDelay": 180,
+          "direction": "Gand-Saint-Pierre",
+          "gtfs:trip": "http://irail.be/vehicle/IC3637/20190315",
+          "gtfs:route": "http://irail.be/routes/IC3637",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/IC2435/20190315/8811304#2019-03-15T14:37:02.575Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T14:37:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:02.575Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/IC2435/20190315/8811304",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008811304",
+          "arrivalStop": "http://irail.be/stations/NMBS/008811916",
+          "departureTime": "2019-03-15T14:37:00.000Z",
+          "arrivalTime": "2019-03-15T14:39:00.000Z",
+          "departureDelay": 60,
+          "arrivalDelay": 60,
+          "direction": "Tournai",
+          "gtfs:trip": "http://irail.be/vehicle/IC2435/20190315",
+          "gtfs:route": "http://irail.be/routes/IC2435",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/IC1714/20190315/8814332#2019-03-15T14:37:03.554Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T14:40:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:03.554Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/IC1714/20190315/8814332",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008814332",
+          "arrivalStop": "http://irail.be/stations/NMBS/008814308",
+          "departureTime": "2019-03-15T14:40:00.000Z",
+          "arrivalTime": "2019-03-15T14:41:00.000Z",
+          "departureDelay": 1080,
+          "arrivalDelay": 960,
+          "direction": "Liège-Guillemins",
+          "gtfs:trip": "http://irail.be/vehicle/IC1714/20190315",
+          "gtfs:route": "http://irail.be/routes/IC1714",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/IC1714/20190315/8814308#2019-03-15T14:37:03.560Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T14:42:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:03.560Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/IC1714/20190315/8814308",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008814308",
+          "arrivalStop": "http://irail.be/stations/NMBS/008812005",
+          "departureTime": "2019-03-15T14:42:00.000Z",
+          "arrivalTime": "2019-03-15T15:00:00.000Z",
+          "departureDelay": 960,
+          "arrivalDelay": 900,
+          "direction": "Liège-Guillemins",
+          "gtfs:trip": "http://irail.be/vehicle/IC1714/20190315",
+          "gtfs:route": "http://irail.be/routes/IC1714",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/IC1714/20190315/8812005#2019-03-15T14:37:03.566Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T15:02:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:03.566Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/IC1714/20190315/8812005",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008812005",
+          "arrivalStop": "http://irail.be/stations/NMBS/008811007",
+          "departureTime": "2019-03-15T15:02:00.000Z",
+          "arrivalTime": "2019-03-15T15:06:00.000Z",
+          "departureDelay": 780,
+          "arrivalDelay": 780,
+          "direction": "Liège-Guillemins",
+          "gtfs:trip": "http://irail.be/vehicle/IC1714/20190315",
+          "gtfs:route": "http://irail.be/routes/IC1714",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/IC1714/20190315/8811007#2019-03-15T14:37:03.573Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T15:06:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:03.573Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/IC1714/20190315/8811007",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008811007",
+          "arrivalStop": "http://irail.be/stations/NMBS/008833001",
+          "departureTime": "2019-03-15T15:06:00.000Z",
+          "arrivalTime": "2019-03-15T15:17:00.000Z",
+          "departureDelay": 780,
+          "arrivalDelay": 540,
+          "direction": "Liège-Guillemins",
+          "gtfs:trip": "http://irail.be/vehicle/IC1714/20190315",
+          "gtfs:route": "http://irail.be/routes/IC1714",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/IC1714/20190315/8833001#2019-03-15T14:37:03.582Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T15:19:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:03.582Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/IC1714/20190315/8833001",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008833001",
+          "arrivalStop": "http://irail.be/stations/NMBS/008833308",
+          "departureTime": "2019-03-15T15:19:00.000Z",
+          "arrivalTime": "2019-03-15T15:28:00.000Z",
+          "departureDelay": 540,
+          "arrivalDelay": 360,
+          "direction": "Liège-Guillemins",
+          "gtfs:trip": "http://irail.be/vehicle/IC1714/20190315",
+          "gtfs:route": "http://irail.be/routes/IC1714",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/IC1714/20190315/8833605#2019-03-15T14:37:03.600Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T15:37:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:03.600Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/IC1714/20190315/8833605",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008833605",
+          "arrivalStop": "http://irail.be/stations/NMBS/008841400",
+          "departureTime": "2019-03-15T15:37:00.000Z",
+          "arrivalTime": "2019-03-15T15:45:00.000Z",
+          "departureDelay": 120,
+          "arrivalDelay": 120,
+          "direction": "Liège-Guillemins",
+          "gtfs:trip": "http://irail.be/vehicle/IC1714/20190315",
+          "gtfs:route": "http://irail.be/routes/IC1714",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/IC1714/20190315/8841400#2019-03-15T14:37:03.606Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T15:46:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:03.606Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/IC1714/20190315/8841400",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008841400",
+          "arrivalStop": "http://irail.be/stations/NMBS/008841434",
+          "departureTime": "2019-03-15T15:46:00.000Z",
+          "arrivalTime": "2019-03-15T15:48:00.000Z",
+          "departureDelay": 60,
+          "arrivalDelay": 60,
+          "direction": "Liège-Guillemins",
+          "gtfs:trip": "http://irail.be/vehicle/IC1714/20190315",
+          "gtfs:route": "http://irail.be/routes/IC1714",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/IC1714/20190315/8841434#2019-03-15T14:37:03.612Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T15:48:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:03.612Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/IC1714/20190315/8841434",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008841434",
+          "arrivalStop": "http://irail.be/stations/NMBS/008841202",
+          "departureTime": "2019-03-15T15:48:00.000Z",
+          "arrivalTime": "2019-03-15T15:57:00.000Z",
+          "departureDelay": 60,
+          "arrivalDelay": 60,
+          "direction": "Liège-Guillemins",
+          "gtfs:trip": "http://irail.be/vehicle/IC1714/20190315",
+          "gtfs:route": "http://irail.be/routes/IC1714",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/IC3414/20190315/8812005#2019-03-15T14:37:03.915Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T14:45:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:03.915Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/IC3414/20190315/8812005",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008812005",
+          "arrivalStop": "http://irail.be/stations/NMBS/008811189",
+          "departureTime": "2019-03-15T14:45:00.000Z",
+          "arrivalTime": "2019-03-15T14:52:00.000Z",
+          "departureDelay": 60,
+          "arrivalDelay": 60,
+          "direction": "Turnhout",
+          "gtfs:trip": "http://irail.be/vehicle/IC3414/20190315",
+          "gtfs:route": "http://irail.be/routes/IC3414",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/IC3414/20190315/8811189#2019-03-15T14:37:03.920Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T14:52:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:03.920Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/IC3414/20190315/8811189",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008811189",
+          "arrivalStop": "http://irail.be/stations/NMBS/008821907",
+          "departureTime": "2019-03-15T14:52:00.000Z",
+          "arrivalTime": "2019-03-15T15:55:00.000Z",
+          "departureDelay": 0,
+          "arrivalDelay": 60,
+          "direction": "Turnhout",
+          "gtfs:trip": "http://irail.be/vehicle/IC3414/20190315",
+          "gtfs:route": "http://irail.be/routes/IC3414",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/L4664/20190315/8885001#2019-03-15T14:37:04.043Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T14:36:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:04.043Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/L4664/20190315/8885001",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008885001",
+          "arrivalStop": "http://irail.be/stations/NMBS/008885068",
+          "departureTime": "2019-03-15T14:36:00.000Z",
+          "arrivalTime": "2019-03-15T14:41:00.000Z",
+          "departureDelay": 60,
+          "arrivalDelay": 60,
+          "direction": "Mouscron",
+          "gtfs:trip": "http://irail.be/vehicle/L4664/20190315",
+          "gtfs:route": "http://irail.be/routes/L4664",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/S83985/20190315/8812005#2019-03-15T14:37:05.034Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T14:34:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:05.034Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/S83985/20190315/8812005",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008812005",
+          "arrivalStop": "http://irail.be/stations/NMBS/008813003",
+          "departureTime": "2019-03-15T14:34:00.000Z",
+          "arrivalTime": "2019-03-15T14:37:00.000Z",
+          "departureDelay": 180,
+          "arrivalDelay": 180,
+          "direction": "Bruxelles-Midi",
+          "gtfs:trip": "http://irail.be/vehicle/S83985/20190315",
+          "gtfs:route": "http://irail.be/routes/S83985",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/S83985/20190315/8813003#2019-03-15T14:37:05.040Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T14:39:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:05.040Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/S83985/20190315/8813003",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008813003",
+          "arrivalStop": "http://irail.be/stations/NMBS/008813037",
+          "departureTime": "2019-03-15T14:39:00.000Z",
+          "arrivalTime": "2019-03-15T14:40:00.000Z",
+          "departureDelay": 240,
+          "arrivalDelay": 240,
+          "direction": "Bruxelles-Midi",
+          "gtfs:trip": "http://irail.be/vehicle/S83985/20190315",
+          "gtfs:route": "http://irail.be/routes/S83985",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/S83985/20190315/8813037#2019-03-15T14:37:05.045Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T14:40:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:05.045Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/S83985/20190315/8813037",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008813037",
+          "arrivalStop": "http://irail.be/stations/NMBS/008814001",
+          "departureTime": "2019-03-15T14:40:00.000Z",
+          "arrivalTime": "2019-03-15T14:41:00.000Z",
+          "departureDelay": 240,
+          "arrivalDelay": 120,
+          "direction": "Bruxelles-Midi",
+          "gtfs:trip": "http://irail.be/vehicle/S83985/20190315",
+          "gtfs:route": "http://irail.be/routes/S83985",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/IC1914/20190315/8883311#2019-03-15T14:37:05.174Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T14:27:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:05.174Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/IC1914/20190315/8883311",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008883311",
+          "arrivalStop": "http://irail.be/stations/NMBS/008814308",
+          "departureTime": "2019-03-15T14:27:00.000Z",
+          "arrivalTime": "2019-03-15T14:38:00.000Z",
+          "departureDelay": 60,
+          "arrivalDelay": 120,
+          "direction": "Brussels Airport-Zaventem",
+          "gtfs:trip": "http://irail.be/vehicle/IC1914/20190315",
+          "gtfs:route": "http://irail.be/routes/IC1914",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/IC1914/20190315/8814308#2019-03-15T14:37:05.180Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T14:38:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:05.180Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/IC1914/20190315/8814308",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008814308",
+          "arrivalStop": "http://irail.be/stations/NMBS/008814340",
+          "departureTime": "2019-03-15T14:38:00.000Z",
+          "arrivalTime": "2019-03-15T14:41:00.000Z",
+          "departureDelay": 60,
+          "arrivalDelay": 60,
+          "direction": "Brussels Airport-Zaventem",
+          "gtfs:trip": "http://irail.be/vehicle/IC1914/20190315",
+          "gtfs:route": "http://irail.be/routes/IC1914",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/IC1914/20190315/8814340#2019-03-15T14:37:05.185Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T14:40:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:05.185Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/IC1914/20190315/8814340",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008814340",
+          "arrivalStop": "http://irail.be/stations/NMBS/008814001",
+          "departureTime": "2019-03-15T14:40:00.000Z",
+          "arrivalTime": "2019-03-15T14:49:00.000Z",
+          "departureDelay": 0,
+          "arrivalDelay": 60,
+          "direction": "Brussels Airport-Zaventem",
+          "gtfs:trip": "http://irail.be/vehicle/IC1914/20190315",
+          "gtfs:route": "http://irail.be/routes/IC1914",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/IC3013/20190315/8892403#2019-03-15T14:37:05.496Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T14:39:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:05.496Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/IC3013/20190315/8892403",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008892403",
+          "arrivalStop": "http://irail.be/stations/NMBS/008892452",
+          "departureTime": "2019-03-15T14:39:00.000Z",
+          "arrivalTime": "2019-03-15T14:48:00.000Z",
+          "departureDelay": 60,
+          "arrivalDelay": 60,
+          "direction": "La Panne",
+          "gtfs:trip": "http://irail.be/vehicle/IC3013/20190315",
+          "gtfs:route": "http://irail.be/routes/IC3013",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/S42165/20190315/8811403#2019-03-15T14:37:06.113Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T14:31:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:06.113Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/S42165/20190315/8811403",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008811403",
+          "arrivalStop": "http://irail.be/stations/NMBS/008812021",
+          "departureTime": "2019-03-15T14:31:00.000Z",
+          "arrivalTime": "2019-03-15T14:46:00.000Z",
+          "departureDelay": 120,
+          "arrivalDelay": 120,
+          "direction": "Alost",
+          "gtfs:trip": "http://irail.be/vehicle/S42165/20190315",
+          "gtfs:route": "http://irail.be/routes/S42165",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/IC1836/20190315/8894821#2019-03-15T14:37:06.134Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T14:21:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:06.134Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/IC1836/20190315/8894821",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008894821",
+          "arrivalStop": "http://irail.be/stations/NMBS/008894508",
+          "departureTime": "2019-03-15T14:21:00.000Z",
+          "arrivalTime": "2019-03-15T14:34:00.000Z",
+          "departureDelay": 0,
+          "arrivalDelay": 0,
+          "direction": "Ostende",
+          "gtfs:trip": "http://irail.be/vehicle/IC1836/20190315",
+          "gtfs:route": "http://irail.be/routes/IC1836",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/IC1836/20190315/8894508#2019-03-15T14:37:06.139Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T14:37:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:06.139Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/IC1836/20190315/8894508",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008894508",
+          "arrivalStop": "http://irail.be/stations/NMBS/008894433",
+          "departureTime": "2019-03-15T14:37:00.000Z",
+          "arrivalTime": "2019-03-15T14:41:00.000Z",
+          "departureDelay": 60,
+          "arrivalDelay": 60,
+          "direction": "Ostende",
+          "gtfs:trip": "http://irail.be/vehicle/IC1836/20190315",
+          "gtfs:route": "http://irail.be/routes/IC1836",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/IC1836/20190315/8894433#2019-03-15T14:37:06.144Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T14:41:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:06.144Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/IC1836/20190315/8894433",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008894433",
+          "arrivalStop": "http://irail.be/stations/NMBS/008894201",
+          "departureTime": "2019-03-15T14:41:00.000Z",
+          "arrivalTime": "2019-03-15T14:45:00.000Z",
+          "departureDelay": 60,
+          "arrivalDelay": 60,
+          "direction": "Ostende",
+          "gtfs:trip": "http://irail.be/vehicle/IC1836/20190315",
+          "gtfs:route": "http://irail.be/routes/IC1836",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/IC1836/20190315/8894201#2019-03-15T14:37:06.150Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T14:46:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:06.150Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/IC1836/20190315/8894201",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008894201",
+          "arrivalStop": "http://irail.be/stations/NMBS/008893120",
+          "departureTime": "2019-03-15T14:46:00.000Z",
+          "arrivalTime": "2019-03-15T14:59:00.000Z",
+          "departureDelay": 0,
+          "arrivalDelay": 60,
+          "direction": "Ostende",
+          "gtfs:trip": "http://irail.be/vehicle/IC1836/20190315",
+          "gtfs:route": "http://irail.be/routes/IC1836",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/IC2338/20190315/8814001#2019-03-15T14:37:06.419Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T14:39:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:06.419Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/IC2338/20190315/8814001",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008814001",
+          "arrivalStop": "http://irail.be/stations/NMBS/008895836",
+          "departureTime": "2019-03-15T14:39:00.000Z",
+          "arrivalTime": "2019-03-15T14:52:00.000Z",
+          "departureDelay": 0,
+          "arrivalDelay": 0,
+          "direction": "Ostende",
+          "gtfs:trip": "http://irail.be/vehicle/IC2338/20190315",
+          "gtfs:route": "http://irail.be/routes/IC2338",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/IC2338/20190315/8895836#2019-03-15T14:37:06.425Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T14:52:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:06.425Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/IC2338/20190315/8895836",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008895836",
+          "arrivalStop": "http://irail.be/stations/NMBS/008896008",
+          "departureTime": "2019-03-15T14:52:00.000Z",
+          "arrivalTime": "2019-03-15T15:49:00.000Z",
+          "departureDelay": 0,
+          "arrivalDelay": 60,
+          "direction": "Ostende",
+          "gtfs:trip": "http://irail.be/vehicle/IC2338/20190315",
+          "gtfs:route": "http://irail.be/routes/IC2338",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/S83965/20190315/8812005#2019-03-15T14:37:06.669Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T14:36:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:06.669Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/S83965/20190315/8812005",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008812005",
+          "arrivalStop": "http://irail.be/stations/NMBS/008811916",
+          "departureTime": "2019-03-15T14:36:00.000Z",
+          "arrivalTime": "2019-03-15T14:43:00.000Z",
+          "departureDelay": 360,
+          "arrivalDelay": 360,
+          "direction": "Louvain-La-Neuve",
+          "gtfs:trip": "http://irail.be/vehicle/S83965/20190315",
+          "gtfs:route": "http://irail.be/routes/S83965",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/S83965/20190315/8811916#2019-03-15T14:37:06.675Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T14:44:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:06.675Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/S83965/20190315/8811916",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008811916",
+          "arrivalStop": "http://irail.be/stations/NMBS/008811304",
+          "departureTime": "2019-03-15T14:44:00.000Z",
+          "arrivalTime": "2019-03-15T14:45:00.000Z",
+          "departureDelay": 360,
+          "arrivalDelay": 300,
+          "direction": "Louvain-La-Neuve",
+          "gtfs:trip": "http://irail.be/vehicle/S83965/20190315",
+          "gtfs:route": "http://irail.be/routes/S83965",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/S83965/20190315/8811304#2019-03-15T14:37:06.681Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T14:46:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:06.681Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/S83965/20190315/8811304",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008811304",
+          "arrivalStop": "http://irail.be/stations/NMBS/008811411",
+          "departureTime": "2019-03-15T14:46:00.000Z",
+          "arrivalTime": "2019-03-15T14:49:00.000Z",
+          "departureDelay": 240,
+          "arrivalDelay": 240,
+          "direction": "Louvain-La-Neuve",
+          "gtfs:trip": "http://irail.be/vehicle/S83965/20190315",
+          "gtfs:route": "http://irail.be/routes/S83965",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/S83965/20190315/8811411#2019-03-15T14:37:06.690Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T14:50:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:06.690Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/S83965/20190315/8811411",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008811411",
+          "arrivalStop": "http://irail.be/stations/NMBS/008811437",
+          "departureTime": "2019-03-15T14:50:00.000Z",
+          "arrivalTime": "2019-03-15T14:52:00.000Z",
+          "departureDelay": 240,
+          "arrivalDelay": 180,
+          "direction": "Louvain-La-Neuve",
+          "gtfs:trip": "http://irail.be/vehicle/S83965/20190315",
+          "gtfs:route": "http://irail.be/routes/S83965",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/S83965/20190315/8811437#2019-03-15T14:37:06.696Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T14:52:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:06.696Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/S83965/20190315/8811437",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008811437",
+          "arrivalStop": "http://irail.be/stations/NMBS/008811445",
+          "departureTime": "2019-03-15T14:52:00.000Z",
+          "arrivalTime": "2019-03-15T14:55:00.000Z",
+          "departureDelay": 180,
+          "arrivalDelay": 120,
+          "direction": "Louvain-La-Neuve",
+          "gtfs:trip": "http://irail.be/vehicle/S83965/20190315",
+          "gtfs:route": "http://irail.be/routes/S83965",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/IC714/20190315/8896149#2019-03-15T14:37:06.909Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T14:53:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:06.909Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/IC714/20190315/8896149",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008896149",
+          "arrivalStop": "http://irail.be/stations/NMBS/008896735",
+          "departureTime": "2019-03-15T14:53:00.000Z",
+          "arrivalTime": "2019-03-15T15:53:00.000Z",
+          "departureDelay": 0,
+          "arrivalDelay": 60,
+          "direction": "Poperinge",
+          "gtfs:trip": "http://irail.be/vehicle/IC714/20190315",
+          "gtfs:route": "http://irail.be/routes/IC714",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/IC3639/20190315/8833605#2019-03-15T14:37:07.065Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T14:36:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:07.065Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/IC3639/20190315/8833605",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008833605",
+          "arrivalStop": "http://irail.be/stations/NMBS/008833670",
+          "departureTime": "2019-03-15T14:36:00.000Z",
+          "arrivalTime": "2019-03-15T14:41:00.000Z",
+          "departureDelay": 60,
+          "arrivalDelay": 60,
+          "direction": "Gand-Saint-Pierre",
+          "gtfs:trip": "http://irail.be/vehicle/IC3639/20190315",
+          "gtfs:route": "http://irail.be/routes/IC3639",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/IC3639/20190315/8833670#2019-03-15T14:37:07.070Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T14:40:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:07.070Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/IC3639/20190315/8833670",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008833670",
+          "arrivalStop": "http://irail.be/stations/NMBS/008812005",
+          "departureTime": "2019-03-15T14:40:00.000Z",
+          "arrivalTime": "2019-03-15T15:36:00.000Z",
+          "departureDelay": 0,
+          "arrivalDelay": 60,
+          "direction": "Gand-Saint-Pierre",
+          "gtfs:trip": "http://irail.be/vehicle/IC3639/20190315",
+          "gtfs:route": "http://irail.be/routes/IC3639",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/IC3639/20190315/8812005#2019-03-15T14:37:07.076Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T15:39:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:07.076Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/IC3639/20190315/8812005",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008812005",
+          "arrivalStop": "http://irail.be/stations/NMBS/008813045",
+          "departureTime": "2019-03-15T15:39:00.000Z",
+          "arrivalTime": "2019-03-15T15:41:00.000Z",
+          "departureDelay": 0,
+          "arrivalDelay": 0,
+          "direction": "Gand-Saint-Pierre",
+          "gtfs:trip": "http://irail.be/vehicle/IC3639/20190315",
+          "gtfs:route": "http://irail.be/routes/IC3639",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/L4085/20190315/8883006#2019-03-15T14:37:07.093Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T14:36:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:07.093Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/L4085/20190315/8883006",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008883006",
+          "arrivalStop": "http://irail.be/stations/NMBS/008883113",
+          "departureTime": "2019-03-15T14:36:00.000Z",
+          "arrivalTime": "2019-03-15T14:42:00.000Z",
+          "departureDelay": 60,
+          "arrivalDelay": 60,
+          "direction": "Jurbise",
+          "gtfs:trip": "http://irail.be/vehicle/L4085/20190315",
+          "gtfs:route": "http://irail.be/routes/L4085",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/S332986/20190315/8832409#2019-03-15T14:37:07.102Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T14:36:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:07.102Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/S332986/20190315/8832409",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008832409",
+          "arrivalStop": "http://irail.be/stations/NMBS/008832433",
+          "departureTime": "2019-03-15T14:36:00.000Z",
+          "arrivalTime": "2019-03-15T14:43:00.000Z",
+          "departureDelay": 60,
+          "arrivalDelay": 60,
+          "direction": "Anvers-Central",
+          "gtfs:trip": "http://irail.be/vehicle/S332986/20190315",
+          "gtfs:route": "http://irail.be/routes/S332986",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    },
+    {
+      "@id": "http://irail.be/connections/S53586/20190315/8822004#2019-03-15T14:37:07.113Z",
+      "@type": "Event",
+      "hydra:view": "http://lc.dylanvanassche.be/sncb/connections?departureTime=2019-03-15T14:36:00.000Z",
+      "sosa:resultTime": "2019-03-15T14:37:07.113Z",
+      "sosa:hasResult": {
+        "@type": "sosa:hasResult",
+        "Connection": {
+          "@id": "http://irail.be/connections/S53586/20190315/8822004",
+          "@type": "Connection",
+          "departureStop": "http://irail.be/stations/NMBS/008822004",
+          "arrivalStop": "http://irail.be/stations/NMBS/008883311",
+          "departureTime": "2019-03-15T14:36:00.000Z",
+          "arrivalTime": "2019-03-15T15:57:00.000Z",
+          "departureDelay": 0,
+          "arrivalDelay": 0,
+          "direction": "Enghien",
+          "gtfs:trip": "http://irail.be/vehicle/S53586/20190315",
+          "gtfs:route": "http://irail.be/routes/S53586",
+          "gtfs:pickupType": "gtfs:Regular",
+          "gtfs:dropOffType": "gtfs:Regular",
+          "mementoVersion": "2019-03-15T14:37:00.857Z"
+        }
+      }
+    }
+  ]
+}
