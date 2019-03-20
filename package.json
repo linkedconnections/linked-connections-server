@@ -6,9 +6,11 @@
     "start": "node ./bin/web-server | node ./bin/datasets"
   },
   "dependencies": {
+    "@toverux/expresse": "^2.4.0",
     "body-parser": "^1.18.3",
     "chokidar": "^2.1.1",
     "cookie-parser": "~1.4.3",
+    "cors": "^2.8.5",
     "cron": "~1.2.1",
     "debug": "~2.6.3",
     "del": "^3.0.0",
