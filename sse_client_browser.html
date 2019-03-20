@@ -8,8 +8,9 @@
 <script>
     if(typeof(EventSource) !== "undefined") {
         var d = new Date();
-        d.setHours(d.getHours() - 1);
-        var source = new EventSource("http://localhost:3000/sncb/events?lastSyncTime=" + d.toISOString());
+        //d.setHours(d.getHours() - 1);
+        d.setSeconds(d.getSeconds() - 30);
+        var source = new EventSource("https://lc.dylanvanassche.be/sncb/events?lastSyncTime=" + d.toISOString());
         source.onmessage = function(e) {
             document.getElementById("result").innerHTML += e.data + "<br><br>";
             var pageURI = JSON.parse(e.data)['@id'];
