@@ -11,31 +11,19 @@
             "geographicArea": "http://sws.geonames.org/2802361",
             "downloadUrl": "http://...",
             "downloadOnLaunch": true,
-            "updatePeriod": "* * * * * *",
+            "updatePeriod": "0 0 3 28 * *",
             "fragmentSize": 50000,
             "realTimeData": {
                 "downloadUrl": "http://...",
-                "updatePeriod": "* * * * * *",
+                "updatePeriod": "*/30 * * * * *",
                 "fragmentTimeSpan": 600,
                 "compressionPeriod": "* * * * * *"
             },
             "baseURIs": {
-                "stop": "http://example.org/stations/{stop_id}",
+                "stop": "http://example.org/stations/{stops.stop_id}",
                 "connection": "http://example.org/connections/{routes.route_short_name}{trips.trip_short_name}/{trips.startTime(YYYYMMDD)}/{connection.departureStop}",
                 "trip": "http://example.org/vehicle/{routes.route_short_name}{trips.trip_short_name}/{trips.startTime(YYYYMMDD)}",
                 "route": "http://example.org/routes/{routes.route_short_name}{trips.trip_short_name}"
-            }
-        },
-        {
-            "companyName": "company y",
-            "downloadUrl": "http://...",
-            "downloadOnLaunch": false,
-            "updatePeriod": "* * * * * *",
-            "baseURIs": {
-                "stops": "http://example.org/stops/",
-                "connections": "http://example.org/connections/",
-                "trips": "http://example.org/trips/",
-                "routes": "http://example.org/routes/"
             }
         }
     ]
