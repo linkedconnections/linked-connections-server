@@ -1,10 +1,9 @@
-*.gz
-*.zip
 datasets/
 stops/
 linked_connections/
 linked_pages/
 real_time/
+tmp/
 node_modules/
 package-lock.json
 datasets_config.json
