@@ -1,9 +1,10 @@
 {
   "name": "linked-connections-server",
   "version": "0.0.0",
-  "private": true,
+  "author": "Julian Rojas",
+  "license": "MIT",
   "scripts": {
-    "start": "node ./bin/web-server | node ./bin/datasets"
+    "test": "jest"
   },
   "dependencies": {
     "body-parser": "^1.19.0",
@@ -13,9 +14,12 @@
     "del": "^3.0.0",
     "express": "^4.17.1",
     "fast-csv": "^2.5.0",
+    "firstline": "^2.0.2",
     "follow-redirects": "^1.7.0",
-    "gtfs2lc": "^0.8.7",
-    "gtfsrt2lc": "^0.2.1",
+    "graceful-fs": "^4.1.15",
+    "gtfs2lc": "^0.8.9",
+    "gtfsrt2lc": "^0.3.3",
+    "jsonld": "^1.6.2",
     "jsonld-stream": "^1.0.3",
     "level": "^2.1.2",
     "md5": "^2.2.1",
@@ -24,5 +28,8 @@
     "unzipper": "^0.8.14",
     "uri-templates": "^0.2.0",
     "winston": "^2.4.4"
+  },
+  "devDependencies": {
+    "jest": "^24.8.0"
   }
 }
