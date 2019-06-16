@@ -1,15 +1,21 @@
 # Linked Connections Server
+
+[![Build Status](https://travis-ci.com/julianrojas87/linked-connections-server.svg?branch=master)](https://travis-ci.com/julianrojas87/linked-connections-server.svg?branch=master)
+
 Express based Web Server that exposes [Linked Connections](http://linkedconnections.org/) data fragments using [JSON-LD](https://json-ld.org/) serialization format. It also provides a built-in tool to parse [GTFS](https://developers.google.com/tansit/gtfs/reference/) and [GTFS Realtime](https://developers.google.com/transit/gtfs-realtime/) transport dataset feeds into a Linked Connections Directed Acyclic Graph using [GTFS2LC](https://github.com/linkedconnections/gtfs2lc) and fragment it following a configurable predefined size.
 
 ## Installation
+
 First make sure to have [Node](https://nodejs.org/en/) 8.x or superior installed. To install the server proceed as follows:
+
 ``` bash
-$ git clone https://github.com/julianrojas87/linked-connections-server.git
-$ cd linked-connections-server
-$ npm install
+git clone https://github.com/julianrojas87/linked-connections-server.git
+cd linked-connections-server
+npm install
 ```
 
 ## Configuration
+
 The configuration is made through two different config files. One is for defining Web Server parameters ([server_config.json](https://github.com/julianrojas87/linked-connections-server/blob/master/server_config.json.example)) and the other is for defining the different data sources that will be managed and exposed through the Linked Connections Server ([datasets_config.json](https://github.com/julianrojas87/linked-connections-server/blob/master/datasets_config.json.example)). Next you could find an example and a description of each config file.
 
 ### Web Server configuration
@@ -35,6 +41,7 @@ This is a configuration example:
 ```
 
 ### Datasets configuration
+
 The Web Server does not provide any functionality by itself, it needs at least one dataset (in GTFS format) that can be downloaded to be processed and exposed as Linked Connections. To tell the server where to find and store such datasets, we use the ([datasets_config.json](https://github.com/julianrojas87/linked-connections-server/blob/master/datasets_config.json.example)) config file. All the parameters in this config file are **Mandatory**, otherwise the server won't function properly. This file contains the following parameters:
 
 - **storage:** This is the path that tells the server where to store and where to look for the data fragments, created from the different datasets. **This should not include a trailing slash**. Make sure you have enough disk space to store and process datasets.
@@ -65,7 +72,7 @@ The Web Server does not provide any functionality by itself, it needs at least o
 
     - **compressionPeriod:** Cron expression that defines how often will the real-time data be compressed using gzip in order to reduce storage consumption.
 
-- **baseURIs:** Here we define the URI templates that will be used to create the unique identifiers of each of the entities found in the Linked Connections. Is necessary to define URIs for [Connections](http://semweb.datasciencelab.be/ns/linkedconnections#Connection), [Stops](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md), [Trips](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md) and [Routes](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md). This is the only optional parameter and in case that is not defined, all base URIs will have a http://example.org/ pattern, but we recommend to always use dereferenceable URIs. Follow the [RFC 6570](https://tools.ietf.org/html/rfc6570) specification to define your URIs using the column names of the `routes` and `trips` GTFS source files. See an example next. 
+- **baseURIs:** Here we define the URI templates that will be used to create the unique identifiers of each of the entities found in the Linked Connections. Is necessary to define URIs for [Connections](http://semweb.datasciencelab.be/ns/linkedconnections#Connection), [Stops](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md), [Trips](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md) and [Routes](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md). This is the only optional parameter and in case that is not defined, all base URIs will have a http://example.org/ pattern, but we recommend to always use dereferenceable URIs. Follow the [RFC 6570](https://tools.ietf.org/html/rfc6570) specification to define your URIs using the column names of the `routes` and `trips` GTFS source files. See an example next.
 
 ```js
 {
@@ -113,28 +120,36 @@ The Web Server does not provide any functionality by itself, it needs at least o
     ]
 }
 ```
+
 Note that for defining the URI templates you can use the entity `connection` which consists of a `departureStop`, `departureTime`, `arrivalStop` and an `arrivalTime`. We have also noticed that using the start time of a trip (`trip.startTime`) is also a good practice to uniquely identify trips or even connections. If using any of the times variables you can define a specific format (see [here](https://www.w3.org/TR/NOTE-datetime)) as shown in the previous example.
 
-
 ## Run it
+
 Once you have properly configured the server you can start it like this:
+
 ```bash
-$ cd linked-connections-server
-$ npm start
+cd linked-connections-server
+npm start
 ```
+
 After started your server will start fetching the datasets you configured according to their Cron configuration.
 
 ## Use it
+
 To use it make sure you already have at least one fully processed dataset (the logs will tell you when). If so you can query the Linked Connections using the departure time as a parameter like this for example:
+
 ```http
 http://localhost:3000/companyX/connections?departureTime=2017-08-11T16:45:00.000Z
 ```
+
 If available, the server will redirect you to the Linked Connections fragment that contains connections with departure times as close as possible to the one requested.
 
 ## Historic Data
-The server also allows quierying historic data by means of the [Memento Framework](https://tools.ietf.org/html/rfc7089) which enables time-based content negotiation over HTTP. By using the **Accept-Datetime** header a client can request the state of a resource at a given moment. If existing, the server will respond with a 302 Found containing the URI of the stored version of such resource. For example:
+
+The server also allows querying historic data by means of the [Memento Framework](https://tools.ietf.org/html/rfc7089) which enables time-based content negotiation over HTTP. By using the **Accept-Datetime** header a client can request the state of a resource at a given moment. If existing, the server will respond with a 302 Found containing the URI of the stored version of such resource. For example:
+
 ```bash
-$ curl -v -L -H "Accept-Datetime: 2017-10-06T13:00:00.000Z" http://localhost:3000/companyX/connections?departureTime=2017-10-06T15:50:00.000Z
+curl -v -L -H "Accept-Datetime: 2017-10-06T13:00:00.000Z" http://localhost:3000/companyX/connections?departureTime=2017-10-06T15:50:00.000Z
 
 > GET /companyX/connections?departureTime=2017-10-06T15:50:00.000Z HTTP/1.1
 > Host: localhost:3000
@@ -169,8 +184,10 @@ $ curl -v -L -H "Accept-Datetime: 2017-10-06T13:00:00.000Z" http://localhost:300
 < Date: Mon, 13 Nov 2017 15:00:36 GMT
 < Connection: keep-alive
 ```
+
 The previous example shows a request made to obtain the Connections fragment identified by the URL http://localhost:3000/companyX/connections?departureTime=2017-10-06T15:50:00.000Z, but specifically the state of this fragment as it was at **Accept-Datetime: 2017-10-06T13:00:00.000Z**. This means that is possible to know what was the state of the delays at 13:00 for the departures at 15:50 on 2017-10-06.
 
 ## Authors
+
 Julian Rojas - julianandres.rojasmelendez@ugent.be  
 Pieter Colpaert - pieter.colpaert@ugent.be  
