@@ -7,7 +7,7 @@
     "datasets":[
         {
             "companyName": "company x",
-            "keywords": ["Train", "Stops"],
+            "keywords": ["Train", "Linked Connections"],
             "geographicArea": "http://sws.geonames.org/2802361",
             "downloadUrl": "http://...",
             "downloadOnLaunch": true,
