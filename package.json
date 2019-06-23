@@ -3,8 +3,16 @@
   "version": "0.0.0",
   "author": "Julian Rojas",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/julianrojas87/linked-connections-server.git"
+  },
+  "bugs": {
+    "url": "https://github.com/julianrojas87/linked-connections-server/issues"
+  },
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "coveralls": "jest --coverage && cat ./coverage/lcov.info | coveralls"
   },
   "dependencies": {
     "body-parser": "^1.19.0",
@@ -29,6 +37,7 @@
     "winston": "^2.4.4"
   },
   "devDependencies": {
+    "coveralls": "^3.0.4",
     "jest": "^24.8.0"
   }
 }

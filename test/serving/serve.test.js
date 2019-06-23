@@ -1,11 +1,17 @@
 const fs = require('fs');
 const util = require('util');
 const jsonld = require('jsonld');
+const Catalog = require('../../lib/routes/catalog');
+const Stops = require('../../lib/routes/stops');
 var utils = require('../../lib/utils/utils');
 const readfile = util.promisify(fs.readFile);
 
 utils._datasetsConfig = {
     "storage": __dirname + "/storage",
+    "organization": {
+        "id": "https://example.org/your/URL",
+        "name": "Data publisher name"
+    },
     "datasets": [
         {
             "companyName": "test",
@@ -165,7 +171,7 @@ test('Test that the cache headers handled correctly', () => {
         maxAge = maxAge.slice(0, -1);
     }
     expect(Number(maxAge)).toBeGreaterThan(0);
-    expect(Number(maxAge)).toBeLessThan(32);
+    expect(Number(maxAge)).toBeLessThan(33);
 
     res.headers = new Map();
 
@@ -215,6 +221,38 @@ test('Test that resulting JSON-LD data is correct', async () => {
     });
     let rdf = await jsonld.toRDF(data);
     expect(rdf).toBeDefined();
+});
+
+test('Test to create DCAT catalog', async () => {
+    expect.assertions(1);
+    let res = {
+        sts: null,
+        headers: new Map(),
+        set(header) {
+            this.headers.set(Object.keys(header)[0], header[Object.keys(header)[0]]);
+        },
+        status(status) {
+            this.sts = status;
+            return this;
+        },
+        send(){}
+    };
+    let catalog = new Catalog({}, res);
+    catalog._utils = utils;
+    catalog._storage = utils.datasetsConfig['storage'];
+    catalog._datasets = utils.datasetsConfig['datasets'];
+    let cat = await catalog.createCatalog();
+    expect(cat['@context']).toBeDefined();
+});
+
+test('Test to retrieve list of stops', async () => {
+    expect.assertions(1);
+    let stops = new Stops();
+    stops._utils = utils;
+    stops._storage = utils.datasetsConfig['storage'];
+    stops._datasets = utils.datasetsConfig['datasets'];
+    let stps = await stops.createStopList('test');
+    expect(stps['@graph'].length).toBeGreaterThan(0);
 });
 
 function findConnection(id, array) {
