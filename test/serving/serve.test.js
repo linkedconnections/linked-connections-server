@@ -1,11 +1,17 @@
 const fs = require('fs');
 const util = require('util');
 const jsonld = require('jsonld');
+const Catalog = require('../../lib/routes/catalog');
+const Stops = require('../../lib/routes/stops');
 var utils = require('../../lib/utils/utils');
 const readfile = util.promisify(fs.readFile);
 
 utils._datasetsConfig = {
     "storage": __dirname + "/storage",
+    "organization": {
+        "id": "https://example.org/your/URL",
+        "name": "Data publisher name"
+    },
     "datasets": [
         {
             "companyName": "test",
@@ -103,8 +109,8 @@ test('Test a Connection that should be added due to a live update', async () => 
 test('Test that all Connections are correctly sorted by departure time', () => {
     expect.assertions(1);
     let error = false;
-    for(let k = 0; k < combined.length - 1; k++) {
-        if(combined[k]['departureTime'] > combined[k + 1]['departureTime']) {
+    for (let k = 0; k < combined.length - 1; k++) {
+        if (combined[k]['departureTime'] > combined[k + 1]['departureTime']) {
             error = true;
             break;
         }
@@ -113,7 +119,7 @@ test('Test that all Connections are correctly sorted by departure time', () => {
 });
 
 test('Test that resulting JSON-LD data is correct', async () => {
-    expect.assertions(1);
+    expect.assertions(2);
     let data = await utils.addHydraMetada({
         host: 'http://localhost:3000/',
         agency: 'test',
@@ -124,6 +130,132 @@ test('Test that resulting JSON-LD data is correct', async () => {
     });
     let rdf = await jsonld.toRDF(data);
     expect(rdf).toBeDefined();
+
+    let trig = await utils.jsonld2RDF(data, 'application/trig');
+    expect(trig).toBeDefined();
+});
+
+test('Test that the cache headers handled correctly', () => {
+    expect.assertions(9);
+
+    // Create request and response mock objects
+    let req = {
+        headers: new Map(),
+        header(header) {
+            return this.headers.get(header);
+        }
+    };
+    let res = {
+        sts: null,
+        headers: new Map(),
+        set(header) {
+            this.headers.set(Object.keys(header)[0], header[Object.keys(header)[0]]);
+        },
+        status(status) {
+            this.sts = status;
+            return this;
+        },
+        send() { }
+    };
+
+    // Path to some test data fragment used to define LastModifiedDate header
+    let path = utils.datasetsConfig['storage'] + '/linked_pages/test/' + v + '/' + sf.toISOString() + '.jsonld.gz';
+    let now = new Date();
+
+    // Request for a departure time older than 3 hours with no live data -> should be immutable
+    utils.handleConditionalGET(req, res, path, false, new Date(now.getTime() - (3600 * 4 * 1000)));
+    expect(res.headers.get('Cache-Control').indexOf('immutable')).toBeGreaterThan(-1);
+
+    res.headers = new Map();
+
+    // Request for a departure time older than 3 hours with live data -> should be immutable
+    utils.handleConditionalGET(req, res, path, true, new Date(now.getTime() - (3600 * 4 * 1000)));
+    expect(res.headers.get('Cache-Control').indexOf('immutable')).toBeGreaterThan(-1);
+
+    res.headers = new Map();
+
+    // Request for a departure time happening now with no live data -> should be valid for 24 hours
+    utils.handleConditionalGET(req, res, path, false, now);
+    expect(res.headers.get('Cache-Control').indexOf('max-age=86401')).toBeGreaterThan(-1);
+
+    res.headers = new Map();
+
+    // Request for a departure time happening now with live data -> should be valid for 32 seconds at most
+    utils.handleConditionalGET(req, res, path, true, now);
+    let cacheControl = res.headers.get('Cache-Control');
+    let maxAge = cacheControl.substring(cacheControl.indexOf('max-age='), cacheControl.indexOf('max-age=') + 10).split('=')[1];
+    if (maxAge.endsWith(',')) {
+        maxAge = maxAge.slice(0, -1);
+    }
+    expect(Number(maxAge)).toBeGreaterThan(0);
+    expect(Number(maxAge)).toBeLessThan(33);
+
+    res.headers = new Map();
+
+    // Request using the if-modified-since header -> should give a 304 response
+    req.headers.set('if-modified-since', now.toISOString());
+    utils.handleConditionalGET(req, res, path, true, now);
+    expect(res.sts).toBe(304);
+
+    res.headers = new Map();
+    res.status(null);
+    req.headers = new Map();
+
+    // Request using the If-Modified-Since header -> should not give a 304 response
+    req.headers.set('if-modified-since', new Date('2017-06-10T08:00:00.000Z').toISOString());
+    utils.handleConditionalGET(req, res, path, true, now);
+    expect(res.sts).toBeNull();
+
+    res.headers = new Map();
+    res.status(null);
+    req.headers = new Map();
+
+    // Issue a first request to get an ETag header value
+    let etag = null;
+    utils.handleConditionalGET(req, res, path, true, now);
+    etag = res.headers.get('ETag');
+    expect(etag).toBeDefined();
+
+    res.headers = new Map();
+    res.status(null);
+    req.headers = new Map();
+
+    // Issue a second request using the obtained ETag value in the If-None-Match header -> should return a 304 response
+    req.headers.set('if-none-match', etag);
+    utils.handleConditionalGET(req, res, path, true, now);
+    expect(res.sts).toBe(304);
+});
+
+test('Test to create DCAT catalog', async () => {
+    expect.assertions(1);
+    let res = {
+        sts: null,
+        headers: new Map(),
+        set(header) {
+            this.headers.set(Object.keys(header)[0], header[Object.keys(header)[0]]);
+        },
+        status(status) {
+            this.sts = status;
+            return this;
+        },
+        send() { }
+    };
+    let catalog = new Catalog({}, res);
+    catalog._utils = utils;
+    catalog._storage = utils.datasetsConfig['storage'];
+    catalog._datasets = utils.datasetsConfig['datasets'];
+    let cat = await catalog.createCatalog();
+    expect(cat['@context']).toBeDefined();
+});
+
+test('Test to retrieve list of stops', async () => {
+    expect.assertions(1);
+    let stops = new Stops();
+    stops._utils = utils;
+    stops._storage = utils.datasetsConfig['storage'];
+    stops._datasets = utils.datasetsConfig['datasets'];
+    let stps = await stops.createStopList('test');
+    expect(stps['@graph'].length).toBeGreaterThan(0);
 });
 
 function findConnection(id, array) {
