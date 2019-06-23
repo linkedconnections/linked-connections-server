@@ -109,13 +109,30 @@ test('Test a Connection that should be added due to a live update', async () => 
 test('Test that all Connections are correctly sorted by departure time', () => {
     expect.assertions(1);
     let error = false;
-    for(let k = 0; k < combined.length - 1; k++) {
-        if(combined[k]['departureTime'] > combined[k + 1]['departureTime']) {
+    for (let k = 0; k < combined.length - 1; k++) {
+        if (combined[k]['departureTime'] > combined[k + 1]['departureTime']) {
             error = true;
             break;
         }
     }
     expect(error).toBeFalsy();
+});
+
+test('Test that resulting JSON-LD data is correct', async () => {
+    expect.assertions(2);
+    let data = await utils.addHydraMetada({
+        host: 'http://localhost:3000/',
+        agency: 'test',
+        departureTime: sf,
+        version: v,
+        index: i,
+        data: combined
+    });
+    let rdf = await jsonld.toRDF(data);
+    expect(rdf).toBeDefined();
+
+    let trig = await utils.jsonld2RDF(data, 'application/trig');
+    expect(trig).toBeDefined();
 });
 
 test('Test that the cache headers handled correctly', () => {
@@ -138,7 +155,7 @@ test('Test that the cache headers handled correctly', () => {
             this.sts = status;
             return this;
         },
-        send(){}
+        send() { }
     };
 
     // Path to some test data fragment used to define LastModifiedDate header
@@ -162,12 +179,12 @@ test('Test that the cache headers handled correctly', () => {
     expect(res.headers.get('Cache-Control').indexOf('max-age=86401')).toBeGreaterThan(-1);
 
     res.headers = new Map();
-    
+
     // Request for a departure time happening now with live data -> should be valid for 32 seconds at most
     utils.handleConditionalGET(req, res, path, true, now);
     let cacheControl = res.headers.get('Cache-Control');
     let maxAge = cacheControl.substring(cacheControl.indexOf('max-age='), cacheControl.indexOf('max-age=') + 10).split('=')[1];
-    if(maxAge.endsWith(',')) {
+    if (maxAge.endsWith(',')) {
         maxAge = maxAge.slice(0, -1);
     }
     expect(Number(maxAge)).toBeGreaterThan(0);
@@ -209,20 +226,6 @@ test('Test that the cache headers handled correctly', () => {
     expect(res.sts).toBe(304);
 });
 
-test('Test that resulting JSON-LD data is correct', async () => {
-    expect.assertions(1);
-    let data = await utils.addHydraMetada({
-        host: 'http://localhost:3000/',
-        agency: 'test',
-        departureTime: sf,
-        version: v,
-        index: i,
-        data: combined
-    });
-    let rdf = await jsonld.toRDF(data);
-    expect(rdf).toBeDefined();
-});
-
 test('Test to create DCAT catalog', async () => {
     expect.assertions(1);
     let res = {
@@ -235,7 +238,7 @@ test('Test to create DCAT catalog', async () => {
             this.sts = status;
             return this;
         },
-        send(){}
+        send() { }
     };
     let catalog = new Catalog({}, res);
     catalog._utils = utils;
