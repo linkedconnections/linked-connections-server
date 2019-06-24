@@ -127,7 +127,7 @@ dsm._datasets[0]['realTimeData'] = {
 
 test('Test loading all required GTFS indexes to process GTFS-RT updates', async () => {
     expect.assertions(4);
-    await dsm.loadGTFSIdentifiers(0, dsm._datasets[0]);
+    await dsm.loadGTFSIdentifiers(0, dsm._datasets[0], dsm.storage + '/real_time/test/.indexes');
     expect(dsm.indexes[0]['routes'].size).toBeGreaterThan(0);
     expect(dsm.indexes[0]['trips'].size).toBeGreaterThan(0);
     expect(dsm.indexes[0]['stops'].size).toBeGreaterThan(0);
