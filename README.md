@@ -1,6 +1,6 @@
 # Linked Connections Server
 
-[![Build Status](https://travis-ci.com/linkedconnections/linked-connections-server.svg?branch=master)](https://travis-ci.com/julianrojas87/linked-connections-server.svg?branch=master) [![Coverage Status](https://coveralls.io/repos/github/linkedconnections/linked-connections-server/badge.svg?branch=master)](https://coveralls.io/github/linkedconnections/linked-connections-server?branch=development)
+[![Build Status](https://travis-ci.com/linkedconnections/linked-connections-server.svg?branch=master)](https://travis-ci.com/linkedconnections/linked-connections-server) [![Coverage Status](https://coveralls.io/repos/github/linkedconnections/linked-connections-server/badge.svg?branch=master)](https://coveralls.io/github/linkedconnections/linked-connections-server?branch=development)
 
 Express based Web Server that exposes [Linked Connections](http://linkedconnections.org/) data fragments using [JSON-LD](https://json-ld.org/) serialization format. It also provides a built-in tool to parse [GTFS](https://developers.google.com/tansit/gtfs/reference/) and [GTFS Realtime](https://developers.google.com/transit/gtfs-realtime/) transport dataset feeds into a Linked Connections Directed Acyclic Graph using [GTFS2LC](https://github.com/linkedconnections/gtfs2lc) and fragment it following a configurable predefined size.
 
