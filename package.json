@@ -1,14 +1,14 @@
 {
   "name": "linked-connections-server",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "author": "Julian Rojas",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/julianrojas87/linked-connections-server.git"
+    "url": "git+https://github.com/linkedconnections/linked-connections-server.git"
   },
   "bugs": {
-    "url": "https://github.com/julianrojas87/linked-connections-server/issues"
+    "url": "https://github.com/linkedconnections/linked-connections-server/issues"
   },
   "scripts": {
     "test": "jest",
