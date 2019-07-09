@@ -20,7 +20,7 @@
     "cookie-parser": "^1.4.4",
     "cron": "~1.7.1",
     "debug": "~4.1.1",
-    "del": "^4.1.1",
+    "del": "^5.0.0",
     "express": "^4.17.1",
     "fast-csv": "^3.0.1",
     "firstline": "^2.0.2",
