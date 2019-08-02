@@ -136,7 +136,7 @@ test('Test that resulting JSON-LD data is correct', async () => {
 });
 
 test('Test that the cache headers handled correctly', () => {
-    expect.assertions(10);
+    expect.assertions(12);
 
     // Create request and response mock objects
     let req = {
@@ -165,25 +165,25 @@ test('Test that the cache headers handled correctly', () => {
     let now = new Date();
 
     // Request for a departure time older than 3 hours with no live data -> should be immutable
-    utils.handleConditionalGET(req, res, accept, path, false, new Date(now.getTime() - (3600 * 4 * 1000)));
+    utils.handleConditionalGET('test', req, res, accept, path, false, new Date(now.getTime() - (3600 * 4 * 1000)));
     expect(res.headers.get('Cache-Control').indexOf('immutable')).toBeGreaterThan(-1);
 
     res.headers = new Map();
 
     // Request for a departure time older than 3 hours with live data -> should be immutable
-    utils.handleConditionalGET(req, res, accept, path, true, new Date(now.getTime() - (3600 * 4 * 1000)));
+    utils.handleConditionalGET('test', req, res, accept, path, true, new Date(now.getTime() - (3600 * 4 * 1000)));
     expect(res.headers.get('Cache-Control').indexOf('immutable')).toBeGreaterThan(-1);
 
     res.headers = new Map();
 
     // Request for a departure time happening now with no live data -> should be valid for 24 hours
-    utils.handleConditionalGET(req, res, accept, path, false, now);
+    utils.handleConditionalGET('test', req, res, accept, path, false, now);
     expect(res.headers.get('Cache-Control').indexOf('max-age=86401')).toBeGreaterThan(-1);
 
     res.headers = new Map();
 
     // Request for a departure time happening now with live data -> should be valid for 32 seconds at most
-    utils.handleConditionalGET(req, res, accept, path, true, now);
+    utils.handleConditionalGET('test', req, res, accept, path, true, now);
     let cacheControl = res.headers.get('Cache-Control');
     let maxAge = cacheControl.substring(cacheControl.indexOf('max-age='), cacheControl.indexOf('max-age=') + 10).split('=')[1];
     if (maxAge.endsWith(',')) {
@@ -196,7 +196,7 @@ test('Test that the cache headers handled correctly', () => {
 
     // Request using the if-modified-since header -> should give a 304 response
     req.headers.set('if-modified-since', now.toISOString());
-    utils.handleConditionalGET(req, res, accept, path, true, now);
+    utils.handleConditionalGET('test', req, res, accept, path, true, now);
     expect(res.sts).toBe(304);
 
     res.headers = new Map();
@@ -205,7 +205,7 @@ test('Test that the cache headers handled correctly', () => {
 
     // Request using the If-Modified-Since header -> should NOT give a 304 response
     req.headers.set('if-modified-since', new Date('2017-06-10T08:00:00.000Z').toISOString());
-    utils.handleConditionalGET(req, res, accept, path, true, now);
+    utils.handleConditionalGET('test', req, res, accept, path, true, now);
     expect(res.sts).toBeNull();
 
     res.headers = new Map();
@@ -214,7 +214,7 @@ test('Test that the cache headers handled correctly', () => {
 
     // Issue a first request to get an ETag header value
     let etag = null;
-    utils.handleConditionalGET(req, res, accept, path, true, now);
+    utils.handleConditionalGET('test', req, res, accept, path, true, now);
     etag = res.headers.get('ETag');
     expect(etag).toBeDefined();
 
@@ -224,7 +224,7 @@ test('Test that the cache headers handled correctly', () => {
 
     // Issue a second request using the obtained ETag value in the If-None-Match header -> should return a 304 response
     req.headers.set('if-none-match', etag);
-    utils.handleConditionalGET(req, res, accept, path, true, now);
+    utils.handleConditionalGET('test', req, res, accept, path, true, now);
     expect(res.sts).toBe(304);
 
     res.headers = new Map();
@@ -233,8 +233,23 @@ test('Test that the cache headers handled correctly', () => {
     // Issue a third request using the obtained ETag value in the If-None-Match header but a different accept 
     // header -> should NOT give a 304 response
     req.headers.set('if-none-match', etag);
-    utils.handleConditionalGET(req, res, 'application/trig', path, true, now);
+    utils.handleConditionalGET('test', req, res, 'application/trig', path, true, now);
     expect(res.sts).toBeNull();
+
+    res.headers = new Map();
+    res.status(null);
+    req.headers = new Map();
+
+    // Request a memento of a resource from 10 mins ago -> should be immutable
+    utils.handleConditionalGET('test', req, res, accept, path, true, now, new Date(now.getTime() - (60 * 10 * 1000)));
+    expect(res.headers.get('Cache-Control').indexOf('immutable')).toBeGreaterThan(-1);
+
+    res.headers = new Map();
+
+    // Request a memento of a resource without live data 10 mins in the future (which makes no sense but is still possible) 
+    // -> should be valid for 24 hours
+    utils.handleConditionalGET('test', req, res, accept, path, false, now, new Date(now.getTime() + (60 * 10 * 1000)));
+    expect(res.headers.get('Cache-Control').indexOf('max-age=86401')).toBeGreaterThan(-1);
 });
 
 test('Test to create DCAT catalog', async () => {
