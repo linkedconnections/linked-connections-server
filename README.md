@@ -2,11 +2,18 @@
 Express based Web Server that exposes [Linked Connections](http://linkedconnections.org/) data fragments using [JSON-LD](https://json-ld.org/) serialization format. It also provides a built-in tool to parse [GTFS](https://developers.google.com/tansit/gtfs/reference/) and [GTFS Realtime](https://developers.google.com/transit/gtfs-realtime/) transport dataset feeds into a Linked Connections Directed Acyclic Graph using [GTFS2LC](https://github.com/linkedconnections/gtfs2lc) and fragment it following a configurable predefined size.
 
 ## Installation
-First make sure to have [Node](https://nodejs.org/en/) 8.x or superior installed. To install the server proceed as follows:
+First make sure to have [Node](https://nodejs.org/en/) 10.18 installed. Higher versions of nodeJS are unsupported!. To install the server proceed as follows:
 ``` bash
 $ git clone https://github.com/julianrojas87/linked-connections-server.git
 $ cd linked-connections-server
 $ npm install
+```
+
+You can install other nodeJS versions using `nvm`:
+``` bash
+nvm install v10.18
+nvm use v10.18
+node -v # verify version
 ```
 
 ## Configuration
