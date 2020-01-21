@@ -32,8 +32,8 @@ var decompressed = null;
 var unsorted = null;
 var sorted = null;
 
-// Should take around 12s to complete all tests but Travis is not the fastest.
-jest.setTimeout(30000);
+// Should take around 17s to complete all tests but Travis is not the fastest.
+jest.setTimeout(90000);
 
 // Clean up after tests.
 afterAll(async () => {
