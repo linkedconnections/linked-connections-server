@@ -33,7 +33,7 @@ var unsorted = null;
 var sorted = null;
 
 // Should take around 17s to complete all tests but Travis is not the fastest.
-jest.setTimeout(1800000);
+jest.setTimeout(30000);
 
 // Clean up after tests.
 afterAll(async () => {
