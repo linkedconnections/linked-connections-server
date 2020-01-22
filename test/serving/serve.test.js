@@ -47,7 +47,7 @@ var high_limit = null;
 var liveData = null;
 var combined = null
 
-jest.setTimeout(60000);
+jest.setTimeout(1800000);
 
 test('Test that the in memory static fragments index is created', async () => {
     expect.assertions(2);
