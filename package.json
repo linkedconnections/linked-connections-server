@@ -28,7 +28,7 @@
     "follow-redirects": "^1.9.0",
     "graceful-fs": "^4.2.3",
     "gtfs2lc": "^0.8.11",
-    "gtfsrt2lc": "^1.1.1",
+    "gtfsrt2lc": "^1.2.0",
     "jsonld": "^2.0.2",
     "jsonld-stream": "^1.0.3",
     "md5": "^2.2.1",
