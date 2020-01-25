@@ -144,10 +144,9 @@ test('Test processing a GTFS-RT update', async () => {
 });
 
 test('Call functions to increase coverage', async () => {
-    expect.assertions(11);
+    expect.assertions(10);
     await expect(dsm.manage()).resolves.not.toBeDefined();
     expect(dsm.launchStaticJob(0, dsm._datasets[0])).not.toBeDefined();
-    expect(await dsm.processStaticGTFS(0, dsm._datasets[0])).not.toBeDefined();
     expect(dsm.launchRTJob(0, dsm._datasets[0])).not.toBeDefined();
     expect(dsm.rtCompressionJob(dsm._datasets[0])).not.toBeDefined();
     await expect(dsm.downloadDataset({ downloadUrl: 'https' })).rejects.toBeDefined();
