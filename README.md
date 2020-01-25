@@ -72,6 +72,8 @@ The Web Server does not provide any functionality by itself, it needs at least o
 
     - **compressionPeriod:** Cron expression that defines how often will the real-time data be compressed using gzip in order to reduce storage consumption.
 
+    - **indexStore:** Indicates where the required static indexes (routes, trips, stops and stop_times) will be stored while processing GTFS-RT updates. `MemStore` for RAM and `KeyvStore` for disk.
+
 - **baseURIs:** Here we define the URI templates that will be used to create the unique identifiers of each of the entities found in the Linked Connections. Is necessary to define URIs for [Connections](http://semweb.datasciencelab.be/ns/linkedconnections#Connection), [Stops](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md), [Trips](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md) and [Routes](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md). This is the only optional parameter and in case that is not defined, all base URIs will have a http://example.org/ pattern, but we recommend to always use dereferenceable URIs. Follow the [RFC 6570](https://tools.ietf.org/html/rfc6570) specification to define your URIs using the column names of the `routes` and `trips` GTFS source files. See an example next.
 
 ```js
@@ -94,13 +96,14 @@ The Web Server does not provide any functionality by itself, it needs at least o
                 "downloadUrl": "https://...",
                 "updatePeriod": "*/30 * * * * *", //every 30s
                 "fragmentTimeSpan": 600, // 600 seconds
-                "compressionPeriod": "0 0 3 * * *" // Every day at 3 am
+                "compressionPeriod": "0 0 3 * * *", // Every day at 3 am
+                "indexStore": "MemStore" // MemStore for RAM and KeyvStore for disk processing
             },
             "baseURIs": {
                 "stop": "http://example.org/stops/{stop_id}",
                 "route": "http://example.org/routes/{routes.route_id}",
-                "trip": "http://example.org/trips/{routes.route_id}/{trips.startTime(YYYYMMDD)}",
-                "connection:" 'http://example.org/connections/{routes.route_id}/{trips.startTime(YYYYMMDD)}{connection.departureStop}'
+                "trip": "http://example.org/trips/{routes.route_id}/{trips.startTime(yyyyMMdd)}",
+                "connection:" 'http://example.org/connections/{routes.route_id}/{trips.startTime(yyyyMMdd)}{connection.departureStop}'
             }
         },
         {
@@ -113,15 +116,15 @@ The Web Server does not provide any functionality by itself, it needs at least o
             "baseURIs": {
                 "stop": "http://example.org/stops/{stop_id}",
                 "route": "http://example.org/routes/{routes.route_id}",
-                "trip": "http://example.org/trips/{routes.route_id}/{trips.startTime(YYYYMMDD)}",
-                "connection:" 'http://example.org/connections/{routes.route_id}/{trips.startTime(YYYYMMDD)}{connection.departureStop}'
+                "trip": "http://example.org/trips/{routes.route_id}/{trips.startTime(yyyyMMdd)}",
+                "connection:" 'http://example.org/connections/{routes.route_id}/{trips.startTime(yyyyMMdd)}{connection.departureStop}'
             }
         }
     ]
 }
 ```
 
-Note that for defining the URI templates you can use the entity `connection` which consists of a `departureStop`, `departureTime`, `arrivalStop` and an `arrivalTime`. We have also noticed that using the start time of a trip (`trip.startTime`) is also a good practice to uniquely identify trips or even connections. If using any of the times variables you can define a specific format (see [here](https://www.w3.org/TR/NOTE-datetime)) as shown in the previous example.
+Note that for defining the URI templates you can use the entity `connection` which consists of a `departureStop`, `departureTime`, `arrivalStop` and an `arrivalTime`. We have also noticed that using the start time of a trip (`trip.startTime`) is also a good practice to uniquely identify trips or even connections. If using any of the times variables you can define a specific format (see [here](https://date-fns.org/v2.9.0/docs/format)) as shown in the previous example.
 
 ## Run it
 
