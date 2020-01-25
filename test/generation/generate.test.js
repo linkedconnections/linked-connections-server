@@ -22,7 +22,7 @@ dsm._datasets = [
             "connection": "http://example.test/connections/{connection.departureStop}/{routeName}/{tripStartTime}/",
             "resolve": {
                 "routeName": "routes.route_long_name.replace(/\\s/gi, '')",
-                "tripStartTime": "format(trips.startTime, 'YYYYMMDDTHHmm')"
+                "tripStartTime": "format(trips.startTime, 'yyyyMMdd\\'T\\'HHmm')"
             }
         }
     }
@@ -121,9 +121,19 @@ test('Test fragmenting the Linked Connections', async () => {
 dsm._datasets[0]['realTimeData'] = {
     "downloadUrl": "./test/generation/raw_data/cancelled_live",
     "updatePeriod": "*/30 * * * * *",
-    "fragmentTimeSpan": 600,
-    "compressionPeriod": "0 0 3 * * *"
+    "fragmentTimeSpan": 180,
+    "compressionPeriod": "0 0 3 * * *",
+    "indexStore": "MemStore"
 };
+
+test('Test loading all required GTFS indexes to process GTFS-RT updates', async () => {
+    expect.assertions(4);
+    await dsm.loadGTFSIdentifiers(0, dsm._datasets[0], dsm.storage + '/real_time/test/.indexes');
+    expect(dsm.indexes[0]['routes'].size).toBeGreaterThan(0);
+    expect(dsm.indexes[0]['trips'].size).toBeGreaterThan(0);
+    expect(dsm.indexes[0]['stops'].size).toBeGreaterThan(0);
+    expect(dsm.indexes[0]['stop_times'].size).toBeGreaterThan(0);
+});
 
 test('Test processing a GTFS-RT update', async () => {
     expect.assertions(1);
