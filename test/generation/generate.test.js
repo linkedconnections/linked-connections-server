@@ -14,6 +14,7 @@ dsm._datasets = [
     {
         "companyName": "test",
         "downloadUrl": "./test/generation/raw_data/cancelled_static.zip",
+        "updatePeriod": "0 0 3 * * *",
         "fragmentSize": 50000,
         "baseURIs": {
             "stop": "http://example.test/stations/{stops.stop_id}",
@@ -122,7 +123,7 @@ dsm._datasets[0]['realTimeData'] = {
     "downloadUrl": "./test/generation/raw_data/cancelled_live",
     "updatePeriod": "*/30 * * * * *",
     "fragmentTimeSpan": 180,
-    "compressionPeriod": "0 0 3 * * *",
+    "compressionPeriod": "0 0 0 1 * *",
     "indexStore": "MemStore"
 };
 
@@ -140,4 +141,19 @@ test('Test processing a GTFS-RT update', async () => {
     await dsm.processLiveUpdate(0, dsm._datasets[0], dsm.storage + '/real_time/test', {});
     let size = (await readdir(dsm.storage + '/real_time/test')).length;
     expect(size).toBeGreaterThan(0);
+});
+
+test('Call functions to increase coverage', async () => {
+    expect.assertions(11);
+    await expect(dsm.manage()).resolves.not.toBeDefined();
+    expect(dsm.launchStaticJob(0, dsm._datasets[0])).not.toBeDefined();
+    expect(await dsm.processStaticGTFS(0, dsm._datasets[0])).not.toBeDefined();
+    expect(dsm.launchRTJob(0, dsm._datasets[0])).not.toBeDefined();
+    expect(dsm.rtCompressionJob(dsm._datasets[0])).not.toBeDefined();
+    await expect(dsm.downloadDataset({ downloadUrl: 'https' })).rejects.toBeDefined();
+    await expect(dsm.download_http()).rejects.toBeDefined();
+    await expect(dsm.download_https()).rejects.toBeDefined();
+    expect(dsm.cleanRemoveCache({'2020-01-25T10:00:00.000Z': []}, new Date())).toBeDefined();
+    expect(dsm.storeRemoveList([['key', { '@id': 'id', track: [] }]], dsm.storage + '/real_time/test', new Date())).not.toBeDefined();
+    await expect(dsm.cleanUpIncompletes()).resolves.toHaveLength(1);
 });
