@@ -3,6 +3,7 @@ const util = require('util');
 const jsonld = require('jsonld');
 const Catalog = require('../../lib/routes/catalog');
 const Stops = require('../../lib/routes/stops');
+const Routes = require('../../lib/routes/routes');
 var utils = require('../../lib/utils/utils');
 const readfile = util.promisify(fs.readFile);
 
@@ -279,11 +280,19 @@ test('Test to create DCAT catalog', async () => {
 test('Test to retrieve list of stops', async () => {
     expect.assertions(1);
     let stops = new Stops();
-    stops._utils = utils;
     stops._storage = utils.datasetsConfig['storage'];
     stops._datasets = utils.datasetsConfig['datasets'];
     let stps = await stops.createStopList('test');
     expect(stps['@graph'].length).toBeGreaterThan(0);
+});
+
+test('Test to retrieve list of routes', async () => {
+    expect.assertions(1);
+    let routes = new Routes();
+    routes._storage = utils.datasetsConfig['storage'];
+    routes._datasets = utils.datasetsConfig['datasets'];
+    let rts = await routes.createRouteList('test');
+    expect(rts['@graph'].length).toBeGreaterThan(0);
 });
 
 function findConnection(id, array) {

@@ -85,7 +85,7 @@ test('Test creating Linked Connections', async () => {
 
 test('Test sorting Connections by departure time', async () => {
     expect.assertions(1);
-    sorted = `${dsm.storage}/linked_connections/test/sorted.jsonld`
+    sorted = `${dsm.storage}/linked_connections/test/sorted.json`
     await dsm.sortLCByDepartureTime(unsorted, sorted);
     expect(fs.existsSync(sorted)).toBeTruthy();
 });
@@ -93,9 +93,10 @@ test('Test sorting Connections by departure time', async () => {
 test('Test fragmenting the Linked Connections', () => {
     expect.assertions(1);
     return new Promise((resolve, reject) => {
+        fs.mkdirSync(`${dsm.storage}/linked_pages/test/sorted`);
         fs.createReadStream(sorted, 'utf8')
             .pipe(new jsonldstream.Deserializer())
-            .pipe(new pageWriterStream(`${dsm.storage}/linked_pages/test/`, dsm._datasets[0]['fragmentSize']))
+            .pipe(new pageWriterStream(`${dsm.storage}/linked_pages/test/sorted`, dsm._datasets[0]['fragmentSize']))
             .on('finish', () => {
                 resolve();
             })
@@ -105,6 +106,14 @@ test('Test fragmenting the Linked Connections', () => {
     }).then(async () => {
         expect((await readdir(`${dsm.storage}/linked_pages/test/`)).length).toBeGreaterThan(0);
     });
+});
+
+test('Test file compression', async () => {
+    expect.assertions(2);
+    await dsm.compressAll('sorted', 'test');
+    let lps = (await readdir(`${dsm.storage}/linked_pages/test/sorted`)).filter(lp => lp.endsWith('.gz'));
+    expect(lps.length).toBeGreaterThan(0);
+    expect(fs.existsSync(`${dsm.storage}/linked_connections/test/sorted.json.gz`)).toBeTruthy();
 });
 
 // Add live config params to start gtfs-rt related tests
