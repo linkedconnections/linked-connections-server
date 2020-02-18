@@ -3,10 +3,11 @@ const del = require('del');
 const util = require('util');
 const DSM = require('../../lib/manager/dataset_manager');
 const utils = require('../../lib/utils/utils');
-const { Connections, Connections2JSONLD } = require('gtfs2lc');
+const cp = require('child_process');
 const jsonldstream = require('jsonld-stream');
 const pageWriterStream = require('../../lib/manager/pageWriterStream');
 const readdir = util.promisify(fs.readdir);
+const exec = util.promisify(cp.exec);
 
 var dsm = new DSM();
 dsm._storage = __dirname + '/storage';
@@ -71,42 +72,29 @@ test('Test unzipping and pre-sorting GTFS source', async () => {
     decompressed = await utils.readAndUnzip(dsm.storage + '/datasets/test/' + source + '.zip');
     expect(decompressed).not.toBeNull();
     await dsm.preSortGTFS(decompressed);
-    expect(fs.existsSync(decompressed + '/connections.txt')).toBeTruthy();
+    expect(fs.existsSync(decompressed + '/connections_0.txt')).toBeTruthy();
 });
 
-test('Test creating Linked Connections', () => {
+test('Test creating Linked Connections', async () => {
+    await exec(`./node_modules/gtfs2lc/bin/gtfs2lc.js -f jsonld ${decompressed}`);
+    unsorted = `${decompressed}/linkedConnections.json`;
     expect.assertions(1);
-    return new Promise((resolve, reject) => {
-        let connGen = new Connections({});
-        connGen.resultStream(decompressed, (connStream, stopsdb) => {
-            connStream.pipe(new Connections2JSONLD(dsm._datasets[0]['baseURIs'], stopsdb))
-                .pipe(new jsonldstream.Serializer())
-                .pipe(fs.createWriteStream(dsm.storage + '/linked_connections/test/unsorted.jsonld', 'utf8'))
-                .on('finish', () => {
-                    resolve(dsm.storage + '/linked_connections/test/unsorted.jsonld');
-                });
-        });
-    }).then(path => {
-        unsorted = path;
-        expect(unsorted).not.toBeNull();
-    });
-
-
+    expect(fs.existsSync(unsorted)).toBeTruthy();
 });
 
 test('Test sorting Connections by departure time', async () => {
     expect.assertions(1);
-    sorted = dsm.storage + '/linked_connections/test/sorted.jsonld'
+    sorted = `${dsm.storage}/linked_connections/test/sorted.jsonld`
     await dsm.sortLCByDepartureTime(unsorted, sorted);
     expect(fs.existsSync(sorted)).toBeTruthy();
 });
 
-test('Test fragmenting the Linked Connections', async () => {
+test('Test fragmenting the Linked Connections', () => {
     expect.assertions(1);
     return new Promise((resolve, reject) => {
         fs.createReadStream(sorted, 'utf8')
             .pipe(new jsonldstream.Deserializer())
-            .pipe(new pageWriterStream(dsm.storage + '/linked_pages/test/', dsm._datasets[0]['fragmentSize']))
+            .pipe(new pageWriterStream(`${dsm.storage}/linked_pages/test/`, dsm._datasets[0]['fragmentSize']))
             .on('finish', () => {
                 resolve();
             })
@@ -114,7 +102,7 @@ test('Test fragmenting the Linked Connections', async () => {
                 reject(err);
             });
     }).then(async () => {
-        expect((await readdir(dsm.storage + '/linked_pages/test/')).length).toBeGreaterThan(0);
+        expect((await readdir(`${dsm.storage}/linked_pages/test/`)).length).toBeGreaterThan(0);
     });
 });
 
@@ -144,7 +132,7 @@ test('Test processing a GTFS-RT update', async () => {
 });
 
 test('Call functions to increase coverage', async () => {
-    expect.assertions(10);
+    expect.assertions(12);
     await expect(dsm.manage()).resolves.not.toBeDefined();
     expect(dsm.launchStaticJob(0, dsm._datasets[0])).not.toBeDefined();
     expect(dsm.launchRTJob(0, dsm._datasets[0])).not.toBeDefined();
@@ -155,4 +143,6 @@ test('Call functions to increase coverage', async () => {
     expect(dsm.cleanRemoveCache({'2020-01-25T10:00:00.000Z': []}, new Date())).toBeDefined();
     expect(dsm.storeRemoveList([['key', { '@id': 'id', track: [] }]], dsm.storage + '/real_time/test', new Date())).not.toBeDefined();
     await expect(dsm.cleanUpIncompletes()).resolves.toHaveLength(1);
+    expect(dsm.getBaseURIs({}).stop).toBeDefined();
+    await expect(dsm.copyFileFromDisk({})).rejects.toBeDefined();
 });
