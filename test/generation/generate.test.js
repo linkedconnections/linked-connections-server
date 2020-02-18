@@ -7,6 +7,7 @@ const cp = require('child_process');
 const jsonldstream = require('jsonld-stream');
 const pageWriterStream = require('../../lib/manager/pageWriterStream');
 const readdir = util.promisify(fs.readdir);
+const writeFile = util.promisify(fs.writeFile);
 const exec = util.promisify(cp.exec);
 
 var dsm = new DSM();
@@ -132,7 +133,7 @@ test('Test processing a GTFS-RT update', async () => {
 });
 
 test('Call functions to increase coverage', async () => {
-    expect.assertions(13);
+    expect.assertions(14);
     await expect(dsm.manage()).resolves.not.toBeDefined();
     expect(dsm.launchStaticJob(0, dsm._datasets[0])).not.toBeDefined();
     expect(dsm.launchRTJob(0, dsm._datasets[0])).not.toBeDefined();
@@ -146,4 +147,6 @@ test('Call functions to increase coverage', async () => {
     expect(dsm.getBaseURIs({}).stop).toBeDefined();
     await expect(dsm.copyFileFromDisk({})).rejects.toBeDefined();
     await expect(utils.getLatestGtfsSource(dsm.storage)).resolves.toBeNull();
+    await writeFile(`${dsm.storage}/datasets/test/2020-02-18T16:31:00.000Z.lock`, 'Test lock');
+    await expect(dsm.cleanUpIncompletes()).resolves.toHaveLength(1);
 });
