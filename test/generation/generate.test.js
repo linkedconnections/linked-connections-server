@@ -132,7 +132,7 @@ test('Test processing a GTFS-RT update', async () => {
 });
 
 test('Call functions to increase coverage', async () => {
-    expect.assertions(12);
+    expect.assertions(13);
     await expect(dsm.manage()).resolves.not.toBeDefined();
     expect(dsm.launchStaticJob(0, dsm._datasets[0])).not.toBeDefined();
     expect(dsm.launchRTJob(0, dsm._datasets[0])).not.toBeDefined();
@@ -145,4 +145,5 @@ test('Call functions to increase coverage', async () => {
     await expect(dsm.cleanUpIncompletes()).resolves.toHaveLength(1);
     expect(dsm.getBaseURIs({}).stop).toBeDefined();
     await expect(dsm.copyFileFromDisk({})).rejects.toBeDefined();
+    await expect(utils.getLatestGtfsSource(dsm.storage)).resolves.toBeNull();
 });
