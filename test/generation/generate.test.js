@@ -45,19 +45,21 @@ afterAll(async () => {
         dsm.storage + '/real_time',
         dsm.storage + '/datasets',
         dsm.storage + '/stops',
+        dsm.storage + '/routes',
         dsm.storage + '/linked_connections',
         dsm.storage + '/linked_pages'
     ], { force: true });
 });
 
 test('Test creation of required folders', async () => {
-    expect.assertions(6);
+    expect.assertions(7);
     dsm.initDirs();
     dsm.initCompanyDirs(dsm._datasets[0]['companyName']);
     expect(fs.existsSync(dsm.storage + '/tmp')).toBeTruthy();
     expect(fs.existsSync(dsm.storage + '/real_time/test')).toBeTruthy();
     expect(fs.existsSync(dsm.storage + '/datasets/test')).toBeTruthy();
     expect(fs.existsSync(dsm.storage + '/stops/test')).toBeTruthy();
+    expect(fs.existsSync(dsm.storage + '/routes/test')).toBeTruthy();
     expect(fs.existsSync(dsm.storage + '/linked_connections/test')).toBeTruthy();
     expect(fs.existsSync(dsm.storage + '/linked_pages/test')).toBeTruthy();
 });
@@ -142,7 +144,7 @@ test('Test processing a GTFS-RT update', async () => {
 });
 
 test('Call functions to increase coverage', async () => {
-    expect.assertions(14);
+    expect.assertions(15);
     await expect(dsm.manage()).resolves.not.toBeDefined();
     expect(dsm.launchStaticJob(0, dsm._datasets[0])).not.toBeDefined();
     expect(dsm.launchRTJob(0, dsm._datasets[0])).not.toBeDefined();
@@ -150,7 +152,7 @@ test('Call functions to increase coverage', async () => {
     await expect(dsm.downloadDataset({ downloadUrl: 'https' })).rejects.toBeDefined();
     await expect(dsm.download_http()).rejects.toBeDefined();
     await expect(dsm.download_https()).rejects.toBeDefined();
-    expect(dsm.cleanRemoveCache({'2020-01-25T10:00:00.000Z': []}, new Date())).toBeDefined();
+    expect(dsm.cleanRemoveCache({ '2020-01-25T10:00:00.000Z': [] }, new Date())).toBeDefined();
     expect(dsm.storeRemoveList([['key', { '@id': 'id', track: [] }]], dsm.storage + '/real_time/test', new Date())).not.toBeDefined();
     await expect(dsm.cleanUpIncompletes()).resolves.toHaveLength(1);
     expect(dsm.getBaseURIs({}).stop).toBeDefined();
@@ -158,4 +160,5 @@ test('Call functions to increase coverage', async () => {
     await expect(utils.getLatestGtfsSource(dsm.storage)).resolves.toBeNull();
     await writeFile(`${dsm.storage}/datasets/test/2020-02-18T16:31:00.000Z.lock`, 'Test lock');
     await expect(dsm.cleanUpIncompletes()).resolves.toHaveLength(1);
+    expect(utils.resolveValue('trips.trip_id', { trip: { 'trip_id': 'some_id' } })).toBe('some_id');
 });
