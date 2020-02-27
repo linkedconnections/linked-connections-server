@@ -258,6 +258,8 @@ test('Test that the cache headers handled correctly', () => {
 
 test('Test to create DCAT catalog', async () => {
     expect.assertions(1);
+    fs.mkdirSync(`${utils.datasetsConfig['storage']}/catalog`);
+    fs.mkdirSync(`${utils.datasetsConfig['storage']}/catalog/test`);
     let res = {
         sts: null,
         headers: new Map(),
@@ -270,11 +272,12 @@ test('Test to create DCAT catalog', async () => {
         },
         send() { }
     };
-    let catalog = new Catalog({}, res);
-    catalog._utils = utils;
+    let catalog = new Catalog();
+    await catalog.getCatalog({ params: { agency: "test" }}, res);
+    await del([`${utils.datasetsConfig['storage']}/catalog`], { force: true});
     catalog._storage = utils.datasetsConfig['storage'];
     catalog._datasets = utils.datasetsConfig['datasets'];
-    let cat = await catalog.createCatalog();
+    let cat = await catalog.createCatalog('test');
     expect(cat['@context']).toBeDefined();
 });
 
