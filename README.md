@@ -19,6 +19,7 @@ npm install
 The configuration is made through two different config files. One is for defining Web Server parameters ([server_config.json](https://github.com/julianrojas87/linked-connections-server/blob/master/server_config.json.example)) and the other is for defining the different data sources that will be managed and exposed through the Linked Connections Server ([datasets_config.json](https://github.com/julianrojas87/linked-connections-server/blob/master/datasets_config.json.example)). Next you could find an example and a description of each config file.
 
 ### Web Server configuration
+
 As mentioned above the Web server configuration is made using the ([server_config.json](https://github.com/julianrojas87/linked-connections-server/blob/master/server_config.json.example)) config file which uses the JSON format and defines the following properties:
 
 - **hostname:** Used to define the Web Server host name. **Is a mandatory parameter**.
@@ -71,7 +72,7 @@ The Web Server does not provide any functionality by itself, it needs at least o
     - **indexStore:** Indicates where the required static indexes (routes, trips, stops and stop_times) will be stored while processing GTFS-RT updates. `MemStore` for RAM and `KeyvStore` for disk.
     - **deduce**: If the GTFS-RT feed does not provide a explicit `tripId` for every update, set this parameter to `true`, so they can be identified using additional GTFS indexes.
 
-- **baseURIs:** Here we define the URI templates that will be used to create the unique identifiers of each of the entities found in the Linked Connections. Is necessary to define URIs for [Connections](http://semweb.datasciencelab.be/ns/linkedconnections#Connection), [Stops](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md), [Trips](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md) and [Routes](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md). This is the only optional parameter and in case that is not defined, all base URIs will have a http://example.org/ pattern, but we recommend to always use dereferenceable URIs. Follow the [RFC 6570](https://tools.ietf.org/html/rfc6570) specification to define your URIs using the column names of the `routes` and `trips` GTFS source files. See an example next.
+- **baseURIs:** Here we define the URI templates that will be used to create the unique identifiers of each of the entities found in the Linked Connections. Is necessary to define URIs for [Connections](http://semweb.datasciencelab.be/ns/linkedconnections#Connection), [Stops](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md), [Trips](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md) and [Routes](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md). This is the only optional parameter and in case that is not defined, all base URIs will have a <http://example.org/> pattern, but we recommend to always use dereferenceable URIs. Follow the [RFC 6570](https://tools.ietf.org/html/rfc6570) specification to define your URIs using the column names of the `routes` and `trips` GTFS source files. See an example next.
 
 ```js
 {
@@ -142,8 +143,6 @@ node bin/datasets # Data fetching
 node bin/web-server # Linked Connections Web server
 ```
 
-
-
 ## Use it
 
 To use it make sure you already have at least one fully processed dataset (the logs will tell you when). If so you can query the Linked Connections using the departure time as a parameter like this for example:
@@ -208,7 +207,7 @@ curl -v -L -H "Accept-Datetime: 2017-10-06T13:00:00.000Z" http://localhost:3000/
 < Connection: keep-alive
 ```
 
-The previous example shows a request made to obtain the Connections fragment identified by the URL http://localhost:3000/companyX/connections?departureTime=2017-10-06T15:50:00.000Z, but specifically the state of this fragment as it was at **Accept-Datetime: 2017-10-06T13:00:00.000Z**. This means that is possible to know what was the state of the delays at 13:00 for the departures at 15:50 on 2017-10-06.
+The previous example shows a request made to obtain the Connections fragment identified by the URL <http://localhost:3000/companyX/connections?departureTime=2017-10-06T15:50:00.000Z,> but specifically the state of this fragment as it was at **Accept-Datetime: 2017-10-06T13:00:00.000Z**. This means that is possible to know what was the state of the delays at 13:00 for the departures at 15:50 on 2017-10-06.
 
 ## Authors
 
