@@ -6,7 +6,7 @@ Express based Web Server that exposes [Linked Connections](http://linkedconnecti
 
 ## Installation
 
-First make sure to have [Node](https://nodejs.org/en/) 8.x or superior installed. To install the server proceed as follows:
+First make sure to have [Node](https://nodejs.org/en/) 11.7.x or superior installed. To install the server proceed as follows:
 
 ``` bash
 git clone https://github.com/julianrojas87/linked-connections-server.git
