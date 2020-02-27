@@ -1,8 +1,10 @@
 const fs = require('fs');
+const del = require('del');
 const util = require('util');
 const jsonld = require('jsonld');
 const Catalog = require('../../lib/routes/catalog');
 const Stops = require('../../lib/routes/stops');
+const Routes = require('../../lib/routes/routes');
 var utils = require('../../lib/utils/utils');
 const readfile = util.promisify(fs.readFile);
 
@@ -256,6 +258,8 @@ test('Test that the cache headers handled correctly', () => {
 
 test('Test to create DCAT catalog', async () => {
     expect.assertions(1);
+    fs.mkdirSync(`${utils.datasetsConfig['storage']}/catalog`);
+    fs.mkdirSync(`${utils.datasetsConfig['storage']}/catalog/test`);
     let res = {
         sts: null,
         headers: new Map(),
@@ -268,22 +272,52 @@ test('Test to create DCAT catalog', async () => {
         },
         send() { }
     };
-    let catalog = new Catalog({}, res);
-    catalog._utils = utils;
+    let catalog = new Catalog();
+    await catalog.getCatalog({ params: { agency: "test" }}, res);
+    await del([`${utils.datasetsConfig['storage']}/catalog`], { force: true});
     catalog._storage = utils.datasetsConfig['storage'];
     catalog._datasets = utils.datasetsConfig['datasets'];
-    let cat = await catalog.createCatalog();
+    let cat = await catalog.createCatalog('test');
     expect(cat['@context']).toBeDefined();
 });
 
 test('Test to retrieve list of stops', async () => {
     expect.assertions(1);
     let stops = new Stops();
-    stops._utils = utils;
     stops._storage = utils.datasetsConfig['storage'];
     stops._datasets = utils.datasetsConfig['datasets'];
     let stps = await stops.createStopList('test');
     expect(stps['@graph'].length).toBeGreaterThan(0);
+});
+
+test('Test to retrieve list of routes', async () => {
+    expect.assertions(1);
+    let routes = new Routes();
+    routes._storage = utils.datasetsConfig['storage'];
+    routes._datasets = utils.datasetsConfig['datasets'];
+    let rts = await routes.createRouteList('test');
+    expect(rts['@graph'].length).toBeGreaterThan(0);
+});
+
+test('Simulate http request for routes', async () => {
+    expect.assertions(2);
+    fs.mkdirSync(`${utils.datasetsConfig['storage']}/routes`);
+    fs.mkdirSync(`${utils.datasetsConfig['storage']}/routes/test`);
+    let routes = new Routes();
+    routes._storage = utils.datasetsConfig['storage'];
+    routes._datasets = utils.datasetsConfig['datasets'];
+    let res = {
+        headers: new Map(),
+        toSend: null,
+        set: h => {},
+        send(data) { this.toSend = data }
+    };
+    await routes.getRoutes({ params: { agency: 'test' } }, res);
+    expect(res.toSend).not.toBeNull();
+    res.toSend = null;
+    await routes.getRoutes({ params: { agency: 'test' } }, res);
+    expect(res.toSend).not.toBeNull();
+    await del([`${utils.datasetsConfig['storage']}/routes`], { force: true});
 });
 
 function findConnection(id, array) {

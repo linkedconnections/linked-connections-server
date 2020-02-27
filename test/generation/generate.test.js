@@ -3,10 +3,12 @@ const del = require('del');
 const util = require('util');
 const DSM = require('../../lib/manager/dataset_manager');
 const utils = require('../../lib/utils/utils');
-const { Connections, Connections2JSONLD } = require('gtfs2lc');
+const cp = require('child_process');
 const jsonldstream = require('jsonld-stream');
 const pageWriterStream = require('../../lib/manager/pageWriterStream');
 const readdir = util.promisify(fs.readdir);
+const writeFile = util.promisify(fs.writeFile);
+const exec = util.promisify(cp.exec);
 
 var dsm = new DSM();
 dsm._storage = __dirname + '/storage';
@@ -43,19 +45,21 @@ afterAll(async () => {
         dsm.storage + '/real_time',
         dsm.storage + '/datasets',
         dsm.storage + '/stops',
+        dsm.storage + '/routes',
         dsm.storage + '/linked_connections',
         dsm.storage + '/linked_pages'
     ], { force: true });
 });
 
 test('Test creation of required folders', async () => {
-    expect.assertions(6);
+    expect.assertions(7);
     dsm.initDirs();
     dsm.initCompanyDirs(dsm._datasets[0]['companyName']);
     expect(fs.existsSync(dsm.storage + '/tmp')).toBeTruthy();
     expect(fs.existsSync(dsm.storage + '/real_time/test')).toBeTruthy();
     expect(fs.existsSync(dsm.storage + '/datasets/test')).toBeTruthy();
     expect(fs.existsSync(dsm.storage + '/stops/test')).toBeTruthy();
+    expect(fs.existsSync(dsm.storage + '/routes/test')).toBeTruthy();
     expect(fs.existsSync(dsm.storage + '/linked_connections/test')).toBeTruthy();
     expect(fs.existsSync(dsm.storage + '/linked_pages/test')).toBeTruthy();
 });
@@ -71,42 +75,30 @@ test('Test unzipping and pre-sorting GTFS source', async () => {
     decompressed = await utils.readAndUnzip(dsm.storage + '/datasets/test/' + source + '.zip');
     expect(decompressed).not.toBeNull();
     await dsm.preSortGTFS(decompressed);
-    expect(fs.existsSync(decompressed + '/connections.txt')).toBeTruthy();
+    expect(fs.existsSync(decompressed + '/connections_0.txt')).toBeTruthy();
 });
 
-test('Test creating Linked Connections', () => {
+test('Test creating Linked Connections', async () => {
+    await exec(`./node_modules/gtfs2lc/bin/gtfs2lc.js -f jsonld ${decompressed}`);
+    unsorted = `${decompressed}/linkedConnections.json`;
     expect.assertions(1);
-    return new Promise((resolve, reject) => {
-        let connGen = new Connections({});
-        connGen.resultStream(decompressed, (connStream, stopsdb) => {
-            connStream.pipe(new Connections2JSONLD(dsm._datasets[0]['baseURIs'], stopsdb))
-                .pipe(new jsonldstream.Serializer())
-                .pipe(fs.createWriteStream(dsm.storage + '/linked_connections/test/unsorted.jsonld', 'utf8'))
-                .on('finish', () => {
-                    resolve(dsm.storage + '/linked_connections/test/unsorted.jsonld');
-                });
-        });
-    }).then(path => {
-        unsorted = path;
-        expect(unsorted).not.toBeNull();
-    });
-
-
+    expect(fs.existsSync(unsorted)).toBeTruthy();
 });
 
 test('Test sorting Connections by departure time', async () => {
     expect.assertions(1);
-    sorted = dsm.storage + '/linked_connections/test/sorted.jsonld'
+    sorted = `${dsm.storage}/linked_connections/test/sorted.json`
     await dsm.sortLCByDepartureTime(unsorted, sorted);
     expect(fs.existsSync(sorted)).toBeTruthy();
 });
 
-test('Test fragmenting the Linked Connections', async () => {
+test('Test fragmenting the Linked Connections', () => {
     expect.assertions(1);
     return new Promise((resolve, reject) => {
+        fs.mkdirSync(`${dsm.storage}/linked_pages/test/sorted`);
         fs.createReadStream(sorted, 'utf8')
             .pipe(new jsonldstream.Deserializer())
-            .pipe(new pageWriterStream(dsm.storage + '/linked_pages/test/', dsm._datasets[0]['fragmentSize']))
+            .pipe(new pageWriterStream(`${dsm.storage}/linked_pages/test/sorted`, dsm._datasets[0]['fragmentSize']))
             .on('finish', () => {
                 resolve();
             })
@@ -114,8 +106,16 @@ test('Test fragmenting the Linked Connections', async () => {
                 reject(err);
             });
     }).then(async () => {
-        expect((await readdir(dsm.storage + '/linked_pages/test/')).length).toBeGreaterThan(0);
+        expect((await readdir(`${dsm.storage}/linked_pages/test/`)).length).toBeGreaterThan(0);
     });
+});
+
+test('Test file compression', async () => {
+    expect.assertions(2);
+    await dsm.compressAll('sorted', 'test');
+    let lps = (await readdir(`${dsm.storage}/linked_pages/test/sorted`)).filter(lp => lp.endsWith('.gz'));
+    expect(lps.length).toBeGreaterThan(0);
+    expect(fs.existsSync(`${dsm.storage}/linked_connections/test/sorted.json.gz`)).toBeTruthy();
 });
 
 // Add live config params to start gtfs-rt related tests
@@ -144,7 +144,7 @@ test('Test processing a GTFS-RT update', async () => {
 });
 
 test('Call functions to increase coverage', async () => {
-    expect.assertions(10);
+    expect.assertions(15);
     await expect(dsm.manage()).resolves.not.toBeDefined();
     expect(dsm.launchStaticJob(0, dsm._datasets[0])).not.toBeDefined();
     expect(dsm.launchRTJob(0, dsm._datasets[0])).not.toBeDefined();
@@ -152,7 +152,13 @@ test('Call functions to increase coverage', async () => {
     await expect(dsm.downloadDataset({ downloadUrl: 'https' })).rejects.toBeDefined();
     await expect(dsm.download_http()).rejects.toBeDefined();
     await expect(dsm.download_https()).rejects.toBeDefined();
-    expect(dsm.cleanRemoveCache({'2020-01-25T10:00:00.000Z': []}, new Date())).toBeDefined();
+    expect(dsm.cleanRemoveCache({ '2020-01-25T10:00:00.000Z': [] }, new Date())).toBeDefined();
     expect(dsm.storeRemoveList([['key', { '@id': 'id', track: [] }]], dsm.storage + '/real_time/test', new Date())).not.toBeDefined();
     await expect(dsm.cleanUpIncompletes()).resolves.toHaveLength(1);
+    expect(dsm.getBaseURIs({}).stop).toBeDefined();
+    await expect(dsm.copyFileFromDisk({})).rejects.toBeDefined();
+    await expect(utils.getLatestGtfsSource(dsm.storage)).resolves.toBeNull();
+    await writeFile(`${dsm.storage}/datasets/test/2020-02-18T16:31:00.000Z.lock`, 'Test lock');
+    await expect(dsm.cleanUpIncompletes()).resolves.toHaveLength(1);
+    expect(utils.resolveValue('trips.trip_id', { trip: { 'trip_id': 'some_id' } })).toBe('some_id');
 });

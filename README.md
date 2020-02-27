@@ -48,11 +48,11 @@ The Web Server does not provide any functionality by itself, it needs at least o
 
 - **organization:** URI and name of the data publisher.
 
-- **keywords:** Related keywords for a given dataset. E.g. types of vehicles available.
+- **keywords:** Related keywords for a given dataset. E.g., types of vehicles available.
 
 - **companyName:** Name of the transport company that provides the GTFS dataset feed.
 
-- **geographicArea:** Geonames URI that represents the geographic area served by the public transport provider.
+- **geographicArea:** [GeoNames](https://www.geonames.org/) URI that represents the geographic area served by the public transport provider.
 
 - **downloadUrl:** URL where the GTFS dataset feed can be downloaded.
 
@@ -63,16 +63,13 @@ The Web Server does not provide any functionality by itself, it needs at least o
 - **fragmentSize:** Defines the maximum size of every linked data fragment in bytes.
 
 - **realTimeData:** If available, here we define all the parameters related with a GTFS-RT feed.
-
     - **downloadUrl:** Here we define the URL to download the GTFS-RT data feed.
-
+    - **headers**: Some GTFS-RT feeds require API keys to be accessed.
     - **updatePeriod:** Cron expression that defines how often should the server look for and process a new version of the dataset. We use the [node-cron](https://github.com/kelektiv/node-cron) library for this.
-
     - **fragmentTimeSpan:** This defines the fragmentation of real-time data. It represents the time span of every fragment in seconds.
-
     - **compressionPeriod:** Cron expression that defines how often will the real-time data be compressed using gzip in order to reduce storage consumption.
-
     - **indexStore:** Indicates where the required static indexes (routes, trips, stops and stop_times) will be stored while processing GTFS-RT updates. `MemStore` for RAM and `KeyvStore` for disk.
+    - **deduce**: If the GTFS-RT feed does not provide a explicit `tripId` for every update, set this parameter to `true`, so they can be identified using additional GTFS indexes.
 
 - **baseURIs:** Here we define the URI templates that will be used to create the unique identifiers of each of the entities found in the Linked Connections. Is necessary to define URIs for [Connections](http://semweb.datasciencelab.be/ns/linkedconnections#Connection), [Stops](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md), [Trips](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md) and [Routes](https://github.com/OpenTransport/linked-gtfs/blob/master/spec.md). This is the only optional parameter and in case that is not defined, all base URIs will have a http://example.org/ pattern, but we recommend to always use dereferenceable URIs. Follow the [RFC 6570](https://tools.ietf.org/html/rfc6570) specification to define your URIs using the column names of the `routes` and `trips` GTFS source files. See an example next.
 
@@ -94,10 +91,12 @@ The Web Server does not provide any functionality by itself, it needs at least o
             "fragmentSize": 50000, // 50 Kb
             "realTimeData": {
                 "downloadUrl": "https://...",
+                "headers": { "apiKeyHttpHeader": "my_api_key" },
                 "updatePeriod": "*/30 * * * * *", //every 30s
                 "fragmentTimeSpan": 600, // 600 seconds
                 "compressionPeriod": "0 0 3 * * *", // Every day at 3 am
-                "indexStore": "MemStore" // MemStore for RAM and KeyvStore for disk processing
+                "indexStore": "MemStore", // MemStore for RAM and KeyvStore for disk processing,=
+                "deduce": true // Set true only if the GTFS-RT feed does not provide tripIds
             },
             "baseURIs": {
                 "stop": "http://example.org/stops/{stop_id}",
@@ -135,7 +134,15 @@ cd linked-connections-server
 npm start
 ```
 
-After started your server will start fetching the datasets you configured according to their Cron configuration.
+Or run the data fetching and the Web server separately:
+
+```bash
+cd linked-connections-server
+node bin/datasets # Data fetching
+node bin/web-server # Linked Connections Web server
+```
+
+
 
 ## Use it
 
@@ -146,6 +153,19 @@ http://localhost:3000/companyX/connections?departureTime=2017-08-11T16:45:00.000
 ```
 
 If available, the server will redirect you to the Linked Connections fragment that contains connections with departure times as close as possible to the one requested.
+
+The server also publishes the stops and routes of every defined GTFS datasource:
+
+```http
+http://localhost:3000/companyX/stops
+http://localhost:3000/companyX/routes
+```
+
+A [DCAT](https://www.w3.org/TR/vocab-dcat-2/) catalog describing all datasets of a certain company can be obtained like this:
+
+```http
+http://localhost:3000/companyX/catalog
+```
 
 ## Historic Data
 
