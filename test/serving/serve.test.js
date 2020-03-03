@@ -279,6 +279,7 @@ test('Test to create DCAT catalog', async () => {
     };
     let catalog = new Catalog();
     await catalog.getCatalog({ params: { agency: "test" }}, res);
+    await catalog.getCatalog({ params: { agency: "test" }}, res);
     await del([`${utils.datasetsConfig['storage']}/catalog`], { force: true});
     catalog._storage = utils.datasetsConfig['storage'];
     catalog._datasets = utils.datasetsConfig['datasets'];
