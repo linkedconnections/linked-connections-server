@@ -5,7 +5,8 @@ const jsonld = require('jsonld');
 const Catalog = require('../../lib/routes/catalog');
 const Stops = require('../../lib/routes/stops');
 const Routes = require('../../lib/routes/routes');
-var utils = require('../../lib/utils/utils');
+const utils = require('../../lib/utils/utils');
+const StaticData = require('../../lib/data/static');
 const readfile = util.promisify(fs.readFile);
 
 utils._datasetsConfig = {
@@ -32,7 +33,7 @@ utils._datasetsConfig = {
                 "connection": "http://example.test/connections/{connection.departureStop}/{routeName}/{tripStartTime}/",
                 "resolve": {
                     "routeName": "routes.route_long_name.replace(/\\s/gi, '')",
-                    "tripStartTime": "format(trips.startTime, 'YYYYMMDD')"
+                    "tripStartTime": "format(trips.startTime, 'yyyyMMdd')"
                 }
             }
         }
@@ -48,20 +49,23 @@ var low_limit = null;
 var high_limit = null;
 var liveData = null;
 var combined = null
+var staticFragments = null;
 
 jest.setTimeout(30000);
 
 test('Test that the in memory static fragments index is created', async () => {
     expect.assertions(2);
-    await utils.updateStaticFragments();
-    expect(utils.staticFragments['test']).toBeDefined();
-    expect(utils.staticFragments['test']['2019-06-12T11:13:10.334Z'].length).toBeGreaterThan(0);
+    const staticData = new StaticData(utils.datasetsConfig['storage'], utils.datasetsConfig['datasets'])
+    await staticData.updateStaticFragments();
+    staticFragments = staticData.staticFragments;
+    expect(staticFragments['test']).toBeDefined();
+    expect(staticFragments['test']['2019-06-12T11:13:10.334Z'].length).toBeGreaterThan(0);
 });
 
 test('Test that the correct fragment is found for a given departure time', () => {
     expect.assertions(3);
     let [version, fragment, index] = utils.findResource('test', new Date('2019-06-04T15:10:00.000Z').getTime(),
-        ['2019-06-12T11:13:10.334Z']);
+        ['2019-06-12T11:13:10.334Z'], staticFragments);
     v = version;
     sf = new Date(fragment);
     i = index;
@@ -73,7 +77,7 @@ test('Test that the correct fragment is found for a given departure time', () =>
 test('Test that the correct real-time fragments are found', () => {
     expect.assertions(3);
     low_limit = sf.getTime();
-    high_limit = utils.staticFragments['test'][v][i + 1];
+    high_limit = staticFragments['test'][v][i + 1];
     let [rt_fragments, remove] = utils.findRTData('test', low_limit, high_limit);
     rtf = rt_fragments;
     rmf = remove;
@@ -130,7 +134,8 @@ test('Test that resulting JSON-LD data is correct', async () => {
         departureTime: sf,
         version: v,
         index: i,
-        data: combined
+        data: combined,
+        staticFragments: staticFragments
     });
     let rdf = await jsonld.toRDF(data);
     expect(rdf).toBeDefined();
@@ -273,6 +278,7 @@ test('Test to create DCAT catalog', async () => {
         send() { }
     };
     let catalog = new Catalog();
+    await catalog.getCatalog({ params: { agency: "test" }}, res);
     await catalog.getCatalog({ params: { agency: "test" }}, res);
     await del([`${utils.datasetsConfig['storage']}/catalog`], { force: true});
     catalog._storage = utils.datasetsConfig['storage'];

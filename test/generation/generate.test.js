@@ -46,13 +46,14 @@ afterAll(async () => {
         dsm.storage + '/datasets',
         dsm.storage + '/stops',
         dsm.storage + '/routes',
+        dsm.storage + '/catalog',
         dsm.storage + '/linked_connections',
         dsm.storage + '/linked_pages'
     ], { force: true });
 });
 
 test('Test creation of required folders', async () => {
-    expect.assertions(7);
+    expect.assertions(8);
     dsm.initDirs();
     dsm.initCompanyDirs(dsm._datasets[0]['companyName']);
     expect(fs.existsSync(dsm.storage + '/tmp')).toBeTruthy();
@@ -60,6 +61,7 @@ test('Test creation of required folders', async () => {
     expect(fs.existsSync(dsm.storage + '/datasets/test')).toBeTruthy();
     expect(fs.existsSync(dsm.storage + '/stops/test')).toBeTruthy();
     expect(fs.existsSync(dsm.storage + '/routes/test')).toBeTruthy();
+    expect(fs.existsSync(dsm.storage + '/catalog/test')).toBeTruthy();
     expect(fs.existsSync(dsm.storage + '/linked_connections/test')).toBeTruthy();
     expect(fs.existsSync(dsm.storage + '/linked_pages/test')).toBeTruthy();
 });
@@ -144,14 +146,17 @@ test('Test processing a GTFS-RT update', async () => {
 });
 
 test('Call functions to increase coverage', async () => {
-    expect.assertions(15);
+    expect.assertions(18);
     await expect(dsm.manage()).resolves.not.toBeDefined();
     expect(dsm.launchStaticJob(0, dsm._datasets[0])).not.toBeDefined();
     expect(dsm.launchRTJob(0, dsm._datasets[0])).not.toBeDefined();
     expect(dsm.rtCompressionJob(dsm._datasets[0])).not.toBeDefined();
-    await expect(dsm.downloadDataset({ downloadUrl: 'https' })).rejects.toBeDefined();
+    await expect(dsm.downloadDataset({ downloadUrl: 'http:' })).rejects.toBeDefined();
+    await expect(dsm.downloadDataset({ downloadUrl: 'https:' })).rejects.toBeDefined();
     await expect(dsm.download_http()).rejects.toBeDefined();
+    await expect(dsm.download_http(dsm._datasets[0], 'http://gtfs.irail.be/nmbs/gtfs/latest.zip')).resolves.toBeDefined();
     await expect(dsm.download_https()).rejects.toBeDefined();
+    await expect(dsm.download_https(dsm._datasets[0], 'https://gtfs.irail.be/nmbs/gtfs/latest.zip')).resolves.toBeDefined();
     expect(dsm.cleanRemoveCache({ '2020-01-25T10:00:00.000Z': [] }, new Date())).toBeDefined();
     expect(dsm.storeRemoveList([['key', { '@id': 'id', track: [] }]], dsm.storage + '/real_time/test', new Date())).not.toBeDefined();
     await expect(dsm.cleanUpIncompletes()).resolves.toHaveLength(1);
