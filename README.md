@@ -128,14 +128,7 @@ Note that for defining the URI templates you can use the entity `connection` whi
 
 ## Run it
 
-Once you have properly configured the server you can start it like this:
-
-```bash
-cd linked-connections-server
-npm start
-```
-
-Or run the data fetching and the Web server separately:
+Once you have properly configured the server you can run the data fetching and the Web server separately:
 
 ```bash
 cd linked-connections-server
