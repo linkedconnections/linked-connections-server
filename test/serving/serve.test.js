@@ -262,7 +262,7 @@ test('Test that the cache headers handled correctly', () => {
 });
 
 test('Test to create DCAT catalog', async () => {
-    expect.assertions(1);
+    expect.assertions(2);
     fs.mkdirSync(`${utils.datasetsConfig['storage']}/catalog`);
     fs.mkdirSync(`${utils.datasetsConfig['storage']}/catalog/test`);
     let res = {
@@ -278,6 +278,8 @@ test('Test to create DCAT catalog', async () => {
         send() { }
     };
     let catalog = new Catalog();
+    await catalog.getCatalog({ params: { agency: "fakeAgency"}}, res);
+    expect(res.sts).toBe(404);
     await catalog.getCatalog({ params: { agency: "test" }}, res);
     await catalog.getCatalog({ params: { agency: "test" }}, res);
     await del([`${utils.datasetsConfig['storage']}/catalog`], { force: true});
