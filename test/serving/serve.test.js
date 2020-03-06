@@ -261,6 +261,42 @@ test('Test that the cache headers handled correctly', () => {
     expect(res.headers.get('Cache-Control').indexOf('max-age=86401')).toBeGreaterThan(-1);
 });
 
+test('Test to retrieve list of stops', async () => {
+    expect.assertions(1);
+    let stops = new Stops();
+    stops._storage = utils.datasetsConfig['storage'];
+    stops._datasets = utils.datasetsConfig['datasets'];
+    let stps = await stops.createStopList('test');
+    expect(stps['@graph'].length).toBeGreaterThan(0);
+});
+
+test('Test to retrieve list of routes', async () => {
+    expect.assertions(1);
+    let routes = new Routes();
+    routes._storage = utils.datasetsConfig['storage'];
+    routes._datasets = utils.datasetsConfig['datasets'];
+    let rts = await routes.createRouteList('test');
+    expect(rts['@graph'].length).toBeGreaterThan(0);
+});
+
+test('Simulate http request for routes', async () => {
+    expect.assertions(2);
+    let routes = new Routes();
+    routes._storage = utils.datasetsConfig['storage'];
+    routes._datasets = utils.datasetsConfig['datasets'];
+    let res = {
+        headers: new Map(),
+        toSend: null,
+        set: h => {},
+        send(data) { this.toSend = data }
+    };
+    await routes.getRoutes({ params: { agency: 'test' } }, res);
+    expect(res.toSend).not.toBeNull();
+    res.toSend = null;
+    await routes.getRoutes({ params: { agency: 'test' } }, res);
+    expect(res.toSend).not.toBeNull();
+});
+
 test('Test to create DCAT catalog', async () => {
     expect.assertions(2);
     fs.mkdirSync(`${utils.datasetsConfig['storage']}/catalog`);
@@ -287,45 +323,6 @@ test('Test to create DCAT catalog', async () => {
     catalog._datasets = utils.datasetsConfig['datasets'];
     let cat = await catalog.createCatalog('test');
     expect(cat['@context']).toBeDefined();
-});
-
-test('Test to retrieve list of stops', async () => {
-    expect.assertions(1);
-    let stops = new Stops();
-    stops._storage = utils.datasetsConfig['storage'];
-    stops._datasets = utils.datasetsConfig['datasets'];
-    let stps = await stops.createStopList('test');
-    expect(stps['@graph'].length).toBeGreaterThan(0);
-});
-
-test('Test to retrieve list of routes', async () => {
-    expect.assertions(1);
-    let routes = new Routes();
-    routes._storage = utils.datasetsConfig['storage'];
-    routes._datasets = utils.datasetsConfig['datasets'];
-    let rts = await routes.createRouteList('test');
-    expect(rts['@graph'].length).toBeGreaterThan(0);
-});
-
-test('Simulate http request for routes', async () => {
-    expect.assertions(2);
-    fs.mkdirSync(`${utils.datasetsConfig['storage']}/routes`);
-    fs.mkdirSync(`${utils.datasetsConfig['storage']}/routes/test`);
-    let routes = new Routes();
-    routes._storage = utils.datasetsConfig['storage'];
-    routes._datasets = utils.datasetsConfig['datasets'];
-    let res = {
-        headers: new Map(),
-        toSend: null,
-        set: h => {},
-        send(data) { this.toSend = data }
-    };
-    await routes.getRoutes({ params: { agency: 'test' } }, res);
-    expect(res.toSend).not.toBeNull();
-    res.toSend = null;
-    await routes.getRoutes({ params: { agency: 'test' } }, res);
-    expect(res.toSend).not.toBeNull();
-    await del([`${utils.datasetsConfig['storage']}/routes`], { force: true});
 });
 
 function findConnection(id, array) {
