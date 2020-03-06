@@ -261,32 +261,6 @@ test('Test that the cache headers handled correctly', () => {
     expect(res.headers.get('Cache-Control').indexOf('max-age=86401')).toBeGreaterThan(-1);
 });
 
-test('Test to create DCAT catalog', async () => {
-    expect.assertions(1);
-    fs.mkdirSync(`${utils.datasetsConfig['storage']}/catalog`);
-    fs.mkdirSync(`${utils.datasetsConfig['storage']}/catalog/test`);
-    let res = {
-        sts: null,
-        headers: new Map(),
-        set(header) {
-            this.headers.set(Object.keys(header)[0], header[Object.keys(header)[0]]);
-        },
-        status(status) {
-            this.sts = status;
-            return this;
-        },
-        send() { }
-    };
-    let catalog = new Catalog();
-    await catalog.getCatalog({ params: { agency: "test" }}, res);
-    await catalog.getCatalog({ params: { agency: "test" }}, res);
-    await del([`${utils.datasetsConfig['storage']}/catalog`], { force: true});
-    catalog._storage = utils.datasetsConfig['storage'];
-    catalog._datasets = utils.datasetsConfig['datasets'];
-    let cat = await catalog.createCatalog('test');
-    expect(cat['@context']).toBeDefined();
-});
-
 test('Test to retrieve list of stops', async () => {
     expect.assertions(1);
     let stops = new Stops();
@@ -307,8 +281,6 @@ test('Test to retrieve list of routes', async () => {
 
 test('Simulate http request for routes', async () => {
     expect.assertions(2);
-    fs.mkdirSync(`${utils.datasetsConfig['storage']}/routes`);
-    fs.mkdirSync(`${utils.datasetsConfig['storage']}/routes/test`);
     let routes = new Routes();
     routes._storage = utils.datasetsConfig['storage'];
     routes._datasets = utils.datasetsConfig['datasets'];
@@ -323,7 +295,34 @@ test('Simulate http request for routes', async () => {
     res.toSend = null;
     await routes.getRoutes({ params: { agency: 'test' } }, res);
     expect(res.toSend).not.toBeNull();
-    await del([`${utils.datasetsConfig['storage']}/routes`], { force: true});
+});
+
+test('Test to create DCAT catalog', async () => {
+    expect.assertions(2);
+    fs.mkdirSync(`${utils.datasetsConfig['storage']}/catalog`);
+    fs.mkdirSync(`${utils.datasetsConfig['storage']}/catalog/test`);
+    let res = {
+        sts: null,
+        headers: new Map(),
+        set(header) {
+            this.headers.set(Object.keys(header)[0], header[Object.keys(header)[0]]);
+        },
+        status(status) {
+            this.sts = status;
+            return this;
+        },
+        send() { }
+    };
+    let catalog = new Catalog();
+    await catalog.getCatalog({ params: { agency: "fakeAgency"}}, res);
+    expect(res.sts).toBe(404);
+    await catalog.getCatalog({ params: { agency: "test" }}, res);
+    await catalog.getCatalog({ params: { agency: "test" }}, res);
+    await del([`${utils.datasetsConfig['storage']}/catalog`], { force: true});
+    catalog._storage = utils.datasetsConfig['storage'];
+    catalog._datasets = utils.datasetsConfig['datasets'];
+    let cat = await catalog.createCatalog('test');
+    expect(cat['@context']).toBeDefined();
 });
 
 function findConnection(id, array) {
