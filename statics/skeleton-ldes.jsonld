@@ -1,71 +1,70 @@
 {
   "@context": {
-    "tree":"https://w3id.org/tree#",
-    "ldes":"https://w3id.org/ldes#",
+    "tree": "https://w3id.org/tree#",
+    "ldes": "https://w3id.org/ldes#",
     "lc": "http://semweb.mmlab.be/ns/linkedconnections#",
     "xsd": "http://www.w3.org/2001/XMLSchema#",
-    "dcterms" : "http://purl.org/dc/terms/",
+    "dcterms": "http://purl.org/dc/terms/",
     "departureTime": {
       "@id": "lc:departureTime",
       "@type": "xsd:dateTime"
     },
-    "member" :  {
-        "@id": "tree:member",
-        "@type": "@id"
+    "member": {
+      "@id": "tree:member",
+      "@type": "@id"
     },
     "view": {
-      "@type":"@id",
-      "@id":"tree:view"
+      "@type": "@id",
+      "@id": "tree:view"
     }
   },
   "@id": "https://{hostname}/{agency}/connections/feed",
   "@type": "ldes:EventStream",
-  "tree:shape" : "{...}/connectionVersionShape.ttl",
+  "tree:shape": "{...}/connectionVersionShape.ttl",
   "member": [
+    {
+      "@id": "https://{hostname}/{agency}/connections/{connectionid}/{version}",
+      "@type": "lc:Connection",
+      "dcterms:isVersionOf": "https://{hostname}/{agency}/connections/{connectionid}",
+      "dcterms:created": "2021-08-01T20:20:000Z",
+      "lc:departureDelay": "...",
+      "gtfs:trip": "...",
+      "lc:arrivalTime": "...",
+      "lc:departureTime": "...",
+      "lc:arrivalStop": "...",
+      "lc:departureStop": "..."
+    }
+  ],
+  "tree:view": {
+    "@id": "{current_page_id}",
+    "tree:relation": [
       {
-         "@id": "https://{hostname}/{agency}/connections/{connectionid}/{version}",
-         "dcterms:isVersionOf": "https://{hostname}/{agency}/connections/{connectionid}",
-         "dcterms:created": "2021-08-01T20:20:000Z",
-         "@type": "lc:Connection",
-         "lc:departureDelay": "...",
-         "gtfs:trip":"...",
-         "lc:arrivalTime":"...",
-         "lc:departureTime":"...",
-         "lc:arrivalStop":"...",
-         "lc:departureStop":"..."
+        "@type": "tree:GreaterThanRelation",
+        "tree:node": "{next page}",
+        "tree:value": {
+          "@value": "«last-timestamp-we-have-in-this-page»",
+          "@type": "xsd:dateTime"
+        },
+        "tree:path": "dcterms:created"
+      },
+      {
+        "@type": "tree:LessThanRelation",
+        "tree:node": "{previous page}",
+        "tree:value": {
+          "@value": "«first-timestamp-we-have-in-this-page»",
+          "@type": "xsd:dateTime"
+        },
+        "tree:path": "dcterms:created"
+      },
+      {
+        "@type": "tree:GreaterThanRelation",
+        "tree:node": "{last page}",
+        "tree:value": {
+          "@value": "«based on the filename of the last file»",
+          "@type": "xsd:dateTime"
+        },
+        "tree:path": "dcterms:created"
       }
-    ],
-    "tree:view": {
-      "@id": "{current_page_id}",
-      "tree:relation": [
-        {
-          "@type": "tree:GreaterThanRelation",
-          "tree:node" : "{next page}",
-          "tree:value": {
-            "@value": "«last-timestamp-we-have-in-this-page»",
-            "@type": "xsd:dateTime"
-          },
-          "tree:path": "dcterms:created"
-       },
-       {
-         "@type": "tree:LessThanRelation",
-         "tree:node" : "{previous page}",
-         "tree:value": {
-           "@value": "«first-timestamp-we-have-in-this-page»",
-           "@type": "xsd:dateTime"
-         },
-         "tree:path": "dcterms:created"
-       },
-       {
-         "@type": "tree:GreaterThanRelation",
-         "tree:node" : "{last page}",
-         "tree:value": {
-           "@value": "«based on the filename of the last file»",
-           "@type": "xsd:dateTime"
-         },
-         "tree:path": "dcterms:created"
-       }
     ]
   }
 }
-
