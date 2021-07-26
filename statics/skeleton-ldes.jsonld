@@ -42,6 +42,9 @@
     },
     "gtfs:NotAvailable": {
       "@type": "@id"
+    },
+    "tree:path": {
+      "@type": "@id"
     }
   },
   "@id": "https://{hostname}/{agency}/connections/feed",
