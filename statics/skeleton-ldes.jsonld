@@ -5,9 +5,17 @@
     "lc": "http://semweb.mmlab.be/ns/linkedconnections#",
     "xsd": "http://www.w3.org/2001/XMLSchema#",
     "dcterms": "http://purl.org/dc/terms/",
+    "gtfs": "http://vocab.gtfs.org/terms#",
     "departureTime": {
       "@id": "lc:departureTime",
       "@type": "xsd:dateTime"
+    },
+    "created": {
+      "@id": "dcterms:created",
+      "@type": "xsd:dateTime"
+    },
+    "dcterms:isVersionOf": {
+      "@type": "@id"
     },
     "member": {
       "@id": "tree:member",
@@ -16,6 +24,24 @@
     "view": {
       "@type": "@id",
       "@id": "tree:view"
+    },
+    "gtfs:trip": {
+      "@type": "@id"
+    },
+    "gtfs:route": {
+      "@type": "@id"
+    },
+    "gtfs:pickupType": {
+      "@type": "@id"
+    },
+    "gtfs:dropOffType": {
+      "@type": "@id"
+    },
+    "gtfs:Regular": {
+      "@type": "@id"
+    },
+    "gtfs:NotAvailable": {
+      "@type": "@id"
     }
   },
   "@id": "https://{hostname}/{agency}/connections/feed",
@@ -26,7 +52,7 @@
       "@id": "https://{hostname}/{agency}/connections/{connectionid}/{version}",
       "@type": "lc:Connection",
       "dcterms:isVersionOf": "https://{hostname}/{agency}/connections/{connectionid}",
-      "dcterms:created": "2021-08-01T20:20:000Z",
+      "created": "2021-08-01T20:20:000Z",
       "lc:departureDelay": "...",
       "gtfs:trip": "...",
       "lc:arrivalTime": "...",
@@ -45,7 +71,7 @@
           "@value": "«last-timestamp-we-have-in-this-page»",
           "@type": "xsd:dateTime"
         },
-        "tree:path": "dcterms:created"
+        "tree:path": "created"
       },
       {
         "@type": "tree:LessThanRelation",
@@ -54,7 +80,7 @@
           "@value": "«first-timestamp-we-have-in-this-page»",
           "@type": "xsd:dateTime"
         },
-        "tree:path": "dcterms:created"
+        "tree:path": "created"
       },
       {
         "@type": "tree:GreaterThanRelation",
@@ -63,7 +89,7 @@
           "@value": "«based on the filename of the last file»",
           "@type": "xsd:dateTime"
         },
-        "tree:path": "dcterms:created"
+        "tree:path": "created"
       }
     ]
   }
