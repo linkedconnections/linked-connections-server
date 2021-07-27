@@ -45,6 +45,12 @@
     },
     "tree:path": {
       "@type": "@id"
+    },
+    "tree:node": {
+      "@type": "@id"
+    },
+    "tree:shape": {
+      "@type": "@id"
     }
   },
   "@id": "https://{hostname}/{agency}/connections/feed",
