@@ -14,7 +14,8 @@
       "@id": "dcterms:created",
       "@type": "xsd:dateTime"
     },
-    "dcterms:isVersionOf": {
+    "isVersionOf": {
+      "@id": "dcterms:isVersionOf",
       "@type": "@id"
     },
     "member": {
@@ -60,7 +61,7 @@
     {
       "@id": "https://{hostname}/{agency}/connections/{connectionid}/{version}",
       "@type": "lc:Connection",
-      "dcterms:isVersionOf": "https://{hostname}/{agency}/connections/{connectionid}",
+      "isVersionOf": "https://{hostname}/{agency}/connections/{connectionid}",
       "created": "2021-08-01T20:20:000Z",
       "lc:departureDelay": "...",
       "gtfs:trip": "...",
