@@ -1,0 +1,136 @@
+{
+  "@context": {
+    "sh": "https://www.w3.org/ns/shacl#",
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "tree": "https://w3id.org/tree#",
+    "ldes": "https://w3id.org/ldes#",
+    "lc": "http://semweb.mmlab.be/ns/linkedconnections#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "dct": "http://purl.org/dc/terms/",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "gtfs": "http://vocab.gtfs.org/terms#",
+    "shapeOf": {
+      "@reverse": "tree:shape",
+      "@type": "@id"
+    },
+    "NodeShape": "sh:NodeShape",
+    "sh:nodeKind": {
+      "@type": "@id"
+    },
+    "sh:path": {
+      "@type": "@id"
+    },
+    "sh:datatype": {
+      "@type": "@id"
+    },
+    "sh:class": {
+      "@type": "@id"
+    },
+    "departureTime": {
+      "@id": "lc:departureTime",
+      "@type": "xsd:dateTime"
+    },
+    "created": {
+      "@id": "dcterms:created",
+      "@type": "xsd:dateTime"
+    },
+    "dcterms:isVersionOf": {
+      "@type": "@id"
+    },
+    "member": {
+      "@id": "tree:member",
+      "@type": "@id"
+    },
+    "view": {
+      "@type": "@id",
+      "@id": "tree:view"
+    },
+    "gtfs:trip": {
+      "@type": "@id"
+    },
+    "gtfs:route": {
+      "@type": "@id"
+    },
+    "gtfs:pickupType": {
+      "@type": "@id"
+    },
+    "gtfs:dropOffType": {
+      "@type": "@id"
+    },
+    "gtfs:Regular": {
+      "@type": "@id"
+    },
+    "gtfs:NotAvailable": {
+      "@type": "@id"
+    }
+  },
+  "@id": "",
+  "@type": "NodeShape",
+  "shapeOf": "",
+  "sh:property": [
+    {
+      "sh:path": "dct:isVersionOf",
+      "sh:nodeKind": "sh:IRI",
+      "sh:minCount": "1",
+      "sh:maxCount": "1"
+    },
+    {
+      "sh:path": "dct:created",
+      "sh:nodeKind": "xsd:dateTime",
+      "sh:minCount": "1",
+      "sh:maxCount": "1"
+    },
+    {
+      "sh:path": "lc:departureTime",
+      "sh:nodeKind": "xsd:dateTime",
+      "sh:minCount": "1",
+      "sh:maxCount": "1"
+    },
+    {
+      "sh:path": "lc:departureStop",
+      "sh:nodeKind": "gtfs:Stop",
+      "sh:minCount": "1",
+      "sh:maxCount": "1"
+    },
+    {
+      "sh:path": "lc:departureDelay",
+      "sh:nodeKind": "xsd:duration",
+      "sh:minCount": "1",
+      "sh:maxCount": "1"
+    },
+    {
+      "sh:path": "lc:arrivalTime",
+      "sh:nodeKind": "xsd:dateTime",
+      "sh:minCount": "1",
+      "sh:maxCount": "1"
+    },
+    {
+      "sh:path": "lc:arrivalStop",
+      "sh:nodeKind": "gtfs:Stop",
+      "sh:minCount": "1",
+      "sh:maxCount": "1"
+    },
+    {
+      "sh:path": "lc:arrivalDelay",
+      "sh:nodeKind": "xsd:duration",
+      "sh:minCount": "1",
+      "sh:maxCount": "1"
+    },
+    {
+      "sh:path": "gtfs:trip",
+      "sh:nodeKind": "rdfs:Class",
+      "sh:minCount": "1",
+      "sh:maxCount": "1"
+    },
+    {
+      "sh:path": "gtfs:pickupType",
+      "sh:nodeKind": "rdf:Property",
+      "sh:maxCount": "1"
+    },
+    {
+      "sh:path": "gtfs:dropOffType",
+      "sh:nodeKind": "rdf:Property",
+      "sh:maxCount": "1"
+    }
+  ]
+}
