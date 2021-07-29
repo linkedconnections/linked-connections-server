@@ -76,60 +76,60 @@
     },
     {
       "sh:path": "dct:created",
-      "sh:nodeKind": "xsd:dateTime",
+      "sh:nodeKind": "sh:Literal",
       "sh:minCount": "1",
       "sh:maxCount": "1"
     },
     {
       "sh:path": "lc:departureTime",
-      "sh:nodeKind": "xsd:dateTime",
+      "sh:nodeKind": "sh:Literal",
       "sh:minCount": "1",
       "sh:maxCount": "1"
     },
     {
       "sh:path": "lc:departureStop",
-      "sh:nodeKind": "gtfs:Stop",
+      "sh:nodeKind": "sh:IRI",
       "sh:minCount": "1",
       "sh:maxCount": "1"
     },
     {
       "sh:path": "lc:departureDelay",
-      "sh:nodeKind": "xsd:duration",
+      "sh:nodeKind": "sh:Literal",
       "sh:minCount": "1",
       "sh:maxCount": "1"
     },
     {
       "sh:path": "lc:arrivalTime",
-      "sh:nodeKind": "xsd:dateTime",
+      "sh:nodeKind": "sh:Literal",
       "sh:minCount": "1",
       "sh:maxCount": "1"
     },
     {
       "sh:path": "lc:arrivalStop",
-      "sh:nodeKind": "gtfs:Stop",
+      "sh:nodeKind": "sh:IRI",
       "sh:minCount": "1",
       "sh:maxCount": "1"
     },
     {
       "sh:path": "lc:arrivalDelay",
-      "sh:nodeKind": "xsd:duration",
+      "sh:nodeKind": "sh:Literal",
       "sh:minCount": "1",
       "sh:maxCount": "1"
     },
     {
       "sh:path": "gtfs:trip",
-      "sh:nodeKind": "rdfs:Class",
+      "sh:nodeKind": "sh:IRI",
       "sh:minCount": "1",
       "sh:maxCount": "1"
     },
     {
       "sh:path": "gtfs:pickupType",
-      "sh:nodeKind": "rdf:Property",
+      "sh:nodeKind": "sh:IRI",
       "sh:maxCount": "1"
     },
     {
       "sh:path": "gtfs:dropOffType",
-      "sh:nodeKind": "rdf:Property",
+      "sh:nodeKind": "sh:IRI",
       "sh:maxCount": "1"
     }
   ]
