@@ -6,7 +6,7 @@
     "ldes": "https://w3id.org/ldes#",
     "lc": "http://semweb.mmlab.be/ns/linkedconnections#",
     "xsd": "http://www.w3.org/2001/XMLSchema#",
-    "dct": "http://purl.org/dc/terms/",
+    "dcterms": "http://purl.org/dc/terms/",
     "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
     "gtfs": "http://vocab.gtfs.org/terms#",
     "shapeOf": {
@@ -26,10 +26,6 @@
     "sh:class": {
       "@type": "@id"
     },
-    "departureTime": {
-      "@id": "lc:departureTime",
-      "@type": "xsd:dateTime"
-    },
     "created": {
       "@id": "dcterms:created",
       "@type": "xsd:dateTime"
@@ -37,13 +33,33 @@
     "dcterms:isVersionOf": {
       "@type": "@id"
     },
-    "member": {
-      "@id": "tree:member",
-      "@type": "@id"
-    },
-    "view": {
+    "departureStop": {
       "@type": "@id",
-      "@id": "tree:view"
+      "@id": "lc:departureStop"
+    },
+    "arrivalStop": {
+      "@type": "@id",
+      "@id": "lc:arrivalStop"
+    },
+    "departureTime": {
+      "@id": "lc:departureTime",
+      "@type": "xsd:dateTime"
+    },
+    "arrivalTime": {
+      "@id": "lc:arrivalTime",
+      "@type": "xsd:dateTime"
+    },
+    "departureDelay": {
+      "@id": "lc:departureDelay",
+      "@type": "xsd:integer"
+    },
+    "arrivalDelay": {
+      "@id": "lc:arrivalDelay",
+      "@type": "xsd:integer"
+    },
+    "direction": {
+      "@id": "gtfs:headsign",
+      "@type": "xsd:string"
     },
     "gtfs:trip": {
       "@type": "@id"
@@ -62,6 +78,14 @@
     },
     "gtfs:NotAvailable": {
       "@type": "@id"
+    },
+    "member": {
+      "@id": "tree:member",
+      "@type": "@id"
+    },
+    "view": {
+      "@type": "@id",
+      "@id": "tree:view"
     }
   },
   "@id": "",
@@ -69,20 +93,13 @@
   "shapeOf": "",
   "sh:property": [
     {
-      "sh:path": "dct:isVersionOf",
+      "sh:path": "dcterms:isVersionOf",
       "sh:nodeKind": "sh:IRI",
       "sh:minCount": "1",
       "sh:maxCount": "1"
     },
     {
-      "sh:path": "dct:created",
-      "sh:nodeKind": "sh:Literal",
-      "sh:datatype": "xsd:dateTime",
-      "sh:minCount": "1",
-      "sh:maxCount": "1"
-    },
-    {
-      "sh:path": "lc:departureTime",
+      "sh:path": "dcterms:created",
       "sh:nodeKind": "sh:Literal",
       "sh:datatype": "xsd:dateTime",
       "sh:minCount": "1",
@@ -96,8 +113,16 @@
       "sh:maxCount": "1"
     },
     {
-      "sh:path": "lc:departureDelay",
+      "sh:path": "lc:arrivalStop",
+      "sh:nodeKind": "sh:IRI",
+      "sh:class": "gtfs:Stop",
+      "sh:minCount": "1",
+      "sh:maxCount": "1"
+    },
+    {
+      "sh:path": "lc:departureTime",
       "sh:nodeKind": "sh:Literal",
+      "sh:datatype": "xsd:dateTime",
       "sh:minCount": "1",
       "sh:maxCount": "1"
     },
@@ -109,15 +134,24 @@
       "sh:maxCount": "1"
     },
     {
-      "sh:path": "lc:arrivalStop",
-      "sh:nodeKind": "sh:IRI",
-      "sh:class": "gtfs:Stop",
+      "sh:path": "lc:departureDelay",
+      "sh:nodeKind": "sh:Literal",
+      "sh:datatype": "xsd:integer",
       "sh:minCount": "1",
       "sh:maxCount": "1"
     },
     {
       "sh:path": "lc:arrivalDelay",
       "sh:nodeKind": "sh:Literal",
+      "sh:datatype": "xsd:integer",
+      "sh:minCount": "1",
+      "sh:maxCount": "1"
+    },
+    {
+      "sh:path": "gtfs:headsign",
+      "sh:nodeKind": "sh:Literal",
+      "sh:class": "gtfs:Headsign",
+      "sh:datatype": "xsd:string",
       "sh:minCount": "1",
       "sh:maxCount": "1"
     },
