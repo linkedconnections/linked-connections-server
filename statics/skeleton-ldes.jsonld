@@ -6,9 +6,22 @@
     "xsd": "http://www.w3.org/2001/XMLSchema#",
     "dcterms": "http://purl.org/dc/terms/",
     "gtfs": "http://vocab.gtfs.org/terms#",
-    "departureTime": {
-      "@id": "lc:departureTime",
-      "@type": "xsd:dateTime"
+    "member": {
+      "@id": "tree:member",
+      "@type": "@id"
+    },
+    "view": {
+      "@type": "@id",
+      "@id": "tree:view"
+    },
+    "tree:path": {
+      "@type": "@id"
+    },
+    "tree:node": {
+      "@type": "@id"
+    },
+    "tree:shape": {
+      "@type": "@id"
     },
     "created": {
       "@id": "dcterms:created",
@@ -17,14 +30,34 @@
     "isVersionOf": {
       "@id": "dcterms:isVersionOf",
       "@type": "@id"
-    },
-    "member": {
-      "@id": "tree:member",
-      "@type": "@id"
-    },
-    "view": {
+      },
+    "departureStop": {
       "@type": "@id",
-      "@id": "tree:view"
+      "@id": "lc:departureStop"
+    },
+    "arrivalStop": {
+      "@type": "@id",
+      "@id": "lc:arrivalStop"
+    },
+    "departureTime": {
+      "@id": "lc:departureTime",
+      "@type": "xsd:dateTime"
+    },
+    "arrivalTime": {
+      "@id": "lc:arrivalTime",
+      "@type": "xsd:dateTime"
+    },
+    "departureDelay": {
+      "@id": "lc:departureDelay",
+      "@type": "xsd:integer"
+    },
+    "arrivalDelay": {
+      "@id": "lc:arrivalDelay",
+      "@type": "xsd:integer"
+    },
+    "direction": {
+      "@id": "gtfs:headsign",
+      "@type": "xsd:string"
     },
     "gtfs:trip": {
       "@type": "@id"
@@ -42,15 +75,6 @@
       "@type": "@id"
     },
     "gtfs:NotAvailable": {
-      "@type": "@id"
-    },
-    "tree:path": {
-      "@type": "@id"
-    },
-    "tree:node": {
-      "@type": "@id"
-    },
-    "tree:shape": {
       "@type": "@id"
     }
   },
