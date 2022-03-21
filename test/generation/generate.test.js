@@ -48,7 +48,8 @@ afterAll(async () => {
         dsm.storage + '/routes',
         dsm.storage + '/catalog',
         dsm.storage + '/linked_connections',
-        dsm.storage + '/linked_pages'
+        dsm.storage + '/linked_pages',
+        dsm.storage + '/feed_history'
     ], { force: true });
 });
 
