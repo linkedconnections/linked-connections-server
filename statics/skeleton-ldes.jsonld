@@ -30,7 +30,9 @@
     "isVersionOf": {
       "@id": "dcterms:isVersionOf",
       "@type": "@id"
-      },
+    },
+    "Connection": "lc:Connection",
+    "CancelledConnection": "lc:CancelledConnection",
     "departureStop": {
       "@type": "@id",
       "@id": "lc:departureStop"
@@ -84,7 +86,7 @@
   "member": [
     {
       "@id": "https://{hostname}/{agency}/connections/{connectionid}/{version}",
-      "@type": "lc:Connection",
+      "@type": "{ConnectionType}",
       "isVersionOf": "https://{hostname}/{agency}/connections/{connectionid}",
       "created": "2021-08-01T20:20:000Z",
       "lc:departureDelay": "...",
