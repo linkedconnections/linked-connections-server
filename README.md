@@ -47,6 +47,8 @@ The Web Server does not provide any functionality by itself, it needs at least o
 
 - **storage:** This is the path that tells the server where to store and where to look for the data fragments, created from the different datasets. **This should not include a trailing slash**. Make sure you have enough disk space to store and process datasets.
 
+- **sortMemory:** Max amount of RAM memory that can be used by the Linked Connections sorting process. Default is 2G.  
+
 - **organization:** URI and name of the data publisher.
 
 - **keywords:** Related keywords for a given dataset. E.g., types of vehicles available.
