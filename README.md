@@ -63,7 +63,7 @@ The Web Server does not provide any functionality by itself, it needs at least o
 
 - **updatePeriod:** Cron expression that defines how often should the server look for and process a new version of the dataset. We use the [node-cron](https://github.com/kelektiv/node-cron) library for this.
 
-- **fragmentSize:** Defines the maximum size of every linked data fragment in bytes.
+- **fragmentSize:** Defines the maximum number of connections per data fragment.
 
 - **realTimeData:** If available, here we define all the parameters related with a GTFS-RT feed.
     - **downloadUrl:** Here we define the URL to download the GTFS-RT data feed.
@@ -79,6 +79,7 @@ The Web Server does not provide any functionality by itself, it needs at least o
 ```js
 {
     "storage": "/opt/linked-connections-data", //datasets storage path
+    "sortMemory": "4G",
     "organization": {
         "id": "https://...",
         "name": "Organization name"
@@ -91,14 +92,14 @@ The Web Server does not provide any functionality by itself, it needs at least o
             "downloadUrl": "https://...",
             "downloadOnLaunch": false,
             "updatePeriod": "0 0 3 * * *", //every day at 3 am
-            "fragmentSize": 50000, // 50 Kb
+            "fragmentSize": 1000, // 1000 connections/fragment
             "realTimeData": {
                 "downloadUrl": "https://...",
                 "headers": { "apiKeyHttpHeader": "my_api_key" },
                 "updatePeriod": "*/30 * * * * *", //every 30s
                 "fragmentTimeSpan": 600, // 600 seconds
                 "compressionPeriod": "0 0 3 * * *", // Every day at 3 am
-                "indexStore": "MemStore", // MemStore for RAM and KeyvStore for disk processing,=
+                "indexStore": "MemStore", // MemStore for RAM and LevelStore for disk processing
                 "deduce": true // Set true only if the GTFS-RT feed does not provide tripIds
             },
             "baseURIs": {

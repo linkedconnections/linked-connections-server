@@ -1,5 +1,6 @@
 {
     "storage": "/drive/folder/subfolder",
+    "sortMemory": "4G",
     "organization": {
         "id": "https://example.org/your/URL",
         "name": "Data publisher name"
@@ -12,14 +13,14 @@
             "downloadUrl": "http://...",
             "downloadOnLaunch": true,
             "updatePeriod": "0 0 3 28 * *",
-            "fragmentSize": 50000,
+            "fragmentSize": 1000,
             "realTimeData": {
                 "downloadUrl": "http://...",
                 "headers": { "apiKeyHeader": "my_api_key" },
                 "updatePeriod": "*/30 * * * * *",
                 "fragmentTimeSpan": 600,
                 "compressionPeriod": "* * * * * *",
-                "indexStore": "MemStore",
+                "indexStore": "LevelStore",
                 "deduce": false
             },
             "baseURIs": {
