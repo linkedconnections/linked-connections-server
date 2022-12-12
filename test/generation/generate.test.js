@@ -4,7 +4,7 @@ const util = require('util');
 const DSM = require('../../lib/manager/dataset_manager');
 const utils = require('../../lib/utils/utils');
 const cp = require('child_process');
-const jsonldstream = require('jsonld-stream');
+const JsonLParser = require('stream-json/jsonl/Parser');
 const pageWriterStream = require('../../lib/manager/pageWriterStream');
 const readdir = util.promisify(fs.readdir);
 const writeFile = util.promisify(fs.writeFile);
@@ -69,21 +69,19 @@ test('Test creation of required folders', async () => {
 
 test('Test downloading GTFS source', async () => {
     expect.assertions(1);
-    source = await dsm.downloadDataset(dsm._datasets[0]);
+    source = await dsm.getDataset(dsm._datasets[0]);
     expect(source).not.toBeNull();
 });
 
-test('Test unzipping and pre-sorting GTFS source', async () => {
-    expect.assertions(2);
+test('Test unzipping GTFS source', async () => {
+    expect.assertions(1);
     decompressed = await utils.readAndUnzip(dsm.storage + '/datasets/test/' + source + '.zip');
     expect(decompressed).not.toBeNull();
-    await dsm.preSortGTFS(decompressed);
-    expect(fs.existsSync(decompressed + '/connections_0.txt')).toBeTruthy();
 });
 
 test('Test creating Linked Connections', async () => {
-    await exec(`./node_modules/gtfs2lc/bin/gtfs2lc.js -f jsonld ${decompressed}`);
-    unsorted = `${decompressed}/linkedConnections.json`;
+    await exec(`./node_modules/gtfs2lc/bin/gtfs2lc.js -f jsonld --compressed ${decompressed}`);
+    unsorted = `${decompressed}/linkedConnections.json.gz`;
     expect.assertions(1);
     expect(fs.existsSync(unsorted)).toBeTruthy();
 });
@@ -91,7 +89,13 @@ test('Test creating Linked Connections', async () => {
 test('Test sorting Connections by departure time', async () => {
     expect.assertions(1);
     sorted = `${dsm.storage}/linked_connections/test/sorted.json`
-    await dsm.sortLCByDepartureTime(unsorted, sorted);
+    const sortedConns = await dsm.sortLCByDepartureTime(unsorted);
+    const writer = fs.createWriteStream(sorted);
+
+    for await(const data of sortedConns) {
+        writer.write(data);
+    }
+    writer.end();
     expect(fs.existsSync(sorted)).toBeTruthy();
 });
 
@@ -100,7 +104,7 @@ test('Test fragmenting the Linked Connections', () => {
     return new Promise((resolve, reject) => {
         fs.mkdirSync(`${dsm.storage}/linked_pages/test/sorted`);
         fs.createReadStream(sorted, 'utf8')
-            .pipe(new jsonldstream.Deserializer())
+            .pipe(JsonLParser.parser())
             .pipe(new pageWriterStream(`${dsm.storage}/linked_pages/test/sorted`, dsm._datasets[0]['fragmentSize']))
             .on('finish', () => {
                 resolve();
@@ -111,14 +115,6 @@ test('Test fragmenting the Linked Connections', () => {
     }).then(async () => {
         expect((await readdir(`${dsm.storage}/linked_pages/test/`)).length).toBeGreaterThan(0);
     });
-});
-
-test('Test file compression', async () => {
-    expect.assertions(2);
-    await dsm.compressAll('sorted', 'test');
-    let lps = (await readdir(`${dsm.storage}/linked_pages/test/sorted`)).filter(lp => lp.endsWith('.gz'));
-    expect(lps.length).toBeGreaterThan(0);
-    expect(fs.existsSync(`${dsm.storage}/linked_connections/test/sorted.json.gz`)).toBeTruthy();
 });
 
 // Add live config params to start gtfs-rt related tests
@@ -147,22 +143,17 @@ test('Test processing a GTFS-RT update', async () => {
 });
 
 test('Call functions to increase coverage', async () => {
-    expect.assertions(18);
+    //expect.assertions(13);
     await expect(dsm.manage()).resolves.not.toBeDefined();
     expect(dsm.launchStaticJob(0, dsm._datasets[0])).not.toBeDefined();
     expect(dsm.launchRTJob(0, dsm._datasets[0])).not.toBeDefined();
     expect(dsm.rtCompressionJob(dsm._datasets[0])).not.toBeDefined();
-    await expect(dsm.downloadDataset({ downloadUrl: 'http:' })).rejects.toBeDefined();
-    await expect(dsm.downloadDataset({ downloadUrl: 'https:' })).rejects.toBeDefined();
-    await expect(dsm.download_http()).rejects.toBeDefined();
-    await expect(dsm.download_http(dsm._datasets[0], 'http://gtfs.irail.be/nmbs/gtfs/latest.zip')).resolves.toBeDefined();
-    await expect(dsm.download_https()).rejects.toBeDefined();
-    await expect(dsm.download_https(dsm._datasets[0], 'https://gtfs.irail.be/nmbs/gtfs/latest.zip')).resolves.toBeDefined();
+    await expect(dsm.getDataset({ downloadUrl: 'http' })).rejects.toBeDefined();
+    await expect(dsm.getDataset({ downloadUrl: '/fake/path' })).rejects.toBeDefined();
     expect(dsm.cleanRemoveCache({ '2020-01-25T10:00:00.000Z': [] }, new Date())).toBeDefined();
     expect(dsm.storeRemoveList([['key', { '@id': 'id', track: [] }]], dsm.storage + '/real_time/test', new Date())).not.toBeDefined();
     await expect(dsm.cleanUpIncompletes()).resolves.toHaveLength(1);
     expect(dsm.getBaseURIs({}).stop).toBeDefined();
-    await expect(dsm.copyFileFromDisk({})).rejects.toBeDefined();
     await expect(utils.getLatestGtfsSource(dsm.storage)).resolves.toBeNull();
     await writeFile(`${dsm.storage}/datasets/test/2020-02-18T16:31:00.000Z.lock`, 'Test lock');
     await expect(dsm.cleanUpIncompletes()).resolves.toHaveLength(1);
