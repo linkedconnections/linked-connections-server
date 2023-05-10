@@ -151,14 +151,14 @@ If available, the server will redirect you to the Linked Connections fragment th
 
 The server also publishes the stops and routes of every defined GTFS datasource:
 
-```http
+```text
 http://localhost:3000/companyX/stops
 http://localhost:3000/companyX/routes
 ```
 
 A [DCAT](https://www.w3.org/TR/vocab-dcat-2/) catalog describing all datasets of a certain company can be obtained like this:
 
-```http
+```text
 http://localhost:3000/companyX/catalog
 ```
 
