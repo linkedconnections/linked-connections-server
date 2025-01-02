@@ -3,26 +3,28 @@
 /**
  * Module dependencies.
  */
-const debug = require('debug')('linked-connections-server:server');
-const http = require('http');
-const app = require('../lib/server');
-const utils = require('../lib/utils/utils');
 
+import debug from 'debug';
+import http from 'http';
+import app from '../lib/server.js';
+import { Utils } from '../lib/utils/utils.js';
+
+const utils = new Utils();
+const dbgr = debug('linked-connections-server:server');
 const server_config = utils.serverConfig;
-
 
 /**
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.PORT || server_config.port);
+const port = normalizePort(process.env.PORT || server_config.port);
 app.set('port', port);
 
 /**
  * Create HTTP server.
  */
 
-var server = http.createServer(app);
+const server = http.createServer(app);
 
 /**
  * Listen on provided port, on all network interfaces.
@@ -37,7 +39,7 @@ server.on('listening', onListening);
  */
 
 function normalizePort(val) {
-  var port = parseInt(val, 10);
+  const port = parseInt(val, 10);
 
   if (isNaN(port)) {
     // named pipe
@@ -89,5 +91,5 @@ function onListening() {
   var bind = typeof addr === 'string'
     ? 'pipe ' + addr
     : 'port ' + addr.port;
-  debug('Listening on ' + bind);
+  dbgr('Listening on ' + bind);
 }

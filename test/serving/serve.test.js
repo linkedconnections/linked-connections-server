@@ -1,16 +1,21 @@
-const fs = require('fs');
-const del = require('del');
-const util = require('util');
-const jsonld = require('jsonld');
-const Catalog = require('../../lib/routes/catalog');
-const Stops = require('../../lib/routes/stops');
-const Routes = require('../../lib/routes/routes');
-const utils = require('../../lib/utils/utils');
-const StaticData = require('../../lib/data/static');
+import { jest, test, expect } from '@jest/globals';
+import fs from 'fs';
+import util from 'util';
+import path from 'path';
+import { deleteAsync as del } from 'del';
+import jsonld from 'jsonld';
+import { Catalog } from '../../lib/routes/catalog.js';
+import { Stops } from '../../lib/routes/stops.js';
+import { Routes } from '../../lib/routes/routes.js';
+import { Utils } from '../../lib/utils/utils.js';
+import { StaticData } from '../../lib/data/static';
+
+const __dirname = path.resolve();
+const utils = new Utils();
 const readfile = util.promisify(fs.readFile);
 
 utils._datasetsConfig = {
-    "storage": __dirname + "/storage",
+    "storage": __dirname + "/test/serving/storage",
     "organization": {
         "id": "https://example.org/your/URL",
         "name": "Data publisher name"
@@ -281,7 +286,7 @@ test('Test to retrieve list of routes', async () => {
 
 test('Simulate http request for routes', async () => {
     expect.assertions(2);
-    let routes = new Routes();
+    const routes = new Routes();
     routes._storage = utils.datasetsConfig['storage'];
     routes._datasets = utils.datasetsConfig['datasets'];
     let res = {
