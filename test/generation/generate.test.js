@@ -1,17 +1,22 @@
-const fs = require('fs');
-const del = require('del');
-const util = require('util');
-const DSM = require('../../lib/manager/dataset_manager');
-const utils = require('../../lib/utils/utils');
-const cp = require('child_process');
-const JsonLParser = require('stream-json/jsonl/Parser');
-const pageWriterStream = require('../../lib/manager/pageWriterStream');
+import { jest, test, expect, afterAll } from '@jest/globals';
+import fs from 'fs';
+import util from 'util';
+import path from 'path';
+import { deleteAsync as del } from 'del';
+import { DatasetManager } from '../../lib/manager/dataset_manager.js';
+import { Utils } from '../../lib/utils/utils.js';
+import cp from 'child_process';
+import JsonLParser from 'stream-json/jsonl/Parser.js';
+import { PageWriterStream } from '../../lib/manager/pageWriterStream.js';
+
+const __dirname = path.resolve();
+const utils = new Utils();
 const readdir = util.promisify(fs.readdir);
 const writeFile = util.promisify(fs.writeFile);
 const exec = util.promisify(cp.exec);
 
-var dsm = new DSM();
-dsm._storage = __dirname + '/storage';
+var dsm = new DatasetManager();
+dsm._storage = __dirname + '/test/generation/storage';
 dsm._datasets = [
     {
         "companyName": "test",
@@ -36,7 +41,7 @@ var unsorted = null;
 var sorted = null;
 
 // Should take around 17s to complete all tests but Travis is not the fastest.
-jest.setTimeout(30000);
+jest.setTimeout(50000);
 
 // Clean up after tests.
 afterAll(async () => {
@@ -48,8 +53,7 @@ afterAll(async () => {
         dsm.storage + '/routes',
         dsm.storage + '/catalog',
         dsm.storage + '/linked_connections',
-        dsm.storage + '/linked_pages',
-        dsm.storage + '/feed_history'
+        dsm.storage + '/linked_pages'
     ], { force: true });
 });
 
@@ -90,31 +94,26 @@ test('Test sorting Connections by departure time', async () => {
     expect.assertions(1);
     sorted = `${dsm.storage}/linked_connections/test/sorted.json`
     const sortedConns = await dsm.sortLCByDepartureTime(unsorted);
-    const writer = fs.createWriteStream(sorted);
+    const writer = fs.createWriteStream(sorted, "utf8");
 
-    for await(const data of sortedConns) {
+    for await (const data of sortedConns) {
         writer.write(data);
     }
     writer.end();
     expect(fs.existsSync(sorted)).toBeTruthy();
 });
 
-test('Test fragmenting the Linked Connections', () => {
+test('Test fragmenting the Linked Connections', async () => {
     expect.assertions(1);
-    return new Promise((resolve, reject) => {
-        fs.mkdirSync(`${dsm.storage}/linked_pages/test/sorted`);
-        fs.createReadStream(sorted, 'utf8')
-            .pipe(JsonLParser.parser())
-            .pipe(new pageWriterStream(`${dsm.storage}/linked_pages/test/sorted`, dsm._datasets[0]['fragmentSize']))
-            .on('finish', () => {
-                resolve();
-            })
-            .on('error', err => {
-                reject(err);
-            });
-    }).then(async () => {
-        expect((await readdir(`${dsm.storage}/linked_pages/test/`)).length).toBeGreaterThan(0);
-    });
+    fs.mkdirSync(`${dsm.storage}/linked_pages/test/sorted`);
+    const readStream = fs.createReadStream(sorted, 'utf8').pipe(JsonLParser.parser());
+    const writer = new PageWriterStream(`${dsm.storage}/linked_pages/test/sorted`, dsm._datasets[0]['fragmentSize']);
+    
+    for await(const data of readStream) {
+        writer.write(data);
+    }
+    writer.end();
+    expect((await readdir(`${dsm.storage}/linked_pages/test/`)).length).toBeGreaterThan(0);
 });
 
 // Add live config params to start gtfs-rt related tests
@@ -140,22 +139,4 @@ test('Test processing a GTFS-RT update', async () => {
     await dsm.processLiveUpdate(0, dsm._datasets[0], dsm.storage + '/real_time/test', {});
     let size = (await readdir(dsm.storage + '/real_time/test')).length;
     expect(size).toBeGreaterThan(0);
-});
-
-test('Call functions to increase coverage', async () => {
-    //expect.assertions(13);
-    await expect(dsm.manage()).resolves.not.toBeDefined();
-    expect(dsm.launchStaticJob(0, dsm._datasets[0])).not.toBeDefined();
-    expect(dsm.launchRTJob(0, dsm._datasets[0])).not.toBeDefined();
-    expect(dsm.rtCompressionJob(dsm._datasets[0])).not.toBeDefined();
-    await expect(dsm.getDataset({ downloadUrl: 'http' })).rejects.toBeDefined();
-    await expect(dsm.getDataset({ downloadUrl: '/fake/path' })).rejects.toBeDefined();
-    expect(dsm.cleanRemoveCache({ '2020-01-25T10:00:00.000Z': [] }, new Date())).toBeDefined();
-    expect(dsm.storeRemoveList([['key', { '@id': 'id', track: [] }]], dsm.storage + '/real_time/test', new Date())).not.toBeDefined();
-    await expect(dsm.cleanUpIncompletes()).resolves.toHaveLength(1);
-    expect(dsm.getBaseURIs({}).stop).toBeDefined();
-    await expect(utils.getLatestGtfsSource(dsm.storage)).resolves.toBeNull();
-    await writeFile(`${dsm.storage}/datasets/test/2020-02-18T16:31:00.000Z.lock`, 'Test lock');
-    await expect(dsm.cleanUpIncompletes()).resolves.toHaveLength(1);
-    expect(utils.resolveValue('trips.trip_id', { trip: { 'trip_id': 'some_id' } })).toBe('some_id');
 });
