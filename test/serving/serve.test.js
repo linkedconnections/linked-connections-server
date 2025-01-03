@@ -1,7 +1,6 @@
 import { jest, test, expect } from '@jest/globals';
 import fs from 'fs';
 import util from 'util';
-import path from 'path';
 import { deleteAsync as del } from 'del';
 import jsonld from 'jsonld';
 import { Catalog } from '../../lib/routes/catalog.js';
@@ -10,12 +9,11 @@ import { Routes } from '../../lib/routes/routes.js';
 import { Utils } from '../../lib/utils/utils.js';
 import { StaticData } from '../../lib/data/static';
 
-const __dirname = path.resolve();
 const utils = new Utils();
 const readfile = util.promisify(fs.readFile);
 
 utils._datasetsConfig = {
-    "storage": __dirname + "/test/serving/storage",
+    "storage": "./test/serving/storage",
     "organization": {
         "id": "https://example.org/your/URL",
         "name": "Data publisher name"
@@ -304,8 +302,6 @@ test('Simulate http request for routes', async () => {
 
 test('Test to create DCAT catalog', async () => {
     expect.assertions(2);
-    fs.mkdirSync(`${utils.datasetsConfig['storage']}/catalog`);
-    fs.mkdirSync(`${utils.datasetsConfig['storage']}/catalog/test`);
     let res = {
         sts: null,
         headers: new Map(),
