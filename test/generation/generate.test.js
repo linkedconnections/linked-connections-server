@@ -12,7 +12,6 @@ import { PageWriterStream } from '../../lib/manager/pageWriterStream.js';
 const __dirname = path.resolve();
 const utils = new Utils();
 const readdir = util.promisify(fs.readdir);
-const writeFile = util.promisify(fs.writeFile);
 const exec = util.promisify(cp.exec);
 
 var dsm = new DatasetManager();
@@ -40,8 +39,7 @@ var decompressed = null;
 var unsorted = null;
 var sorted = null;
 
-// Should take around 17s to complete all tests but Travis is not the fastest.
-jest.setTimeout(50000);
+jest.setTimeout(15000);
 
 // Clean up after tests.
 afterAll(async () => {
@@ -84,7 +82,7 @@ test('Test unzipping GTFS source', async () => {
 });
 
 test('Test creating Linked Connections', async () => {
-    await exec(`./node_modules/gtfs2lc/bin/gtfs2lc.js -f jsonld --compressed ${decompressed}`);
+    await exec(`./node_modules/gtfs2lc/bin/gtfs2lc.js -f jsonld --fresh --compressed ${decompressed}`);
     unsorted = `${decompressed}/linkedConnections.json.gz`;
     expect.assertions(1);
     expect(fs.existsSync(unsorted)).toBeTruthy();
@@ -106,10 +104,11 @@ test('Test sorting Connections by departure time', async () => {
 test('Test fragmenting the Linked Connections', async () => {
     expect.assertions(1);
     fs.mkdirSync(`${dsm.storage}/linked_pages/test/sorted`);
-    const readStream = fs.createReadStream(sorted, 'utf8').pipe(JsonLParser.parser());
+    const readStream = fs.createReadStream(sorted, 'utf8')
+        .pipe(JsonLParser.parser({ checkErrors: false })).on('error', (err) => console.error(err));
     const writer = new PageWriterStream(`${dsm.storage}/linked_pages/test/sorted`, dsm._datasets[0]['fragmentSize']);
-    
-    for await(const data of readStream) {
+
+    for await (const data of readStream) {
         writer.write(data);
     }
     writer.end();

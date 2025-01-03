@@ -1,6 +1,5 @@
 node_modules/
 coverage
-package-lock.json
 datasets_config.json
 server_config.json
 .coveralls.yml
