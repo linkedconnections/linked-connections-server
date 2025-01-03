@@ -301,7 +301,7 @@ test('Simulate http request for routes', async () => {
 });
 
 test('Test to create DCAT catalog', async () => {
-    expect.assertions(2);
+    expect.assertions(3);
     let res = {
         sts: null,
         headers: new Map(),
@@ -317,13 +317,16 @@ test('Test to create DCAT catalog', async () => {
     let catalog = new Catalog();
     await catalog.getCatalog({ params: { agency: "fakeAgency"}}, res);
     expect(res.sts).toBe(404);
-    await catalog.getCatalog({ params: { agency: "test" }}, res);
-    await catalog.getCatalog({ params: { agency: "test" }}, res);
-    await del([`${utils.datasetsConfig['storage']}/catalog`], { force: true});
+    
     catalog._storage = utils.datasetsConfig['storage'];
     catalog._datasets = utils.datasetsConfig['datasets'];
-    let cat = await catalog.createCatalog('test');
+    catalog._organization = utils.datasetsConfig['organization'];
+
+    const cat = await catalog.createCatalog('test');
     expect(cat['@context']).toBeDefined();
+    await catalog.getCatalog({ params: { agency: "test" }}, res);
+    expect(res.sts).toBe(200);
+    await del(utils.datasetsConfig['storage'] + '/catalog/test/catalog.json');
 });
 
 function findConnection(id, array) {
