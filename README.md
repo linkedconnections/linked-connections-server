@@ -1,6 +1,6 @@
 # Linked Connections Server
 
-[![Coverage Status](https://coveralls.io/repos/github/linkedconnections/linked-connections-server/badge.svg?branch=master)](https://coveralls.io/github/linkedconnections/linked-connections-server?branch=master)
+[![Node.js CI](https://github.com/linkedconnections/linked-connections-server/actions/workflows/ci.yml/badge.svg)](https://github.com/linkedconnections/linked-connections-server/actions/workflows/ci.yml)
 
 Express based Web Server that exposes [Linked Connections](http://linkedconnections.org/) data fragments using [JSON-LD](https://json-ld.org/) serialization format. It also provides a built-in tool to parse [GTFS](https://developers.google.com/tansit/gtfs/reference/) and [GTFS Realtime](https://developers.google.com/transit/gtfs-realtime/) transport dataset feeds into a Linked Connections Directed Acyclic Graph using [GTFS2LC](https://github.com/linkedconnections/gtfs2lc) and fragment it following a configurable predefined size.
 
