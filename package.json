@@ -12,7 +12,8 @@
     "url": "https://github.com/linkedconnections/linked-connections-server/issues"
   },
   "scripts": {
-    "test": "NODE_OPTIONS=--experimental-vm-modules npx jest"
+    "test": "NODE_OPTIONS=--experimental-vm-modules npx jest",
+    "test-ci": "NODE_OPTIONS=--experimental-vm-modules npx jest --ci"
   },
   "dependencies": {
     "accepts": "^1.3.8",
